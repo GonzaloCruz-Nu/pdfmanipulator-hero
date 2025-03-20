@@ -16,12 +16,11 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel - valores ajustados para que compresión baja sea menor reducción (mejor calidad)
-// y compresión alta sea mayor reducción (peor calidad)
+// Configuración de compresión por nivel - valores MEJORADOS para mantener mejor calidad de texto
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.8, scaleFactor: 0.9 },     // Menos compresión - mejor calidad visual
-  medium: { jpegQuality: 0.7, scaleFactor: 0.85 },  // Compresión media mejorada - calidad casi idéntica al original
-  high: { jpegQuality: 0.2, scaleFactor: 0.5 }     // Más compresión - calidad reducida
+  low: { jpegQuality: 0.95, scaleFactor: 1.0 },     // Calidad casi original - compresión mínima
+  medium: { jpegQuality: 0.85, scaleFactor: 0.95 }, // Buen balance calidad-compresión
+  high: { jpegQuality: 0.65, scaleFactor: 0.9 }     // Compresión alta manteniendo legibilidad
 };
 
 export const useCompressPDF = () => {
@@ -50,6 +49,7 @@ export const useCompressPDF = () => {
       canvasContext: ctx,
       viewport: viewport,
       intent: 'print', // Usar intent print para mejor calidad de texto
+      antialiasing: true // Mejorar la calidad visual
     };
     
     await pdfPage.render(renderContext).promise;
@@ -85,7 +85,7 @@ export const useCompressPDF = () => {
       
       for (let i = 0; i < totalPages; i++) {
         // Actualizar progreso
-        const pageProgress = 10 + Math.floor((i / totalPages) * 80);
+        const pageProgress = 10 + Math.floor((i / totalPages) * 75);
         setProgress(pageProgress);
         
         // Obtener la página
@@ -96,23 +96,19 @@ export const useCompressPDF = () => {
         const width = viewport.width;
         const height = viewport.height;
         
-        // Usar un canvas de mayor resolución para el nivel medio
+        // Crear un canvas con configuración de alta calidad
         const canvas = document.createElement('canvas');
-        
-        // Renderizar la página en el canvas con mejor calidad para nivel medio
-        if (level === 'medium') {
-          // Especificar el tipo correcto para el contexto 2D
-          const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-          if (ctx) {
-            // Estas propiedades sí existen en CanvasRenderingContext2D
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-          }
+        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+        if (ctx) {
+          // Aplicar configuración para mejorar la calidad visual
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
         }
         
+        // Renderizar la página en el canvas con mejor calidad
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
-        // Convertir a JPEG con calidad ajustada según nivel
+        // Convertir a JPEG con calidad ajustada según nivel (valores más altos = mejor calidad)
         const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
         
         // Extraer la base64
@@ -140,8 +136,14 @@ export const useCompressPDF = () => {
         });
       }
       
+      // Indicar progreso antes de guardar
+      setProgress(85);
+      
       // Guardar el documento comprimido
       const compressedBytes = await newPdfDoc.save();
+      
+      // Progreso casi completado después de guardar
+      setProgress(95);
       
       // Crear un nuevo archivo
       return new File(
@@ -151,6 +153,8 @@ export const useCompressPDF = () => {
       );
     } catch (error) {
       console.error('Error al comprimir PDF con canvas:', error);
+      // Asegurar que el progreso se actualiza incluso en caso de error
+      setProgress(100);
       return null;
     }
   }
@@ -187,7 +191,9 @@ export const useCompressPDF = () => {
       setProgress(10);
       
       const compressedFile = await compressPDFWithCanvas(file, compressionLevel);
-      setProgress(90);
+      
+      // Asegurar que progreso llega a 100 siempre
+      setProgress(100);
       
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
@@ -205,14 +211,14 @@ export const useCompressPDF = () => {
         setCompressionError('Error al comprimir el PDF. Intenta con otro archivo o nivel de compresión.');
         toast.error('Error al comprimir el PDF.');
       }
-      
-      setProgress(100);
-      setTimeout(() => setProgress(0), 500);
     } catch (error) {
       console.error('Error al comprimir PDF:', error);
       setCompressionError('Error al procesar el PDF. Intenta con otro archivo o nivel de compresión.');
       toast.error('Error al comprimir el PDF.');
     } finally {
+      // Asegurar que se completa el progreso incluso en caso de error
+      setProgress(100);
+      setTimeout(() => setProgress(0), 500);
       setIsProcessing(false);
     }
   };
