@@ -41,7 +41,7 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
       <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
         <h2 className="text-xl font-semibold">Convertir a Word (DOCX)</h2>
         
-        <Alert className="bg-naranja/5 border-naranja/20">
+        <Alert className="bg-[rgb(246,141,46)]/5 border-[rgb(246,141,46)]/20">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
             Esta herramienta extrae texto del PDF y genera un documento Word editable.
@@ -69,7 +69,7 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
         <Button 
           onClick={onConvert} 
           disabled={!file || isProcessing}
-          className="w-full bg-naranja hover:bg-naranja/90 text-white"
+          className="w-full bg-[rgb(246,141,46)] hover:bg-[rgb(246,141,46)]/90 text-white"
         >
           {isProcessing ? (
             <>

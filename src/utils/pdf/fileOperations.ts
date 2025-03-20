@@ -47,3 +47,42 @@ export const downloadFile = (file: File): void => {
     toast.error('Error al descargar archivo: ' + (error instanceof Error ? error.message : 'Error desconocido'));
   }
 };
+
+/**
+ * Verifica si un archivo PDF contiene contenido extraíble
+ * Esta función ayuda a determinar si un PDF tiene texto real o es solo imágenes
+ */
+export const verificarContenidoExtraible = (fileSize: number, textExtracted: number): {
+  extraible: boolean;
+  mensaje: string | null;
+} => {
+  // Si el archivo es grande pero se extrajo muy poco texto, probablemente sean imágenes
+  if (fileSize > 500000 && textExtracted < 500) {
+    return {
+      extraible: false,
+      mensaje: 'El PDF parece contener principalmente imágenes o gráficos. La conversión podría no incluir todo el contenido.'
+    };
+  }
+  
+  // Si no se extrajo casi nada de texto
+  if (textExtracted < 100) {
+    return {
+      extraible: false,
+      mensaje: 'No se detectó suficiente texto en el PDF. Podría ser un documento escaneado o con contenido protegido.'
+    };
+  }
+  
+  // Si la cantidad de texto es muy baja en relación al tamaño del PDF
+  const textoVsTamañoRatio = textExtracted / fileSize;
+  if (fileSize > 1000000 && textoVsTamañoRatio < 0.001) {
+    return {
+      extraible: false,
+      mensaje: 'La proporción de texto extraíble es muy baja. El PDF podría contener principalmente imágenes.'
+    };
+  }
+  
+  return {
+    extraible: true,
+    mensaje: null
+  };
+};
