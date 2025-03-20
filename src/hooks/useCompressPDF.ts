@@ -83,14 +83,14 @@ export const useCompressPDF = () => {
 
       setProgress(90);
 
-      // Verificar resultados finales con un umbral más bajo
+      // Verificar resultados finales con un umbral más bajo (0.1%)
       if (!result) {
         setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
         setCompressedFile(null);
         setCompressionInfo(null);
         toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
       } 
-      else if (compression.savedPercentage <= 0) { // Solo si es exactamente 0 o negativo
+      else if (compression.savedPercentage <= 0.1) { // Solo si es menor o igual a 0.1%
         setCompressionError('No se pudo reducir el tamaño del archivo. Puede que ya esté optimizado.');
         setCompressedFile(null);
         setCompressionInfo(null);
