@@ -171,7 +171,8 @@ export const useConvertPDF = () => {
                       new TextRun({
                         text: "Esta página no contiene texto extraíble. Podría ser una imagen o estar escaneada.",
                         italics: true,
-                        color: "red"
+                        // Cambio de "red" a un código hexadecimal de color rojo
+                        color: "#FF0000"
                       })
                     ]
                   }),
