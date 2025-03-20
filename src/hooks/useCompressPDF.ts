@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -100,9 +101,10 @@ export const useCompressPDF = () => {
         
         // Renderizar la página en el canvas con mejor calidad para nivel medio
         if (level === 'medium') {
-          // Usar antialiasing explícito para mejorar la calidad del texto
-          const ctx = canvas.getContext('2d', { alpha: false, antialias: true });
+          // Especificar el tipo correcto para el contexto 2D
+          const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
           if (ctx) {
+            // Estas propiedades sí existen en CanvasRenderingContext2D
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
           }
