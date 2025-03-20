@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -78,10 +77,7 @@ export const useConvertPDF = () => {
             const page = await pdf.getPage(i);
             
             // Intentar extraer texto usando método getTextContent
-            const textContent = await page.getTextContent({
-              // Removed normalizeWhitespace as it's not a valid property
-              disableCombineTextItems: false
-            });
+            const textContent = await page.getTextContent();
             
             // Extraer texto página por página con mejor manejo de espacios y saltos de línea
             let pageText = '';
