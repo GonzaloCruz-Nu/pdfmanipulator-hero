@@ -91,8 +91,26 @@ export const useConvertPDF = () => {
         setProgress(80);
         
         try {
-          // Generar el archivo DOCX como Blob
-          const blob = await Packer.toBlob(doc);
+          // En lugar de usar toBlob o toBuffer, usamos toBase64String que es más compatible con navegadores
+          const base64 = await Packer.toBase64String(doc);
+          
+          // Convertir base64 a Blob
+          const byteCharacters = atob(base64);
+          const byteArrays = [];
+          
+          for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+              byteNumbers[i] = slice.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+          }
+          
+          const blob = new Blob(byteArrays, {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
           
           // Crear archivo Word
           const docxFile = new File(
