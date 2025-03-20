@@ -7,6 +7,7 @@ import {
   extremeCompression,
   imageQualityCompression,
   ultimateCompression,
+  canvasBasedCompression,
   calculateCompression,
   MIN_SIZE_REDUCTION
 } from '@/utils/pdf/compression';
@@ -51,6 +52,14 @@ export const useCompressPDF = () => {
       
       // 1. Intenta todas las estrategias de compresión en paralelo para mayor velocidad
       const compressionPromises = [
+        // Nueva estrategia basada en canvas - generalmente da los mejores resultados
+        (async () => {
+          console.log("Intentando compresión basada en canvas...");
+          const result = await canvasBasedCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'canvas', result, compression };
+        })(),
+        
         // 1. Primera estrategia: compresión estándar
         (async () => {
           console.log("Intentando compresión estándar...");

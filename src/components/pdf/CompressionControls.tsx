@@ -41,7 +41,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Baja
-          <span className="block text-xs opacity-75">Calidad óptima</span>
+          <span className="block text-xs opacity-75">Ahorro: 30-40%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -52,7 +52,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Media
-          <span className="block text-xs opacity-75">Equilibrado</span>
+          <span className="block text-xs opacity-75">Ahorro: 50-70%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -63,12 +63,12 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Alta
-          <span className="block text-xs opacity-75">Máxima compresión</span>
+          <span className="block text-xs opacity-75">Ahorro: 70-90%</span>
         </button>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800">
-        <p>Para una compresión óptima, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>BAJO</strong> (para mantener mejor calidad).</p>
+        <p>Para una compresión óptima similar a ilovepdf, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>MEDIO</strong> (para equilibrio calidad/tamaño).</p>
       </div>
 
       <Button
