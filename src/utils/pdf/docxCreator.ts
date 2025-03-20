@@ -7,7 +7,7 @@ import {
 import { PageContent } from './pdfTextExtractor';
 
 /**
- * Create a DOCX document from extracted PDF content
+ * Crear un documento DOCX a partir del contenido extraído del PDF
  */
 export const createDocxFromPdfContent = async (
   fileName: string, 
@@ -16,16 +16,16 @@ export const createDocxFromPdfContent = async (
   numPages: number
 ): Promise<Blob> => {
   try {
-    console.log('Creating DOCX document with improved formatting...');
+    console.log('Creando documento DOCX con formato mejorado...');
     
-    // Create the DOCX document with better structure and formatting
+    // Crear el documento DOCX con mejor estructura y formato
     const doc = new Document({
       title: fileName.replace('.pdf', ''),
-      description: 'Document converted from PDF to DOCX',
+      description: 'Documento convertido de PDF a DOCX',
       sections: [{
         properties: {},
         children: [
-          // Document title
+          // Título del documento
           new Paragraph({
             children: [
               new TextRun({
@@ -41,11 +41,11 @@ export const createDocxFromPdfContent = async (
             }
           }),
           
-          // Subtitle with date
+          // Subtítulo con fecha
           new Paragraph({
             children: [
               new TextRun({
-                text: `Document converted to Word - ${new Date().toLocaleDateString()}`,
+                text: `Documento convertido a Word - ${new Date().toLocaleDateString()}`,
                 italics: true,
                 size: 24,
               }),
@@ -55,7 +55,7 @@ export const createDocxFromPdfContent = async (
             }
           }),
           
-          // Info table
+          // Tabla de información
           new Table({
             width: {
               size: 100,
@@ -74,7 +74,7 @@ export const createDocxFromPdfContent = async (
                 children: [
                   new TableCell({
                     children: [new Paragraph({
-                      children: [new TextRun({ text: "Original document:", bold: true })],
+                      children: [new TextRun({ text: "Documento original:", bold: true })],
                     })],
                     width: { size: 30, type: WidthType.PERCENTAGE },
                   }),
@@ -89,7 +89,7 @@ export const createDocxFromPdfContent = async (
                 children: [
                   new TableCell({
                     children: [new Paragraph({
-                      children: [new TextRun({ text: "Pages:", bold: true })],
+                      children: [new TextRun({ text: "Páginas:", bold: true })],
                     })],
                   }),
                   new TableCell({
@@ -103,7 +103,7 @@ export const createDocxFromPdfContent = async (
                 children: [
                   new TableCell({
                     children: [new Paragraph({
-                      children: [new TextRun({ text: "Original size:", bold: true })],
+                      children: [new TextRun({ text: "Tamaño original:", bold: true })],
                     })],
                   }),
                   new TableCell({
@@ -120,23 +120,23 @@ export const createDocxFromPdfContent = async (
             ],
           }),
           
-          // Separator
+          // Separador
           new Paragraph({
             text: "",
             spacing: { after: 200 },
           }),
           
-          // Main document content
+          // Contenido principal del documento
           ...pageContents.flatMap(({ text, pageNum }) => {
-            // Create an array of paragraphs for each page
+            // Crear un array de párrafos para cada página
             const paragraphs: Paragraph[] = [];
             
-            // Add page header
+            // Añadir encabezado de página
             paragraphs.push(
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `Page ${pageNum}`,
+                    text: `Página ${pageNum}`,
                     bold: true,
                     size: 28,
                   }),
@@ -146,11 +146,11 @@ export const createDocxFromPdfContent = async (
                   before: 360,
                   after: 160
                 },
-                pageBreakBefore: pageNum > 1, // Page break except for the first page
+                pageBreakBefore: pageNum > 1, // Salto de página excepto para la primera
               })
             );
             
-            // If the page contains very little text, add an informative message
+            // Si la página contiene muy poco texto, añadir un mensaje informativo
             if (text.startsWith('[') && text.endsWith(']')) {
               paragraphs.push(
                 new Paragraph({
@@ -167,24 +167,24 @@ export const createDocxFromPdfContent = async (
               return paragraphs;
             }
             
-            // Process the page text
+            // Procesar el texto de la página
             const textLines = text.split('\n');
             
-            // Process each line as an independent paragraph
+            // Procesar cada línea como un párrafo independiente
             for (const line of textLines) {
               if (line.trim().length === 0) {
-                // Space between paragraphs
+                // Espacio entre párrafos
                 paragraphs.push(new Paragraph({ text: "" }));
                 continue;
               }
               
-              // Detect if the line could be a title 
+              // Detectar si la línea podría ser un título
               const couldBeHeading = line.length < 100 && 
                                      !line.trim().endsWith('.') && 
                                      !line.trim().endsWith(',') &&
                                      line.trim().length > 0;
               
-              // If it looks like a heading, format it as such
+              // Si parece un encabezado, formatearlo como tal
               if (couldBeHeading) {
                 paragraphs.push(
                   new Paragraph({
@@ -203,7 +203,7 @@ export const createDocxFromPdfContent = async (
                   })
                 );
               } else {
-                // Normal paragraph with improved size and spacing
+                // Párrafo normal con tamaño y espaciado mejorados
                 paragraphs.push(
                   new Paragraph({
                     children: [
@@ -224,11 +224,11 @@ export const createDocxFromPdfContent = async (
             return paragraphs;
           }),
           
-          // Final message
+          // Mensaje final
           new Paragraph({
             children: [
               new TextRun({
-                text: "--- End of converted document ---",
+                text: "--- Fin del documento convertido ---",
                 italics: true,
                 size: 20,
               }),
@@ -242,17 +242,17 @@ export const createDocxFromPdfContent = async (
       }],
     });
     
-    console.log('DOCX document structure created, generating binary file...');
+    console.log('Estructura del documento DOCX creada, generando archivo binario...');
     
-    // Generate document blob
+    // Generar blob del documento
     const blob = await Packer.toBlob(doc);
     const blobSizeMB = (blob.size / 1024 / 1024).toFixed(2);
     const blobSizeKB = (blob.size / 1024).toFixed(2);
-    console.log('Blob generated correctly, size:', blobSizeKB, 'KB');
+    console.log('Blob generado correctamente, tamaño:', blobSizeKB, 'KB');
     
     return blob;
   } catch (error) {
-    console.error("Error creating DOCX document:", error);
+    console.error("Error al crear el documento DOCX:", error);
     throw error;
   }
 };

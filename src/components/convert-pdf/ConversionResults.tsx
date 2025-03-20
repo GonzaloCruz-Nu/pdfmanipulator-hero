@@ -28,16 +28,16 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
         <h2 className="text-xl font-semibold">Archivo convertido</h2>
         <ul className="space-y-2">
           {convertedFiles.map((convertedFile, index) => {
-            // Always show size in KB for small files
+            // Mostrar siempre el tamaño en KB para archivos pequeños
             const fileSize = convertedFile.size;
             const fileSizeFormatted = fileSize > 1024 * 1024 
               ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
               : (fileSize / 1024).toFixed(2) + ' KB';
             
             return (
-              <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
+              <li key={index} className="flex items-center justify-between rounded-md bg-gray-100 p-3 text-sm">
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <FileText className="h-4 w-4 text-naranja" />
                   <span className="truncate max-w-[200px]">{convertedFile.name}</span>
                   <span className="text-xs text-muted-foreground">
                     ({fileSizeFormatted})
@@ -56,7 +56,7 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
           Descargar documento Word
         </Button>
         
-        {/* Improved warning for very small files */}
+        {/* Advertencia mejorada para archivos muy pequeños */}
         {convertedFiles[0]?.size < 20000 && originalFile && originalFile.size > 200000 && (
           <Alert className="mt-2 bg-amber-50 border-amber-200">
             <AlertTriangle className="h-4 w-4 text-amber-500" />

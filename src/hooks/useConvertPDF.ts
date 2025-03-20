@@ -17,52 +17,52 @@ export const useConvertPDF = () => {
   const [convertedFiles, setConvertedFiles] = useState<File[]>([]);
 
   /**
-   * Convert a PDF to DOCX (Word) format with improved text extraction
+   * Convertir un PDF a formato DOCX (Word) con extracción de texto mejorada
    */
   const convertPDF = async (file: File | null, format: string): Promise<ConvertResult> => {
     if (!file) {
-      toast.error('Please select a PDF file');
-      return { success: false, files: [], message: 'No file selected' };
+      toast.error('Por favor selecciona un archivo PDF');
+      return { success: false, files: [], message: 'No se seleccionó ningún archivo' };
     }
 
-    // Verify that we only support DOCX as format
+    // Verificar que solo soportamos DOCX como formato
     if (format !== 'docx') {
-      toast.error('Only conversion to DOCX format is supported');
-      return { success: false, files: [], message: 'Format not supported' };
+      toast.error('Solo se admite la conversión al formato DOCX');
+      return { success: false, files: [], message: 'Formato no soportado' };
     }
 
     try {
       setIsProcessing(true);
       setProgress(10);
       setConvertedFiles([]);
-      console.log('Starting PDF to DOCX conversion...', file.name, 'size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('Iniciando conversión de PDF a DOCX...', file.name, 'tamaño:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
-      // Load PDF as ArrayBuffer
+      // Cargar PDF como ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       const pdfData = new Uint8Array(arrayBuffer);
       setProgress(20);
-      console.log('PDF loaded into memory, starting processing...');
+      console.log('PDF cargado en memoria, iniciando procesamiento...');
 
-      // Extract text from PDF using the utility
+      // Extraer texto del PDF usando la utilidad
       const { pageContents, totalTextExtracted, numPages } = await extractTextFromPDF(
         pdfData,
-        (newProgress) => setProgress(newProgress)
+        (newProgress) => setProgress(Math.min(newProgress, 70)) // Limitar progreso a 70 máximo
       );
       
       setProgress(70);
-      console.log('Text extracted from all pages. Total content:', totalTextExtracted, 'characters');
+      console.log('Texto extraído de todas las páginas. Contenido total:', totalTextExtracted, 'caracteres');
       
-      // Check extracted content with flexible criteria
+      // Verificar contenido extraído con criterios flexibles
       if (totalTextExtracted < 100 && numPages > 1) {
-        console.error('Very little text extracted from PDF, possibly a scanned document or with images');
+        console.error('Muy poco texto extraído del PDF, posiblemente un documento escaneado o con imágenes');
         return { 
           success: false, 
           files: [], 
-          message: 'The document appears to contain mainly images or scanned text. Try with the OCR tool.' 
+          message: 'El documento parece contener principalmente imágenes o texto escaneado. Prueba con la herramienta OCR.' 
         };
       }
       
-      // Create DOCX document from extracted content
+      // Crear documento DOCX a partir del contenido extraído
       const docxBlob = await createDocxFromPdfContent(
         file.name,
         file.size,
@@ -73,39 +73,39 @@ export const useConvertPDF = () => {
       setProgress(85);
       
       if (!docxBlob || docxBlob.size === 0) {
-        throw new Error('The generated blob is empty');
+        throw new Error('El blob generado está vacío');
       }
       
-      // Verify the size of the generated file
-      if (docxBlob.size < 20000 && totalTextExtracted > 1000) { // 20KB minimum for documents with text
-        console.warn(`Warning: The DOCX file size (${docxBlob.size / 1024} KB) seems small for ${totalTextExtracted} characters`);
+      // Verificar el tamaño del archivo generado
+      if (docxBlob.size < 20000 && totalTextExtracted > 1000) { // 20KB mínimo para documentos con texto
+        console.warn(`Advertencia: El tamaño del archivo DOCX (${docxBlob.size / 1024} KB) parece pequeño para ${totalTextExtracted} caracteres`);
       }
       
-      // Create Word file
+      // Crear archivo Word
       const docxFile = createWordFile(docxBlob, file.name);
       
       if (docxFile.size === 0) {
-        throw new Error('The generated file is empty');
+        throw new Error('El archivo generado está vacío');
       }
       
       setConvertedFiles([docxFile]);
       
       setProgress(100);
-      console.log('Conversion completed successfully');
+      console.log('Conversión completada con éxito');
       
       return {
         success: true,
         files: [docxFile],
-        message: 'PDF converted to DOCX successfully'
+        message: 'PDF convertido a DOCX correctamente'
       };
     } catch (error) {
-      console.error('Error converting PDF:', error);
-      toast.error('Error converting PDF');
+      console.error('Error al convertir PDF:', error);
+      toast.error('Error al convertir PDF');
       
       return {
         success: false,
         files: [],
-        message: 'Error converting PDF: ' + (error instanceof Error ? error.message : 'Unknown error')
+        message: 'Error al convertir PDF: ' + (error instanceof Error ? error.message : 'Error desconocido')
       };
     } finally {
       setProgress(100);
@@ -115,11 +115,11 @@ export const useConvertPDF = () => {
   };
 
   /**
-   * Download the converted files
+   * Descargar los archivos convertidos
    */
   const downloadConvertedFiles = () => {
     if (convertedFiles.length === 0) {
-      toast.error('No files to download');
+      toast.error('No hay archivos para descargar');
       return;
     }
     

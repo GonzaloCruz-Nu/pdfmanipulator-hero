@@ -1,7 +1,7 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
+// Configurar el worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export interface PageContent {
@@ -10,7 +10,7 @@ export interface PageContent {
 }
 
 /**
- * Extract text content from a PDF file
+ * Extraer contenido de texto de un archivo PDF
  */
 export const extractTextFromPDF = async (
   pdfData: Uint8Array, 
@@ -21,64 +21,64 @@ export const extractTextFromPDF = async (
   numPages: number 
 }> => {
   try {
-    // Load the PDF document with error tolerance options
+    // Cargar el documento PDF con opciones de tolerancia a errores
     const loadingTask = pdfjsLib.getDocument({
       data: pdfData,
       disableFontFace: false,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.8.162/cmaps/',
       cMapPacked: true,
-      useSystemFonts: true, // Allow system fonts
+      useSystemFonts: true, // Permitir fuentes del sistema
     });
     
     const pdf = await loadingTask.promise;
-    console.log(`PDF loaded: ${pdf.numPages} pages`);
+    console.log(`PDF cargado: ${pdf.numPages} páginas`);
     
     onProgressUpdate(30);
     
     const numPages = pdf.numPages;
     
-    // Structure to store all PDF content
+    // Estructura para almacenar todo el contenido del PDF
     const pageContents: PageContent[] = [];
     let totalTextExtracted = 0;
     
-    // Extract text from all PDF pages with better handling
+    // Extraer texto de todas las páginas del PDF con mejor manejo
     for (let i = 1; i <= numPages; i++) {
       onProgressUpdate(30 + Math.floor((i / numPages) * 40));
-      console.log(`Processing page ${i} of ${numPages}`);
+      console.log(`Procesando página ${i} de ${numPages}`);
       
       try {
         const page = await pdf.getPage(i);
         
-        // Enhanced text extraction mode with compatible options
+        // Modo de extracción de texto mejorado con opciones compatibles
         const textContent = await page.getTextContent({
-          // Only use valid properties according to PDF.js API
+          // Solo usar propiedades válidas según la API de PDF.js
           includeMarkedContent: true,
         });
         
-        // Extract text page by page with better space and line break handling
+        // Extraer texto página por página con mejor manejo de espacios y saltos de línea
         let pageText = '';
         let lastY = null;
         let lastX = null;
         
         if (textContent.items.length === 0) {
-          console.log(`Page ${i}: No extractable text. Could be an image.`);
-          pageText = `[This page appears to contain only images or graphics without extractable text]`;
+          console.log(`Página ${i}: Sin texto extraíble. Podría ser una imagen.`);
+          pageText = `[Esta página parece contener solo imágenes o gráficos sin texto extraíble]`;
         } else {
           for (const item of textContent.items) {
             if (!('str' in item) || typeof item.str !== 'string') continue;
             
             const text = item.str;
-            const x = item.transform?.[4] || 0; // X position
-            const y = item.transform?.[5] || 0; // Y position
+            const x = item.transform?.[4] || 0; // Posición X
+            const y = item.transform?.[5] || 0; // Posición Y
             
-            // Detect line breaks based on Y position
+            // Detectar saltos de línea basados en la posición Y
             if (lastY !== null && Math.abs(y - lastY) > 3) {
-              // It's a significant line change
+              // Es un cambio de línea significativo
               pageText += '\n';
             } 
-            // Detect spaces between words based on X position
+            // Detectar espacios entre palabras basados en la posición X
             else if (lastX !== null && x - lastX > 10) {
-              // There's a significant horizontal space
+              // Hay un espacio horizontal significativo
               if (!pageText.endsWith(' ') && !text.startsWith(' ')) {
                 pageText += ' ';
               }
@@ -90,23 +90,23 @@ export const extractTextFromPDF = async (
           }
         }
         
-        // Advanced method to get content operators
+        // Método avanzado para obtener operadores de contenido
         try {
           const opList = await page.getOperatorList();
-          // Basic analysis to detect if there is content that isn't text
+          // Análisis básico para detectar si hay contenido que no es texto
           const hasImages = opList.fnArray.some(op => op === pdfjsLib.OPS.paintImageXObject);
           
           if (hasImages && pageText.trim().length < 100) {
-            console.log(`Page ${i}: Contains images but little extractable text.`);
+            console.log(`Página ${i}: Contiene imágenes pero poco texto extraíble.`);
             if (pageText.trim().length === 0) {
-              pageText = `[This page contains images without extractable text]`;
+              pageText = `[Esta página contiene imágenes sin texto extraíble]`;
             }
           }
         } catch (opError) {
-          console.warn(`Could not get operators for page ${i}:`, opError);
+          console.warn(`No se pudieron obtener operadores para la página ${i}:`, opError);
         }
         
-        // Improvement: Render to canvas as backup for pages without text
+        // Mejora: Renderizar a canvas como respaldo para páginas sin texto
         if (pageText.trim().length < 50) {
           try {
             const viewport = page.getViewport({ scale: 1.5 });
@@ -122,26 +122,26 @@ export const extractTextFromPDF = async (
                 viewport: viewport
               }).promise;
               
-              console.log(`Page ${i}: Rendered to canvas as backup`);
+              console.log(`Página ${i}: Renderizada en canvas como respaldo`);
               
-              // Informative note in the text
+              // Nota informativa en el texto
               if (pageText.trim().length === 0) {
-                pageText = `[Page ${i}: This page appears to contain mainly images or graphics]`;
+                pageText = `[Página ${i}: Esta página parece contener principalmente imágenes o gráficos]`;
               }
             }
           } catch (canvasError) {
-            console.warn(`Error rendering page ${i} to canvas:`, canvasError);
+            console.warn(`Error al renderizar la página ${i} en canvas:`, canvasError);
           }
         }
         
-        // Clean up excessive whitespace
+        // Limpiar espacios en blanco excesivos
         pageText = pageText
-          .replace(/\s+/g, ' ')  // Convert multiple spaces to one
-          .replace(/\n\s+/g, '\n')  // Remove spaces at beginning of lines
-          .replace(/\s+\n/g, '\n')  // Remove spaces at end of lines
-          .replace(/\n{3,}/g, '\n\n'); // Limit multiple line breaks to max 2
+          .replace(/\s+/g, ' ')  // Convertir múltiples espacios en uno
+          .replace(/\n\s+/g, '\n')  // Eliminar espacios al principio de las líneas
+          .replace(/\s+\n/g, '\n')  // Eliminar espacios al final de las líneas
+          .replace(/\n{3,}/g, '\n\n'); // Limitar múltiples saltos de línea a máximo 2
         
-        console.log(`Page ${i}: Extracted approximately ${pageText.length} characters`);
+        console.log(`Página ${i}: Extraídos aproximadamente ${pageText.length} caracteres`);
         totalTextExtracted += pageText.length;
         
         pageContents.push({
@@ -149,10 +149,10 @@ export const extractTextFromPDF = async (
           pageNum: i
         });
       } catch (pageError) {
-        console.error(`Error processing page ${i}:`, pageError);
-        // Instead of failing, we add a page with an error message
+        console.error(`Error al procesar la página ${i}:`, pageError);
+        // En lugar de fallar, agregamos una página con un mensaje de error
         pageContents.push({
-          text: `[Error on page ${i}: Could not extract content. Possible image or scanned content.]`,
+          text: `[Error en la página ${i}: No se pudo extraer el contenido. Posible imagen o contenido escaneado.]`,
           pageNum: i
         });
       }
@@ -164,7 +164,7 @@ export const extractTextFromPDF = async (
       numPages
     };
   } catch (error) {
-    console.error("Error extracting text from PDF:", error);
+    console.error("Error al extraer texto del PDF:", error);
     throw error;
   }
 };

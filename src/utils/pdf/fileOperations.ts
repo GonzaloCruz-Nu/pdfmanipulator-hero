@@ -2,17 +2,17 @@
 import { toast } from 'sonner';
 
 /**
- * Create a Word file from a DOCX blob
+ * Crear un archivo Word a partir de un blob DOCX
  */
 export const createWordFile = (blob: Blob, originalFileName: string): File => {
-  // Create Word file with descriptive name
+  // Crear archivo Word con nombre descriptivo
   const docxFile = new File(
     [blob],
     `${originalFileName.replace('.pdf', '')}_convertido.docx`,
     { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
   );
   
-  console.log('Word file created:', docxFile.name, 'size:', 
+  console.log('Archivo Word creado:', docxFile.name, 'tamaño:', 
     docxFile.size > 1024 * 1024 
       ? (docxFile.size / 1024 / 1024).toFixed(2) + ' MB' 
       : (docxFile.size / 1024).toFixed(2) + ' KB'
@@ -22,16 +22,16 @@ export const createWordFile = (blob: Blob, originalFileName: string): File => {
 };
 
 /**
- * Download a file to the user's device
+ * Descargar un archivo al dispositivo del usuario
  */
 export const downloadFile = (file: File): void => {
   try {
-    // Additional verification before download
+    // Verificación adicional antes de la descarga
     if (file.size === 0) {
-      throw new Error('The file to download is empty');
+      throw new Error('El archivo a descargar está vacío');
     }
     
-    // Download the file directly
+    // Descargar el archivo directamente
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url;
@@ -41,9 +41,9 @@ export const downloadFile = (file: File): void => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    toast.success('Word document downloaded successfully');
+    toast.success('Documento Word descargado correctamente');
   } catch (error) {
-    console.error('Error downloading file:', error);
-    toast.error('Error downloading file: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    console.error('Error al descargar archivo:', error);
+    toast.error('Error al descargar archivo: ' + (error instanceof Error ? error.message : 'Error desconocido'));
   }
 };
