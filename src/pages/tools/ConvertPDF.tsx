@@ -15,7 +15,7 @@ const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
   const [conversionStarted, setConversionStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('standard');
+  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('simple'); // Default to simple mode for now
   
   const { 
     convertPDF, 
