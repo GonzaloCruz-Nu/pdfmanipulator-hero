@@ -50,9 +50,8 @@ export const useConvertPDF = () => {
         
         // Estructura para almacenar todo el contenido del PDF
         const allTextContent: string[] = [];
-        const allImageContents: { dataUrl: string, width: number, height: number }[] = [];
         
-        // Extraer texto e imágenes de todas las páginas del PDF
+        // Extraer texto de todas las páginas del PDF
         for (let i = 1; i <= numPages; i++) {
           setProgress(40 + Math.floor((i / numPages) * 30));
           
@@ -64,32 +63,6 @@ export const useConvertPDF = () => {
             'str' in item ? item.str : '').filter(Boolean);
           
           allTextContent.push(`--- PÁGINA ${i} ---\n${textItems.join(' ')}`);
-          
-          // Intenta extraer imágenes si es posible
-          try {
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            
-            if (context) {
-              canvas.height = viewport.height;
-              canvas.width = viewport.width;
-              
-              await page.render({
-                canvasContext: context,
-                viewport: viewport
-              }).promise;
-              
-              // Almacenar la imagen de la página
-              allImageContents.push({
-                dataUrl: canvas.toDataURL('image/jpeg', 0.8),
-                width: viewport.width,
-                height: viewport.height
-              });
-            }
-          } catch (error) {
-            console.warn(`No se pudo extraer imagen de la página ${i}:`, error);
-          }
         }
         
         setProgress(70);
@@ -153,42 +126,6 @@ export const useConvertPDF = () => {
             })
           );
           
-          // Añadir imagen de la página (si está disponible)
-          if (allImageContents[i]) {
-            try {
-              const image = allImageContents[i];
-              // Convertir dataUrl a base64
-              const base64Image = image.dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
-              
-              // Calcular dimensiones apropiadas (conservar relación de aspecto)
-              const maxWidth = 500;  // ancho máximo en puntos para el documento
-              const ratio = image.width / image.height;
-              const width = Math.min(image.width, maxWidth);
-              const height = width / ratio;
-              
-              // Corregido: Proporcionar las propiedades requeridas para ImageRun
-              docChildren.push(
-                new Paragraph({
-                  children: [
-                    new ImageRun({
-                      data: Uint8Array.from(atob(base64Image), c => c.charCodeAt(0)),
-                      transformation: {
-                        width,
-                        height,
-                      },
-                      type: 'jpg', // Especificar el tipo de imagen como extensión
-                    }),
-                  ],
-                  spacing: {
-                    after: 200,
-                  },
-                })
-              );
-            } catch (error) {
-              console.error('Error al insertar imagen en el documento DOCX:', error);
-            }
-          }
-          
           // Añadir el texto de la página
           // Dividir el contenido en párrafos para mejor formato
           const textParagraphs = pageContent.split('\n').filter(p => p.trim());
@@ -247,28 +184,8 @@ export const useConvertPDF = () => {
         setProgress(80);
         
         try {
-          // Generar el documento como base64 y convertirlo a Blob
-          const base64 = await Packer.toBase64String(doc);
-          
-          // Convertir base64 a Blob de manera más eficiente
-          const byteCharacters = atob(base64);
-          const byteArrays = [];
-          
-          for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
-            const slice = byteCharacters.slice(offset, offset + 1024);
-            
-            const byteNumbers = new Array(slice.length);
-            for (let i = 0; i < slice.length; i++) {
-              byteNumbers[i] = slice.charCodeAt(i);
-            }
-            
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
-          }
-          
-          const blob = new Blob(byteArrays, {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          });
+          // Generar el documento como blob
+          const blob = await Packer.toBlob(doc);
           
           // Crear archivo Word con nombre descriptivo
           const docxFile = new File(
