@@ -129,18 +129,31 @@ export const useCompressPDF = () => {
       
       setProgress(90);
 
-      // Verificar si el mejor resultado es aceptable
+      // Verificar si el mejor resultado es aceptable - reducir el umbral para permitir compresiones menores
       if (!bestResult.result) {
         setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
         setCompressedFile(null);
         setCompressionInfo(null);
         toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
       } 
-      else if (bestResult.compression.savedPercentage <= 0.1) {
-        setCompressionError('No se pudo reducir significativamente el tamaño del archivo. Puede que ya esté optimizado.');
-        setCompressedFile(null);
-        setCompressionInfo(null);
-        toast.error('No se pudo comprimir el archivo PDF.');
+      // Reducimos el umbral de compresión mínima para aceptar incluso pequeñas compresiones
+      else if (bestResult.compression.savedPercentage < 0.01) {
+        // Forzar la compresión aunque sea mínima
+        if (compressionLevel === 'high') {
+          // En nivel alto, aceptamos cualquier compresión
+          setCompressedFile(bestResult.result);
+          setCompressionInfo({
+            originalSize: fileSize,
+            compressedSize: bestResult.compression.compressedSize,
+            savedPercentage: bestResult.compression.savedPercentage
+          });
+          toast.success(`PDF comprimido. Ahorro: ${bestResult.compression.savedPercentage.toFixed(1)}%`);
+        } else {
+          setCompressionError('No se pudo reducir el tamaño del archivo. Intenta con nivel de compresión ALTA para mejores resultados.');
+          setCompressedFile(null);
+          setCompressionInfo(null);
+          toast.error('Prueba con nivel de compresión ALTA para mejores resultados.');
+        }
       } 
       else {
         // Guardamos el mejor resultado

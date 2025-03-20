@@ -68,8 +68,8 @@ export const standardCompression = async (
       // Eliminar otros recursos pesados
       // Configuración global más agresiva
       if (page.node.has(PDFName.of('Resources'))) {
-        const resources = page.node.get(PDFName.of('Resources')) as PDFDict;
-        if (resources && resources.has(PDFName.of('XObject'))) {
+        const resources = page.node.get(PDFName.of('Resources'));
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
       }
@@ -145,15 +145,15 @@ export const aggressiveCompression = async (
 
       // Eliminar recursos como imágenes y fuentes grandes
       if (currentPage.node.has(PDFName.of('Resources'))) {
-        const resources = currentPage.node.get(PDFName.of('Resources')) as PDFDict;
+        const resources = currentPage.node.get(PDFName.of('Resources'));
         
         // Eliminar XObjects (imágenes principalmente)
-        if (resources && resources.has(PDFName.of('XObject'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
         // Eliminar o reducir fuentes
-        if (resources && resources.has(PDFName.of('Font'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
           // En compresor extremo, eliminar fuentes por completo
           if (level === 'high') {
             resources.delete(PDFName.of('Font'));
@@ -247,15 +247,15 @@ export const extremeCompression = async (
       
       // Eliminar recursos como imágenes para máxima compresión
       if (newPage.node.has(PDFName.of('Resources'))) {
-        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        const resources = newPage.node.get(PDFName.of('Resources'));
         
         // Eliminar XObjects (imágenes)
-        if (resources && resources.has(PDFName.of('XObject'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
         // Eliminar fuentes para alta compresión
-        if (level === 'high' && resources && resources.has(PDFName.of('Font'))) {
+        if (level === 'high' && resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
           resources.delete(PDFName.of('Font'));
         }
       }
@@ -347,14 +347,14 @@ export const imageQualityCompression = async (
       
       // Eliminar recursos para maximizar la compresión
       if (newPage.node.has(PDFName.of('Resources'))) {
-        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        const resources = newPage.node.get(PDFName.of('Resources'));
         
-        if (resources && resources.has(PDFName.of('XObject'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
         // Para compresión alta, eliminar fuentes también
-        if (level === 'high' && resources && resources.has(PDFName.of('Font'))) {
+        if (level === 'high' && resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
           resources.delete(PDFName.of('Font'));
         }
       }
@@ -461,15 +461,15 @@ export const ultimateCompression = async (
       
       // Eliminar todos los recursos posibles
       if (newPage.node.has(PDFName.of('Resources'))) {
-        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        const resources = newPage.node.get(PDFName.of('Resources'));
         
         // Eliminar XObjects (imágenes)
-        if (resources && resources.has(PDFName.of('XObject'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
         // Eliminar fuentes
-        if (resources && resources.has(PDFName.of('Font'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
           // En alta compresión, eliminar totalmente
           if (level === 'high' || level === 'medium') {
             resources.delete(PDFName.of('Font'));
@@ -477,12 +477,12 @@ export const ultimateCompression = async (
         }
         
         // Eliminar patrones
-        if (resources && resources.has(PDFName.of('Pattern'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Pattern'))) {
           resources.delete(PDFName.of('Pattern'));
         }
         
         // Eliminar shaders
-        if (resources && resources.has(PDFName.of('Shading'))) {
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Shading'))) {
           resources.delete(PDFName.of('Shading'));
         }
       }
@@ -505,3 +505,4 @@ export const ultimateCompression = async (
     return null;
   }
 };
+

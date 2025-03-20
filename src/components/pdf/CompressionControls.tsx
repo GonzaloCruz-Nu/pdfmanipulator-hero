@@ -29,7 +29,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
     <div className="mt-6">
       <h3 className="text-md font-medium mb-2">Nivel de compresión</h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Selecciona el nivel de compresión deseado. Mayor compresión puede afectar la calidad.
+        Selecciona el nivel de compresión deseado. Mayor compresión puede afectar ligeramente la calidad visual del PDF.
       </p>
       <div className="flex flex-wrap gap-3 mb-6">
         <button
@@ -40,7 +40,8 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Baja (20-40%)
+          Baja
+          <span className="block text-xs opacity-75">Calidad óptima</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -50,7 +51,8 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Media (40-60%)
+          Media
+          <span className="block text-xs opacity-75">Equilibrado</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -60,8 +62,13 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Alta (60-80%)
+          Alta
+          <span className="block text-xs opacity-75">Máxima compresión</span>
         </button>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800">
+        <p>Para una compresión óptima, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>BAJO</strong> (para mantener mejor calidad).</p>
       </div>
 
       <Button
