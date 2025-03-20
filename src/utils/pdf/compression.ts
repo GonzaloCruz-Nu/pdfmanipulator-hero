@@ -69,9 +69,7 @@ export const standardCompression = async (
     const compressedBytes = await pdfDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 100,
-      // Add new compression options
-      compress: true
+      objectsPerTick: 100
     });
     
     return new File(
@@ -139,8 +137,7 @@ export const aggressiveCompression = async (
     const compressedBytes = await newPdfDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 50,
-      compress: true
+      objectsPerTick: 50
     });
     
     return new File(
@@ -214,8 +211,7 @@ export const extremeCompression = async (
     // Save with aggressive settings
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
-      addDefaultPage: false,
-      compress: true
+      addDefaultPage: false
     });
     
     return new File(
@@ -291,8 +287,7 @@ export const imageQualityCompression = async (
     // Save with aggressive compression options
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
-      addDefaultPage: false,
-      compress: true
+      addDefaultPage: false
     });
     
     return new File(
@@ -393,8 +388,7 @@ export const ultimateCompression = async (
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 10, // Reduced for better compression
-      compress: true
+      objectsPerTick: 10 // Reduced for better compression
     });
     
     return new File(

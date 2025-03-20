@@ -40,7 +40,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Baja (50%)
+          Baja (20-40%)
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -50,7 +50,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Media (70%)
+          Media (40-60%)
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -60,7 +60,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-secondary text-muted-foreground'
           }`}
         >
-          Alta (90%)
+          Alta (60-80%)
         </button>
       </div>
 
