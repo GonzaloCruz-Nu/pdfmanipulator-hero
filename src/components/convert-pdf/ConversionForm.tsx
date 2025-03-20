@@ -4,6 +4,8 @@ import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import FileUpload from '@/components/FileUpload';
 
 interface ConversionFormProps {
@@ -12,6 +14,8 @@ interface ConversionFormProps {
   progress: number;
   onFileSelected: (files: File[]) => void;
   onConvert: () => void;
+  conversionMode?: 'standard' | 'simple';
+  onModeChange?: (mode: 'standard' | 'simple') => void;
 }
 
 const ConversionForm: React.FC<ConversionFormProps> = ({
@@ -20,6 +24,8 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
   progress,
   onFileSelected,
   onConvert,
+  conversionMode = 'standard',
+  onModeChange,
 }) => {
   return (
     <div className="space-y-6">
@@ -41,6 +47,28 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
       <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
         <h2 className="text-xl font-semibold">Convertir a Word (DOCX)</h2>
         
+        {/* Selector de método de conversión */}
+        {onModeChange && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2">Método de conversión:</h3>
+            <RadioGroup 
+              defaultValue={conversionMode} 
+              value={conversionMode}
+              onValueChange={(value: string) => onModeChange(value as 'standard' | 'simple')}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="standard" id="standard" />
+                <Label htmlFor="standard">Estándar (con formato)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="simple" id="simple" />
+                <Label htmlFor="simple">Simple (texto básico)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
+        
         <Alert className="bg-[rgb(246,141,46)]/5 border-[rgb(246,141,46)]/20">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
@@ -53,6 +81,9 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
               <li>Descarga automática del archivo final</li>
             </ol>
             <p className="mt-1">Los documentos escaneados o con imágenes pueden requerir OCR adicional.</p>
+            {conversionMode === 'simple' && (
+              <p className="mt-1 font-medium">Modo simple: Este método crea un documento Word con texto plano, sin intentar preservar el formato original del PDF.</p>
+            )}
           </AlertDescription>
         </Alert>
         
@@ -87,7 +118,7 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
               Convirtiendo PDF a Word...
             </>
           ) : (
-            'Convertir a Word'
+            `Convertir a Word${conversionMode === 'simple' ? ' (Método Simple)' : ''}`
           )}
         </Button>
       </div>

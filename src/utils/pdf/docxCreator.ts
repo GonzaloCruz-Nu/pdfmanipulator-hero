@@ -1,4 +1,3 @@
-
 import { 
   Document, Packer, Paragraph, TextRun, HeadingLevel, 
   AlignmentType, ImageRun, Table, TableRow, TableCell, 
@@ -142,10 +141,11 @@ export const createDocxFromPdfContent = async (
             pageBreakBefore: false,
           }),
           
-          // Añadir un salto de página como un párrafo separado con TextRun
+          // Salto de página - Corregido para usar TextRun con break
           new Paragraph({
             children: [
               new TextRun({
+                text: "",
                 break: 1
               })
             ],
@@ -371,4 +371,3 @@ export const createDocxFromPdfContent = async (
     throw error;
   }
 };
-

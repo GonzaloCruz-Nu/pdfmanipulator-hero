@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
+import { useSimpleConvertPDF } from '@/hooks/useSimpleConvertPDF';
 import ConversionHeader from '@/components/convert-pdf/ConversionHeader';
 import ConversionForm from '@/components/convert-pdf/ConversionForm';
 import ConversionResults from '@/components/convert-pdf/ConversionResults';
@@ -14,6 +15,7 @@ const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
   const [conversionStarted, setConversionStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('standard');
   
   const { 
     convertPDF, 
@@ -22,6 +24,15 @@ const ConvertPDF = () => {
     convertedFiles,
     downloadConvertedFiles
   } = useConvertPDF();
+  
+  // Añadimos el hook del conversor simplificado
+  const {
+    convertPDF: convertPDFSimple,
+    isProcessing: isProcessingSimple,
+    progress: progressSimple,
+    convertedFiles: convertedFilesSimple,
+    downloadConvertedFiles: downloadConvertedFilesSimple
+  } = useSimpleConvertPDF();
 
   // Reset state when a new file is selected
   useEffect(() => {
@@ -43,8 +54,15 @@ const ConvertPDF = () => {
       try {
         setConversionStarted(true);
         setErrorMessage(null);
-        console.log('Iniciando conversión para:', file.name);
-        const result = await convertPDF(file, 'docx');
+        console.log('Iniciando conversión para:', file.name, 'modo:', conversionMode);
+        
+        // Elegir el método de conversión según el modo
+        let result;
+        if (conversionMode === 'simple') {
+          result = await convertPDFSimple(file);
+        } else {
+          result = await convertPDF(file, 'docx');
+        }
         
         if (result.success) {
           // Mostrar tamaño en KB para archivos pequeños
@@ -53,9 +71,6 @@ const ConvertPDF = () => {
             ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
             : (fileSize / 1024).toFixed(2) + ' KB';
             
-          // Umbrales actualizados para advertencias:
-          // - Si Word < 20KB y PDF > 200KB = advertencia fuerte
-          // - Si Word < 50KB y PDF > 500KB = advertencia leve
           if (fileSize < 20000 && file.size > 200000) {
             toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}). El PDF probablemente contiene principalmente imágenes o texto no extraíble.`);
           } else if (fileSize < 50000 && file.size > 500000) {
@@ -79,6 +94,27 @@ const ConvertPDF = () => {
     }
   };
 
+  // Devuelve los valores activos según el modo de conversión
+  const getActiveValues = () => {
+    if (conversionMode === 'simple') {
+      return {
+        isProcessing: isProcessingSimple,
+        progress: progressSimple,
+        convertedFiles: convertedFilesSimple,
+        downloadConvertedFiles: downloadConvertedFilesSimple
+      };
+    } else {
+      return {
+        isProcessing,
+        progress,
+        convertedFiles,
+        downloadConvertedFiles
+      };
+    }
+  };
+
+  const activeValues = getActiveValues();
+
   return (
     <Layout>
       <Header />
@@ -95,19 +131,21 @@ const ConvertPDF = () => {
           >
             <ConversionForm 
               file={file}
-              isProcessing={isProcessing}
-              progress={progress}
+              isProcessing={activeValues.isProcessing}
+              progress={activeValues.progress}
               onFileSelected={handleFileSelected}
               onConvert={handleConvert}
+              conversionMode={conversionMode}
+              onModeChange={setConversionMode}
             />
 
             <ConversionResults 
-              convertedFiles={convertedFiles}
+              convertedFiles={activeValues.convertedFiles}
               originalFile={file}
-              onDownload={downloadConvertedFiles}
+              onDownload={activeValues.downloadConvertedFiles}
               errorMessage={errorMessage}
               conversionStarted={conversionStarted}
-              isProcessing={isProcessing}
+              isProcessing={activeValues.isProcessing}
             />
           </motion.div>
 
