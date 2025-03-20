@@ -52,7 +52,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Media</span>
-          <span className="block text-xs mt-1">Balance, 40-70% ahorro</span>
+          <span className="block text-xs mt-1">Buena calidad, 30-60% ahorro</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}

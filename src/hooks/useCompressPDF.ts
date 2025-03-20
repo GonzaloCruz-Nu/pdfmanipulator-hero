@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -19,7 +20,7 @@ interface CompressionInfo {
 // y compresión alta sea mayor reducción (peor calidad)
 const COMPRESSION_SETTINGS = {
   low: { jpegQuality: 0.8, scaleFactor: 0.9 },     // Menos compresión - mejor calidad visual
-  medium: { jpegQuality: 0.5, scaleFactor: 0.7 },  // Compresión media - balance
+  medium: { jpegQuality: 0.6, scaleFactor: 0.8 },  // Compresión media mejorada - mejor calidad manteniendo buen balance
   high: { jpegQuality: 0.2, scaleFactor: 0.5 }     // Más compresión - calidad reducida
 };
 
