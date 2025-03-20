@@ -18,10 +18,12 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
   const [totalPages, setTotalPages] = useState(0);
   const [pageUrl, setPageUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
 
   useEffect(() => {
     if (!file) {
       setPageUrl(null);
+      setPdfDocument(null);
       return;
     }
 
@@ -32,6 +34,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
         
         const pdf = await loadingTask.promise;
         setTotalPages(pdf.numPages);
+        setPdfDocument(pdf);
         
         // Carga la primera página
         renderPage(pdf, 1);
@@ -41,6 +44,13 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
     };
 
     loadPdf();
+    
+    // Cleanup on unmount
+    return () => {
+      if (pdfDocument) {
+        pdfDocument.destroy();
+      }
+    };
   }, [file]);
 
   const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => {
@@ -66,7 +76,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
 
       await page.render(renderContext).promise;
       
-      setPageUrl(canvas.toDataURL());
+      setPageUrl(canvas.toDataURL('image/jpeg', 0.9));
       setCurrentPage(pageNum);
     } catch (error) {
       console.error('Error al renderizar la página:', error);
@@ -74,20 +84,14 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
   };
 
   const nextPage = () => {
-    if (currentPage < totalPages && file) {
-      const fileUrl = URL.createObjectURL(file);
-      pdfjsLib.getDocument(fileUrl).promise.then(pdf => {
-        renderPage(pdf, currentPage + 1);
-      });
+    if (currentPage < totalPages && pdfDocument) {
+      renderPage(pdfDocument, currentPage + 1);
     }
   };
 
   const prevPage = () => {
-    if (currentPage > 1 && file) {
-      const fileUrl = URL.createObjectURL(file);
-      pdfjsLib.getDocument(fileUrl).promise.then(pdf => {
-        renderPage(pdf, currentPage - 1);
-      });
+    if (currentPage > 1 && pdfDocument) {
+      renderPage(pdfDocument, currentPage - 1);
     }
   };
 

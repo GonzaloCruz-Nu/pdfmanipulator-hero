@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, FileDown, Download, AlertCircle, Check, FileCheck } from 'lucide-react';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -29,10 +29,10 @@ const CompressPDF = () => {
 
   const calculateCompressionFactor = (level: 'low' | 'medium' | 'high'): number => {
     switch (level) {
-      case 'low': return 0.85;     // 15% compression
-      case 'medium': return 0.6;   // 40% compression
-      case 'high': return 0.35;    // 65% compression
-      default: return 0.6;
+      case 'low': return 0.7;     // 30% compression
+      case 'medium': return 0.4;   // 60% compression
+      case 'high': return 0.2;    // 80% compression
+      default: return 0.4;
     }
   };
 
@@ -60,6 +60,27 @@ const CompressPDF = () => {
       // Factor de compresión basado en el nivel seleccionado
       const compressionFactor = calculateCompressionFactor(compressionLevel);
       
+      // Eliminar metadatos innecesarios del documento
+      const pdfDict = pdfDoc.context.lookup(pdfDoc.context.trailerInfo.Root);
+      
+      if (pdfDict && pdfDict.dict) {
+        // Eliminar metadatos y anotaciones innecesarias
+        if (compressionLevel === 'medium' || compressionLevel === 'high') {
+          pdfDict.dict.delete(PDFName.of('Metadata'));
+          pdfDict.dict.delete(PDFName.of('StructTreeRoot'));
+          pdfDict.dict.delete(PDFName.of('MarkInfo'));
+        }
+        
+        // En alta compresión, eliminar incluso más metadatos
+        if (compressionLevel === 'high') {
+          pdfDict.dict.delete(PDFName.of('ViewerPreferences'));
+          pdfDict.dict.delete(PDFName.of('PageMode'));
+          pdfDict.dict.delete(PDFName.of('PageLayout'));
+          pdfDict.dict.delete(PDFName.of('Outlines'));
+          pdfDict.dict.delete(PDFName.of('OutputIntents'));
+        }
+      }
+      
       // Comprimir cada página
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
@@ -67,31 +88,38 @@ const CompressPDF = () => {
         // Obtener las dimensiones originales
         const { width, height } = page.getSize();
         
-        // Mantener dimensiones originales para evitar cortes
-        // pero optimizar el contenido interno
+        // Crear un nuevo PDF temporal para una sola página con alta compresión
+        const tempDoc = await PDFDocument.create();
+        const tempPage = tempDoc.addPage([width, height]);
         
-        // Eliminar metadatos y anotaciones innecesarias según el nivel de compresión
-        if (compressionLevel === 'medium' || compressionLevel === 'high') {
-          // Forma segura de eliminar anotaciones si existen
-          // Evitamos errores de TypeScript usando métodos seguros de pdf-lib
-          try {
-            const annots = page.node.lookup('Annots');
-            if (annots) {
-              page.node.delete('Annots');
-            }
-          } catch (e) {
-            // Ignorar si no hay anotaciones
+        // Copiar el contenido de la página original
+        const form = await tempDoc.embedPage(page);
+        tempPage.drawPage(form, {
+          x: 0,
+          y: 0,
+          width: width,
+          height: height,
+          opacity: 1,
+        });
+        
+        // Eliminar anotaciones y otros elementos en páginas individuales
+        const pageDict = page.node.dict;
+        
+        if (pageDict) {
+          // Siempre eliminamos estos elementos para mejor compresión
+          pageDict.delete(PDFName.of('Annots'));
+          pageDict.delete(PDFName.of('Thumb'));
+          
+          if (compressionLevel === 'medium' || compressionLevel === 'high') {
+            pageDict.delete(PDFName.of('UserUnit'));
+            pageDict.delete(PDFName.of('PieceInfo'));
           }
-        }
-        
-        // Aplicar compresión más agresiva en modo alto
-        if (compressionLevel === 'high') {
-          // Eliminamos más metadatos pero mantenemos las dimensiones originales
-          try {
-            page.node.delete('Thumb');  // Eliminar miniaturas
-            page.node.delete('UserUnit');  // Eliminar unidades personalizadas
-          } catch (e) {
-            // Ignorar si estos metadatos no existen
+          
+          if (compressionLevel === 'high') {
+            pageDict.delete(PDFName.of('Group'));
+            pageDict.delete(PDFName.of('B'));
+            pageDict.delete(PDFName.of('StructParents'));
+            pageDict.delete(PDFName.of('ID'));
           }
         }
         
@@ -102,31 +130,25 @@ const CompressPDF = () => {
       setProgress(80);
       
       // Aplicar opciones de compresión según el nivel
-      let compressionOptions: any = {};
-      
-      // Opciones básicas para todos los niveles
-      compressionOptions = {
+      let compressionOptions: any = {
         useObjectStreams: true,
+        addDefaultPage: false,
+        objectsPerTick: 100
       };
       
-      // Añadir opciones adicionales para compresión media
-      if (compressionLevel === 'medium') {
+      // Para media y alta compresión, agregar opciones adicionales
+      if (compressionLevel === 'medium' || compressionLevel === 'high') {
         compressionOptions = {
           ...compressionOptions,
-          addDefaultPage: false,
-          objectsPerTick: 100,
           updateFieldAppearances: false,
         };
       }
       
-      // Para alta compresión, añadir opciones más agresivas
+      // Para alta compresión, configuración más agresiva
       if (compressionLevel === 'high') {
         compressionOptions = {
           ...compressionOptions,
-          addDefaultPage: false,
           objectsPerTick: 50,
-          updateFieldAppearances: false,
-          // Compresión más agresiva:
           compress: true,
         };
       }
@@ -144,17 +166,80 @@ const CompressPDF = () => {
         { type: 'application/pdf' }
       );
       
-      setCompressedFile(compressedFileObj);
+      // Verificar si se logró una compresión real
+      const originalSize = file.size;
+      const compressedSize = compressedFileObj.size;
+      
+      // Si la compresión no fue efectiva, intentar un método alternativo
+      if (compressedSize > originalSize * 0.9) {
+        // Intento alternativo: compresión más agresiva de imágenes y contenido
+        const tempDoc = await PDFDocument.create();
+        
+        // Copiar cada página al nuevo documento, con menor calidad
+        for (let i = 0; i < pages.length; i++) {
+          const page = pages[i];
+          const { width, height } = page.getSize();
+          
+          // Copiar con una calidad reducida basada en el nivel de compresión
+          const embedOptions = {
+            keepXObjectsData: false,
+          };
+          
+          const embeddedPage = await tempDoc.embedPage(page, embedOptions);
+          const newPage = tempDoc.addPage([width, height]);
+          
+          // Ajustar la calidad en función del nivel de compresión
+          const quality = compressionLevel === 'low' ? 0.7 : 
+                          compressionLevel === 'medium' ? 0.5 : 0.3;
+          
+          newPage.drawPage(embeddedPage, {
+            x: 0,
+            y: 0,
+            width: width,
+            height: height,
+            opacity: quality,
+          });
+          
+          setProgress(80 + Math.floor(((i + 1) / pages.length) * 10));
+        }
+        
+        // Guardar con opciones agresivas
+        const altCompressedBytes = await tempDoc.save({
+          useObjectStreams: true,
+          addDefaultPage: false,
+          objectsPerTick: 50,
+          compress: true,
+        });
+        
+        // Crear un nuevo archivo con los bytes comprimidos alternativamente
+        const altCompressedBlob = new Blob([altCompressedBytes], { type: 'application/pdf' });
+        const altCompressedFile = new File(
+          [altCompressedBlob], 
+          `comprimido_${file.name}`, 
+          { type: 'application/pdf' }
+        );
+        
+        // Usar el resultado más pequeño
+        if (altCompressedFile.size < compressedFileObj.size) {
+          setCompressedFile(altCompressedFile);
+        } else {
+          setCompressedFile(compressedFileObj);
+        }
+      } else {
+        // La compresión original fue efectiva
+        setCompressedFile(compressedFileObj);
+      }
+      
       setProgress(100);
       
-      const originalSize = file.size / 1024; // KB
-      const compressedSize = compressedFileObj.size / 1024; // KB
-      const savedPercentage = Math.round((1 - (compressedSize / originalSize)) * 100);
+      const finalFile = compressedFileObj.size < originalSize * 0.9 ? 
+                         compressedFileObj : compressedFileObj;
+      const savedPercentage = Math.round((1 - (finalFile.size / originalSize)) * 100);
       
-      if (savedPercentage > 0) {
+      if (savedPercentage > 5) {
         toast.success(`PDF comprimido con éxito. Ahorro: ${savedPercentage}%`);
       } else {
-        toast.info('No se pudo comprimir más el PDF. Ya está optimizado.');
+        toast.info('Este PDF ya está bastante optimizado. Reducción limitada.');
       }
       
     } catch (error) {
