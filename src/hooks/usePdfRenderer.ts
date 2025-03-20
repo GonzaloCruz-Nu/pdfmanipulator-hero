@@ -37,11 +37,12 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
         setIsLoading(true);
         setError(null);
         
-        // Revocar URL anterior si existe
+        // Revoke previous URL if exists
         if (pageUrl) {
           URL.revokeObjectURL(pageUrl);
         }
         
+        console.log("Loading PDF file:", file.name);
         const fileUrl = URL.createObjectURL(file);
         const loadingTask = pdfjsLib.getDocument(fileUrl);
         
@@ -49,11 +50,13 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
         setTotalPages(pdf.numPages);
         setPdfDocument(pdf);
         
-        // Carga la primera página
-        renderPage(pdf, 1);
+        // Load first page
+        await renderPage(pdf, 1);
+        
+        console.log("PDF loaded successfully with", pdf.numPages, "pages");
       } catch (error) {
-        console.error('Error al cargar el PDF:', error);
-        setError('No se pudo cargar el PDF. El archivo podría estar dañado.');
+        console.error('Error loading PDF:', error);
+        setError('The PDF file could not be loaded. The file may be damaged.');
       } finally {
         setIsLoading(false);
       }
@@ -66,27 +69,35 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       if (pdfDocument) {
         pdfDocument.destroy();
       }
+      if (pageUrl) {
+        URL.revokeObjectURL(pageUrl);
+      }
     };
   }, [file]);
 
   const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => {
     try {
+      console.log("Rendering page", pageNum);
       setIsLoading(true);
       
+      // Get the page
       const page = await pdf.getPage(pageNum);
       const scale = 1.5;
       const viewport = page.getViewport({ scale });
 
+      // Create a canvas
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       
       if (!context) {
-        throw new Error('No se pudo obtener el contexto 2D del canvas');
+        throw new Error('Could not get 2D context from canvas');
       }
 
+      // Set dimensions
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
+      // Render PDF page
       const renderContext = {
         canvasContext: context,
         viewport: viewport,
@@ -94,12 +105,15 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
 
       await page.render(renderContext).promise;
       
-      // Use high quality JPEG for better compression while maintaining readability
-      setPageUrl(canvas.toDataURL('image/jpeg', 0.9));
+      // Set page URL and update current page
+      const newPageUrl = canvas.toDataURL('image/jpeg', 0.9);
+      setPageUrl(newPageUrl);
       setCurrentPage(pageNum);
+      
+      console.log("Page", pageNum, "rendered successfully");
     } catch (error) {
-      console.error('Error al renderizar la página:', error);
-      setError('No se pudo renderizar la página del PDF.');
+      console.error('Error rendering page:', error);
+      setError('Could not render the PDF page.');
     } finally {
       setIsLoading(false);
     }

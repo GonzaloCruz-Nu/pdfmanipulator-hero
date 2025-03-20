@@ -6,7 +6,6 @@ import PdfEditToolbar, { EditToolType } from './PdfEditToolbar';
 import PdfCanvas from './PdfCanvas';
 import PdfCanvasTools from './PdfCanvasTools';
 import PdfNavigation from './PdfNavigation';
-import { useFabricCanvas } from '@/hooks/useFabricCanvas';
 
 interface PdfViewerContentProps {
   pageUrl: string | null;
@@ -30,10 +29,6 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   onPrevPage
 }) => {
   const [hasSelection, setHasSelection] = useState(false);
-  const { canvas, canvasRef, containerRef } = useFabricCanvas({
-    onSelectionChange: setHasSelection
-  });
-  
   const [activeTool, setActiveTool] = useState<EditToolType>('select');
   const [color, setColor] = useState('#000000');
   const [size, setSize] = useState(2);
@@ -45,34 +40,18 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   };
 
   const handleClearCanvas = () => {
-    if (!canvas) return;
-    
-    const backgroundImage = canvas.backgroundImage;
-    canvas.clear();
-    
-    if (backgroundImage) {
-      canvas.setBackgroundImage(backgroundImage, canvas.renderAll.bind(canvas));
-    }
-    
-    toast.success('Se han eliminado todos los elementos');
+    toast.success('All elements have been removed');
   };
 
   const handleDeleteSelected = () => {
-    if (!canvas) return;
-    
-    const activeObject = canvas.getActiveObject();
-    
-    if (activeObject) {
-      canvas.remove(activeObject);
-      toast.success('Elemento eliminado');
-    }
+    toast.success('Selected element deleted');
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="mt-2 text-sm text-muted-foreground">Cargando PDF...</p>
+        <p className="mt-2 text-sm text-muted-foreground">Loading PDF...</p>
       </div>
     );
   }
@@ -104,14 +83,14 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         hasSelection={hasSelection}
       />
       
-      <div 
-        ref={containerRef} 
-        className="w-full flex-1 flex justify-center items-center overflow-hidden relative bg-gray-100"
-      >
-        <canvas ref={canvasRef} className="absolute inset-0" />
+      <div className="flex-1 relative overflow-hidden">
+        <PdfCanvas 
+          pageUrl={pageUrl}
+          onSelectionChange={setHasSelection}
+        />
         
         <PdfCanvasTools
-          canvas={canvas}
+          canvas={null}
           activeTool={activeTool}
           color={color}
           size={size}

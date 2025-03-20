@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Save, Trash2 } from 'lucide-react';
+import { FileText, Upload, Download, Save } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ const EditPDF = () => {
     const loadAllPageThumbnails = async () => {
       if (!pdfDocument || totalPages === 0) return;
       
+      console.log("Loading thumbnails for all", totalPages, "pages");
       const pageUrls = [];
       
       for (let i = 1; i <= totalPages; i++) {
@@ -55,12 +56,14 @@ const EditPDF = () => {
           await page.render(renderContext).promise;
           
           pageUrls.push(canvas.toDataURL('image/jpeg', 0.7));
+          console.log("Thumbnail for page", i, "created");
         } catch (error) {
           console.error(`Error rendering thumbnail for page ${i}:`, error);
         }
       }
       
       setPageRenderedUrls(pageUrls);
+      console.log("All thumbnails loaded:", pageUrls.length);
     };
     
     loadAllPageThumbnails();
@@ -69,18 +72,19 @@ const EditPDF = () => {
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       setSelectedFile(files[0]);
-      toast.success(`PDF cargado: ${files[0].name}`);
+      toast.success(`PDF loaded: ${files[0].name}`);
     }
   };
 
   const handlePageSelect = (pageNum: number) => {
+    console.log("Selecting page", pageNum);
     if (pdfDocument && pageNum >= 1 && pageNum <= totalPages) {
       renderPage(pdfDocument, pageNum);
     }
   };
 
   const handleSaveChanges = () => {
-    toast.success('Esta función está en desarrollo. Las ediciones se guardarán en futuras versiones.', {
+    toast.success('This feature is under development. Your edits will be saved in future versions.', {
       duration: 5000,
     });
   };
@@ -91,9 +95,9 @@ const EditPDF = () => {
       
       <div className="py-6">
         <div className="mb-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Editor de PDF</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">PDF Editor</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Añade texto, formas y anotaciones a tus documentos PDF.
+            Add text, shapes and annotations to your PDF documents.
           </p>
         </div>
 
@@ -104,9 +108,9 @@ const EditPDF = () => {
                 <div className="rounded-full bg-primary/10 p-3 mb-4">
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold mb-1">Seleccionar PDF</h2>
+                <h2 className="text-xl font-semibold mb-1">Select PDF</h2>
                 <p className="text-center text-muted-foreground">
-                  Sube un archivo PDF para editarlo
+                  Upload a PDF file to edit it
                 </p>
               </div>
               
@@ -127,7 +131,7 @@ const EditPDF = () => {
                 onClick={() => setSelectedFile(null)}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Cambiar archivo
+                Change file
               </Button>
               
               <div className="flex gap-2">
@@ -135,7 +139,7 @@ const EditPDF = () => {
                   variant="outline" 
                   onClick={() => setShowSidebar(!showSidebar)}
                 >
-                  {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
+                  {showSidebar ? 'Hide thumbnails' : 'Show thumbnails'}
                 </Button>
                 
                 <Button 
@@ -143,12 +147,12 @@ const EditPDF = () => {
                   onClick={handleSaveChanges}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Guardar cambios
+                  Save changes
                 </Button>
                 
                 <Button>
                   <Download className="h-4 w-4 mr-2" />
-                  Descargar PDF
+                  Download PDF
                 </Button>
               </div>
             </div>
