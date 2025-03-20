@@ -1,9 +1,9 @@
 
-// Factores de compresión mucho más agresivos para lograr compresión similar a ilovepdf
+// Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
-  low: { imageQuality: 0.5, scaleFactor: 0.8, colorReduction: 0.85 },
-  medium: { imageQuality: 0.3, scaleFactor: 0.6, colorReduction: 0.7 },
-  high: { imageQuality: 0.1, scaleFactor: 0.4, colorReduction: 0.5 }
+  low: { imageQuality: 0.7, scaleFactor: 0.8, colorReduction: 0.9 },     // Compresión baja
+  medium: { imageQuality: 0.4, scaleFactor: 0.6, colorReduction: 0.7 },  // Compresión media
+  high: { imageQuality: 0.1, scaleFactor: 0.4, colorReduction: 0.5 }     // Compresión alta
 };
 
 // Umbral mínimo de reducción de tamaño

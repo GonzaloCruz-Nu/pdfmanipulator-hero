@@ -16,11 +16,12 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel
+// Configuración de compresión por nivel - valores ajustados para que compresión baja sea menor reducción
+// y compresión alta sea mayor reducción
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.4, scaleFactor: 0.8 },
-  medium: { jpegQuality: 0.2, scaleFactor: 0.6 },
-  high: { jpegQuality: 0.1, scaleFactor: 0.4 }
+  low: { jpegQuality: 0.7, scaleFactor: 0.8 },     // Menos compresión
+  medium: { jpegQuality: 0.4, scaleFactor: 0.6 },  // Compresión media
+  high: { jpegQuality: 0.1, scaleFactor: 0.4 }     // Más compresión
 };
 
 export const useCompressPDF = () => {
@@ -143,9 +144,10 @@ export const useCompressPDF = () => {
     }
   }
 
-  // Función para calcular el porcentaje de compresión
+  // Función para calcular el porcentaje de compresión correctamente
   const calculateCompression = (originalSize: number, compressedSize: number) => {
-    const savedPercentage = Math.max(0, Math.round((1 - (compressedSize / originalSize)) * 1000) / 10);
+    // El porcentaje reducido es (tamaño original - tamaño comprimido) / tamaño original * 100
+    const savedPercentage = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 1000) / 10);
     return {
       originalSize,
       compressedSize,
