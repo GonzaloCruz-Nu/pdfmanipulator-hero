@@ -54,7 +54,7 @@ export const useConvertPDF = () => {
       const loadingTask = pdfjsLib.getDocument({
         data: pdfData,
         disableFontFace: true,
-        ignoreErrors: true
+        // Removed ignoreErrors as it's not a valid property
       });
       
       try {
@@ -79,7 +79,7 @@ export const useConvertPDF = () => {
             
             // Intentar extraer texto usando método getTextContent
             const textContent = await page.getTextContent({
-              normalizeWhitespace: true,
+              // Removed normalizeWhitespace as it's not a valid property
               disableCombineTextItems: false
             });
             

@@ -192,7 +192,7 @@ const ConvertPDF = () => {
                 </Button>
                 
                 {convertedFiles[0]?.size < 1024 && file && file.size > 100000 && (
-                  <Alert variant="warning" className="mt-2 bg-amber-50 border-amber-200">
+                  <Alert className="mt-2 bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription className="text-xs text-amber-800">
                       El documento Word generado es muy pequeño. El PDF podría contener principalmente imágenes o texto no extraíble.
