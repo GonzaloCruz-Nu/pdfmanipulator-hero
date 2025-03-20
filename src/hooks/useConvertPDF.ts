@@ -13,13 +13,18 @@ interface ConvertResult {
   message: string;
 }
 
+interface PageContent {
+  text: string;
+  pageNum: number;
+}
+
 export const useConvertPDF = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [convertedFiles, setConvertedFiles] = useState<File[]>([]);
 
   /**
-   * Convierte un PDF a formato DOCX (Word)
+   * Convierte un PDF a formato DOCX (Word) con mejoras en la extracción de texto
    */
   const convertPDF = async (file: File | null, format: string): Promise<ConvertResult> => {
     if (!file) {
@@ -37,12 +42,13 @@ export const useConvertPDF = () => {
       setIsProcessing(true);
       setProgress(10);
       setConvertedFiles([]);
-      console.log('Iniciando conversión de PDF a DOCX...');
+      console.log('Iniciando conversión de PDF a DOCX...', file.name, 'tamaño:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
       // Cargar el PDF
       const arrayBuffer = await file.arrayBuffer();
       const pdfData = new Uint8Array(arrayBuffer);
       setProgress(20);
+      console.log('PDF cargado en memoria, iniciando procesamiento...');
       
       // Usar PDF.js para cargar el documento
       const loadingTask = pdfjsLib.getDocument({ data: pdfData });
@@ -54,12 +60,9 @@ export const useConvertPDF = () => {
       const numPages = pdf.numPages;
       
       // Estructura para almacenar todo el contenido del PDF
-      const allPageContent: Array<{
-        text: string;
-        pageNum: number;
-      }> = [];
+      const allPageContent: PageContent[] = [];
       
-      // Extraer texto de todas las páginas del PDF
+      // Extraer texto de todas las páginas del PDF con mejor manejo
       for (let i = 1; i <= numPages; i++) {
         setProgress(30 + Math.floor((i / numPages) * 40));
         console.log(`Procesando página ${i} de ${numPages}`);
@@ -67,12 +70,35 @@ export const useConvertPDF = () => {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         
-        // Extraer texto página por página
-        const textItems = textContent.items
-          .map((item: any) => 'str' in item ? item.str : '')
-          .filter(Boolean);
+        // Extraer texto página por página con mejor manejo de espacios
+        let pageText = '';
+        let lastY;
+        let lastItem = null;
+
+        for (const item of textContent.items) {
+          if (!('str' in item) || !item.str) continue;
+          
+          // Si hay un cambio significativo en la posición Y, añadir un salto de línea
+          if (lastItem && lastY && Math.abs(lastY - item.transform[5]) > 5) {
+            pageText += '\n';
+          } else if (lastItem && 'str' in lastItem) {
+            // Añadir espacio entre palabras en la misma línea si no hay uno ya
+            if (!lastItem.str.endsWith(' ') && !item.str.startsWith(' ')) {
+              pageText += ' ';
+            }
+          }
+          
+          pageText += item.str;
+          lastY = item.transform[5];
+          lastItem = item;
+        }
         
-        const pageText = textItems.join(' ');
+        console.log(`Página ${i}: Extraídos aproximadamente ${pageText.length} caracteres`);
+        
+        if (pageText.trim().length === 0) {
+          console.log(`ADVERTENCIA: No se extrajo texto en la página ${i}. Puede ser una imagen o estar escaneada.`);
+        }
+        
         allPageContent.push({
           text: pageText,
           pageNum: i
@@ -80,9 +106,11 @@ export const useConvertPDF = () => {
       }
       
       setProgress(70);
-      console.log('Texto extraído, creando documento DOCX...');
+      console.log('Texto extraído de todas las páginas. Contenido total:', 
+        allPageContent.reduce((acc, page) => acc + page.text.length, 0), 'caracteres');
+      console.log('Creando documento DOCX...');
       
-      // Crear el documento DOCX
+      // Crear el documento DOCX con mejor formato
       const doc = new Document({
         title: file.name.replace('.pdf', ''),
         description: 'Documento convertido de PDF a DOCX',
@@ -91,54 +119,114 @@ export const useConvertPDF = () => {
           children: [
             // Título del documento
             new Paragraph({
-              text: `Documento: ${file.name.replace('.pdf', '')}`,
+              children: [
+                new TextRun({
+                  text: file.name.replace('.pdf', ''),
+                  bold: true,
+                  size: 32
+                })
+              ],
               heading: HeadingLevel.HEADING_1,
               alignment: AlignmentType.CENTER,
+              spacing: {
+                after: 200
+              }
             }),
             
             // Información de conversión
             new Paragraph({
-              text: `Convertido de PDF a DOCX - ${numPages} páginas`,
+              children: [
+                new TextRun({
+                  text: `Documento convertido de PDF a Word - ${numPages} páginas`,
+                  italics: true,
+                })
+              ],
               alignment: AlignmentType.CENTER,
+              spacing: {
+                after: 400
+              }
             }),
             
-            new Paragraph({ text: "" }),
-            
             // Contenido de las páginas
-            ...allPageContent.flatMap(({ text, pageNum }) => [
-              // Encabezado de página
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Página ${pageNum}`,
-                    bold: true,
-                    size: 28,
+            ...allPageContent.flatMap(({ text, pageNum }) => {
+              // Si la página está vacía, añadir un mensaje de advertencia
+              if (text.trim().length === 0) {
+                return [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `Página ${pageNum}`,
+                        bold: true,
+                        size: 28,
+                      }),
+                    ],
+                    heading: HeadingLevel.HEADING_2,
+                    spacing: {
+                      before: 400,
+                      after: 200
+                    }
                   }),
-                ],
-                heading: HeadingLevel.HEADING_2,
-              }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: "Esta página no contiene texto extraíble. Podría ser una imagen o estar escaneada.",
+                        italics: true,
+                        color: "red"
+                      })
+                    ]
+                  }),
+                  new Paragraph({ text: "" }),
+                ];
+              }
               
-              new Paragraph({ text: "" }),
+              // Dividir el texto en párrafos por saltos de línea
+              const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
               
-              // Contenido de la página
-              new Paragraph({
-                text: text,
-              }),
-              
-              // Espacio entre páginas
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "" }),
-            ]),
+              return [
+                // Encabezado de página
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `Página ${pageNum}`,
+                      bold: true,
+                      size: 28,
+                    }),
+                  ],
+                  heading: HeadingLevel.HEADING_2,
+                  spacing: {
+                    before: 400,
+                    after: 200
+                  }
+                }),
+                
+                // Contenido de la página como párrafos separados
+                ...paragraphs.map(p => 
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: p.trim(),
+                      })
+                    ],
+                    spacing: {
+                      after: 120
+                    }
+                  })
+                ),
+                
+                // Espacio entre páginas
+                new Paragraph({ text: "" }),
+              ];
+            }),
           ],
         }],
       });
       
       setProgress(85);
-      console.log('Generando archivo DOCX...');
+      console.log('Estructura de documento DOCX creada, generando archivo binario...');
       
       // Generar el blob del documento
       const blob = await Packer.toBlob(doc);
-      console.log('Blob generado, tamaño:', blob.size);
+      console.log('Blob generado, tamaño:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
       
       // Crear archivo Word con nombre descriptivo
       const docxFile = new File(

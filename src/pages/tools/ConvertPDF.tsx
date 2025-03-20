@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileOutput, Download, FileText } from 'lucide-react';
+import { FileType, Download, FileText, Info } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -10,9 +10,11 @@ import { Progress } from '@/components/ui/progress';
 import PdfPreview from '@/components/PdfPreview';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [conversionStarted, setConversionStarted] = useState(false);
   
   const { 
     convertPDF, 
@@ -22,9 +24,15 @@ const ConvertPDF = () => {
     downloadConvertedFiles
   } = useConvertPDF();
 
+  // Resetear el estado cuando se selecciona un nuevo archivo
+  useEffect(() => {
+    setConversionStarted(false);
+  }, [file]);
+
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       setFile(files[0]);
+      console.log('Archivo seleccionado:', files[0].name, 'tamaño:', (files[0].size / 1024 / 1024).toFixed(2), 'MB');
     } else {
       setFile(null);
     }
@@ -33,8 +41,17 @@ const ConvertPDF = () => {
   const handleConvert = async () => {
     if (file) {
       try {
-        await convertPDF(file, 'docx');
-        toast.success('PDF convertido exitosamente a Word');
+        setConversionStarted(true);
+        console.log('Iniciando conversión para:', file.name);
+        const result = await convertPDF(file, 'docx');
+        
+        if (result.success) {
+          toast.success('PDF convertido exitosamente a Word');
+          console.log('Conversión completada con éxito, resultado:', result);
+        } else {
+          toast.error(result.message || 'Error al convertir el PDF');
+          console.error('Error en la conversión:', result.message);
+        }
       } catch (error) {
         console.error('Error en conversión:', error);
         toast.error('Error al convertir el PDF a Word');
@@ -65,7 +82,7 @@ const ConvertPDF = () => {
           variants={fadeInUp}
         >
           <div className="rounded-full bg-primary/10 p-3 inline-flex mb-4">
-            <FileOutput className="h-6 w-6 text-primary" />
+            <FileType className="h-6 w-6 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-4">Convertir PDF a Word</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -99,21 +116,27 @@ const ConvertPDF = () => {
             <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
               <h2 className="text-xl font-semibold">Convertir a Word (DOCX)</h2>
               
-              <div className="rounded-md bg-primary/5 p-4 mb-4">
-                <p className="text-sm font-medium">Acerca de la conversión</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Esta herramienta extrae todo el texto del PDF y lo formatea en un documento Word. 
-                  Es ideal para cuando necesitas editar el contenido de un PDF.
-                </p>
-              </div>
+              <Alert className="bg-primary/5 border-primary/20">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Esta herramienta extrae el texto del PDF y genera un documento Word editable. 
+                  Los documentos escaneados o con imágenes pueden requerir OCR adicional.
+                </AlertDescription>
+              </Alert>
               
               {isProcessing && (
                 <div className="space-y-2 py-2">
                   <div className="flex justify-between text-sm">
-                    <span>Progreso</span>
+                    <span>Progreso de conversión</span>
                     <span>{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {progress < 30 ? "Cargando PDF..." : 
+                     progress < 70 ? "Extrayendo texto..." : 
+                     progress < 85 ? "Generando documento Word..." : 
+                     "Completando conversión..."}
+                  </p>
                 </div>
               )}
               
@@ -158,6 +181,15 @@ const ConvertPDF = () => {
                   Descargar documento Word
                 </Button>
               </div>
+            )}
+            
+            {conversionStarted && !isProcessing && convertedFiles.length === 0 && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertDescription>
+                  No se pudo generar el documento Word. El archivo PDF podría estar protegido o contener solo imágenes.
+                  Intenta con la herramienta OCR para documentos escaneados.
+                </AlertDescription>
+              </Alert>
             )}
           </motion.div>
 
