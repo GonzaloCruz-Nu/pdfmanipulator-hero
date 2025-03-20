@@ -37,11 +37,13 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
 
   if (pageUrl) {
     return (
-      <img
-        src={pageUrl}
-        alt={`Página ${currentPage} de ${fileName}`}
-        className="max-w-full max-h-full object-contain"
-      />
+      <div className="flex justify-center items-center w-full h-full">
+        <img
+          src={pageUrl}
+          alt={`Página ${currentPage} de ${fileName}`}
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
     );
   }
 
