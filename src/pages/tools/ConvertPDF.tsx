@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileOutput, ChevronDown, Download, FileText } from 'lucide-react';
+import { FileOutput, Download, FileText } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -61,7 +61,7 @@ const ConvertPDF = () => {
           </div>
           <h1 className="text-3xl font-bold mb-4">Convertir PDF</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Convierte tus documentos PDF a otros formatos como imágenes (JPEG, PNG) o texto. 
+            Convierte tus documentos PDF a otros formatos como imágenes (JPEG, PNG), texto o documentos Word. 
             Todo el procesamiento ocurre en tu navegador para mantener tus documentos privados.
           </p>
         </motion.div>
@@ -98,6 +98,7 @@ const ConvertPDF = () => {
                     <SelectItem value="jpeg">Imagen JPEG</SelectItem>
                     <SelectItem value="png">Imagen PNG</SelectItem>
                     <SelectItem value="text">Texto plano</SelectItem>
+                    <SelectItem value="docx">Documento Word (DOCX)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
