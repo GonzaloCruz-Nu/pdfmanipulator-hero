@@ -6,14 +6,12 @@ import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import PdfPreview from '@/components/PdfPreview';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
 
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<string>('docx');
   
   const { 
     convertPDF, 
@@ -33,7 +31,7 @@ const ConvertPDF = () => {
 
   const handleConvert = async () => {
     if (file) {
-      await convertPDF(file, format);
+      await convertPDF(file, 'docx');
     }
   };
 
@@ -60,9 +58,9 @@ const ConvertPDF = () => {
           <div className="rounded-full bg-primary/10 p-3 inline-flex mb-4">
             <FileOutput className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-4">Convertir PDF</h1>
+          <h1 className="text-3xl font-bold mb-4">Convertir PDF a Word</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Convierte tus documentos PDF a otros formatos como imágenes (JPEG, PNG), texto o documentos Word. 
+            Convierte tus documentos PDF a formato Word (DOCX) para poder editarlos fácilmente.
             Todo el procesamiento ocurre en tu navegador para mantener tus documentos privados.
           </p>
         </motion.div>
@@ -90,34 +88,14 @@ const ConvertPDF = () => {
             </div>
 
             <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
-              <h2 className="text-xl font-semibold">Opciones de conversión</h2>
+              <h2 className="text-xl font-semibold">Convertir a Word (DOCX)</h2>
               
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Formato de salida</label>
-                <Select
-                  value={format}
-                  onValueChange={setFormat}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona formato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="docx">Documento Word (DOCX)</SelectItem>
-                    <SelectItem value="jpeg">Imagen JPEG</SelectItem>
-                    <SelectItem value="png">Imagen PNG</SelectItem>
-                    <SelectItem value="text">Texto plano</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {format === 'docx' && (
-                  <div className="rounded-md bg-primary/5 p-4 mt-2">
-                    <p className="text-sm font-medium">Conversión a Word</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Extrae todo el texto del PDF y lo formatea en un documento Word. 
-                      Perfecto para editar contenido de PDFs.
-                    </p>
-                  </div>
-                )}
+              <div className="rounded-md bg-primary/5 p-4 mb-4">
+                <p className="text-sm font-medium">Acerca de la conversión</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Esta herramienta extrae todo el texto del PDF y lo formatea en un documento Word. 
+                  Es ideal para cuando necesitas editar el contenido de un PDF.
+                </p>
               </div>
               
               {isProcessing && (
@@ -138,10 +116,10 @@ const ConvertPDF = () => {
                 {isProcessing ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                    Convirtiendo...
+                    Convirtiendo PDF a Word...
                   </>
                 ) : (
-                  'Convertir PDF'
+                  'Convertir a Word'
                 )}
               </Button>
             </div>
@@ -168,7 +146,7 @@ const ConvertPDF = () => {
                   className="w-full"
                 >
                   <Download className="mr-2 h-4 w-4" /> 
-                  Descargar archivos
+                  Descargar documento Word
                 </Button>
               </div>
             )}
