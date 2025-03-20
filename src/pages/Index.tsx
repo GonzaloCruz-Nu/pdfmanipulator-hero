@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileType, Zap } from 'lucide-react';
+import { Merge, Scissors, Zap, Unlock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -66,7 +66,7 @@ const Index = () => {
             <span className="text-naranja">sin salir de tu navegador</span>
           </h1>
           <p className="max-w-2xl mx-auto text-muted-foreground text-lg">
-            Herramientas potentes para unir, dividir, comprimir y convertir PDFs a Word.
+            Herramientas potentes para unir, dividir y comprimir PDFs.
             Sin servidores externos. Tus archivos nunca salen de tu dispositivo.
           </p>
           <div className="pt-4">
@@ -86,7 +86,7 @@ const Index = () => {
         </motion.h2>
 
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
@@ -120,13 +120,13 @@ const Index = () => {
               className="h-full"
             />
           </motion.div>
-          
+
           <motion.div variants={fadeInUp}>
             <ToolCard
-              title="PDF a Word"
-              description="Convierte tus PDFs a documentos Word editables"
-              icon={FileType}
-              to="/tools/convert"
+              title="Desbloquear PDF"
+              description="Elimina la contraseña de tus documentos PDF protegidos"
+              icon={Unlock}
+              to="/tools/unlock"
               className="h-full"
             />
           </motion.div>
@@ -140,7 +140,7 @@ const Index = () => {
         transition={{ delay: 0.8, duration: 0.6 }}
       >
         <div className="mx-auto max-w-2xl">
-          <FileText className="h-12 w-12 text-naranja mx-auto mb-6" />
+          <Zap className="h-12 w-12 text-naranja mx-auto mb-6" />
           <h2 className="text-2xl font-bold mb-4">Privacidad por diseño</h2>
           <p className="text-muted-foreground mb-6">
             Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileType, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
+import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -86,16 +86,6 @@ const Tools = () => {
               description="Elimina la contraseña de tus documentos PDF protegidos"
               icon={Unlock}
               to="/tools/unlock"
-              className="h-full"
-            />
-          </motion.div>
-          
-          <motion.div variants={fadeInUp}>
-            <ToolCard
-              title="PDF a Word"
-              description="Convierte tus PDFs a documentos Word editables"
-              icon={FileType}
-              to="/tools/convert"
               className="h-full"
             />
           </motion.div>
