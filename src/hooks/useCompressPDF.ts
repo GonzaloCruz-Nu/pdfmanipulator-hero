@@ -16,11 +16,11 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel - ajustados para asegurar compresión significativa incluso en nivel bajo
+// Configuración de compresión por nivel - calidad mejorada para niveles bajo y medio
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.85, scaleFactor: 0.95 },     // Calidad alta pero con compresión suficiente para ser detectada
-  medium: { jpegQuality: 0.75, scaleFactor: 0.9 },   // Buen balance calidad-compresión
-  high: { jpegQuality: 0.65, scaleFactor: 0.85 }     // Compresión alta manteniendo legibilidad
+  low: { jpegQuality: 0.92, scaleFactor: 0.98 },     // Calidad muy alta, compresión mínima pero detectable
+  medium: { jpegQuality: 0.85, scaleFactor: 0.95 },  // Mejor calidad que antes, menos compresión
+  high: { jpegQuality: 0.65, scaleFactor: 0.85 }     // Se mantiene igual la compresión alta
 };
 
 export const useCompressPDF = () => {
