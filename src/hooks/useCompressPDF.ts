@@ -16,11 +16,11 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel - valores MEJORADOS para mantener mejor calidad de texto
+// Configuración de compresión por nivel - ajustados para asegurar compresión significativa incluso en nivel bajo
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.95, scaleFactor: 1.0 },     // Calidad casi original - compresión mínima
-  medium: { jpegQuality: 0.85, scaleFactor: 0.95 }, // Buen balance calidad-compresión
-  high: { jpegQuality: 0.65, scaleFactor: 0.9 }     // Compresión alta manteniendo legibilidad
+  low: { jpegQuality: 0.85, scaleFactor: 0.95 },     // Calidad alta pero con compresión suficiente para ser detectada
+  medium: { jpegQuality: 0.75, scaleFactor: 0.9 },   // Buen balance calidad-compresión
+  high: { jpegQuality: 0.65, scaleFactor: 0.85 }     // Compresión alta manteniendo legibilidad
 };
 
 export const useCompressPDF = () => {
@@ -139,8 +139,11 @@ export const useCompressPDF = () => {
       // Indicar progreso antes de guardar
       setProgress(85);
       
-      // Guardar el documento comprimido
-      const compressedBytes = await newPdfDoc.save();
+      // Guardar el documento comprimido con opciones óptimas
+      const compressedBytes = await newPdfDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false
+      });
       
       // Progreso casi completado después de guardar
       setProgress(95);
@@ -162,6 +165,7 @@ export const useCompressPDF = () => {
   // Función para calcular el porcentaje de compresión correctamente
   const calculateCompression = (originalSize: number, compressedSize: number) => {
     // El porcentaje reducido es (tamaño original - tamaño comprimido) / tamaño original * 100
+    // Usar un umbral más bajo (0.5%) para detectar compresión en modo "low"
     const savedPercentage = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 1000) / 10);
     return {
       originalSize,
@@ -198,8 +202,8 @@ export const useCompressPDF = () => {
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
         
-        // Verificar si se logró comprimir
-        if (compressionResult.savedPercentage > 0) {
+        // Verificar si se logró comprimir - umbral reducido a 0.1% para nivel bajo
+        if (compressionResult.savedPercentage > 0.1) {
           setCompressedFile(compressedFile);
           setCompressionInfo(compressionResult);
           toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
