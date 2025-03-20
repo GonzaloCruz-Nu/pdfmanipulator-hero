@@ -13,7 +13,7 @@ import { useConvertPDF } from '@/hooks/useConvertPDF';
 
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<string>('jpeg');
+  const [format, setFormat] = useState<string>('docx');
   
   const { 
     convertPDF, 
@@ -102,15 +102,22 @@ const ConvertPDF = () => {
                     <SelectValue placeholder="Selecciona formato" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="docx">Documento Word (DOCX)</SelectItem>
                     <SelectItem value="jpeg">Imagen JPEG</SelectItem>
                     <SelectItem value="png">Imagen PNG</SelectItem>
                     <SelectItem value="text">Texto plano</SelectItem>
-                    <SelectItem value="docx">Documento Word (DOCX)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-muted-foreground">
-                  Selecciona el formato al que deseas convertir tu PDF
-                </p>
+
+                {format === 'docx' && (
+                  <div className="rounded-md bg-primary/5 p-4 mt-2">
+                    <p className="text-sm font-medium">Conversión a Word</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Extrae todo el texto del PDF y lo formatea en un documento Word. 
+                      Perfecto para editar contenido de PDFs.
+                    </p>
+                  </div>
+                )}
               </div>
               
               {isProcessing && (
@@ -137,13 +144,6 @@ const ConvertPDF = () => {
                   'Convertir PDF'
                 )}
               </Button>
-              
-              {format === 'docx' && (
-                <p className="text-xs text-muted-foreground">
-                  La conversión a Word preservará tanto el texto como el contenido visual del PDF.
-                  Para documentos grandes, este proceso puede tardar varios minutos.
-                </p>
-              )}
             </div>
 
             {convertedFiles.length > 0 && (
@@ -151,7 +151,7 @@ const ConvertPDF = () => {
                 <h2 className="text-xl font-semibold">Archivos convertidos</h2>
                 <ul className="space-y-2">
                   {convertedFiles.map((file, index) => (
-                    <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-2 text-sm">
+                    <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="truncate max-w-[200px]">{file.name}</span>
