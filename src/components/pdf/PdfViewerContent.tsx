@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { fabric } from 'fabric';
@@ -117,10 +118,27 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
           newWidth = containerHeight * imgRatio;
         }
         
-        img.scaleToWidth(newWidth);
-        img.set({
-          left: (containerWidth - newWidth) / 2,
-          top: (containerHeight - img.getScaledHeight()) / 2,
+        canvas.setDimensions({
+          width: containerWidth,
+          height: containerHeight
+        });
+        
+        // Ajustar el fondo al tamaño del contenedor manteniendo la proporción
+        const scale = Math.min(
+          containerWidth / img.width!,
+          containerHeight / img.height!
+        );
+        
+        img.scale(scale);
+        
+        const leftPos = (containerWidth - img.getScaledWidth()) / 2;
+        const topPos = (containerHeight - img.getScaledHeight()) / 2;
+        
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+          originX: 'left',
+          originY: 'top',
+          left: leftPos,
+          top: topPos
         });
         
         canvas.renderAll();
@@ -333,7 +351,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         ref={containerRef} 
         className="w-full flex-1 flex justify-center items-center overflow-hidden relative"
       >
-        <canvas ref={canvasRef} className="border border-border rounded" />
+        <canvas ref={canvasRef} className="absolute inset-0" />
         
         <div className="absolute bottom-4 left-0 right-0 flex justify-center">
           <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2">

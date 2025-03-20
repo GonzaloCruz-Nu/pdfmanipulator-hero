@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Save } from 'lucide-react';
+import { FileText, Upload, Download, Save, Trash2 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -80,9 +80,6 @@ const EditPDF = () => {
   };
 
   const handleSaveChanges = () => {
-    // En una implementación real, aquí utilizaríamos la función para guardar el PDF
-    // con las anotaciones, posiblemente convirtiendo el canvas a formato PDF
-    // usando bibliotecas como jsPDF o pdf-lib
     toast.success('Esta función está en desarrollo. Las ediciones se guardarán en futuras versiones.', {
       duration: 5000,
     });
@@ -194,20 +191,6 @@ const EditPDF = () => {
             </div>
           </div>
         )}
-      </div>
-      
-      {/* Help section */}
-      <div className="mt-6 bg-blue-50 p-6 rounded-xl">
-        <h2 className="text-lg font-semibold text-blue-700 mb-2">
-          ¿Cómo editar un PDF?
-        </h2>
-        <ul className="list-disc list-inside text-blue-600 space-y-1">
-          <li>Selecciona las herramientas en la barra superior para añadir texto, formas o dibujar.</li>
-          <li>Usa la herramienta de selección para mover, redimensionar o eliminar elementos.</li>
-          <li>Personaliza el color y tamaño de cada elemento según tus necesidades.</li>
-          <li>Navega entre las páginas usando los controles inferiores o las miniaturas laterales.</li>
-          <li>Al finalizar, guarda tu PDF con los cambios realizados.</li>
-        </ul>
       </div>
     </Layout>
   );
