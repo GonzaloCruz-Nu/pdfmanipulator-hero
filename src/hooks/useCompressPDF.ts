@@ -16,12 +16,11 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel - valores ajustados para que compresión baja sea menor reducción (mejor calidad)
-// y compresión alta sea mayor reducción (peor calidad)
+// Configuración de compresión por nivel - valores significativamente mejorados para calidad media
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.8, scaleFactor: 0.9 },     // Menos compresión - mejor calidad visual
-  medium: { jpegQuality: 0.7, scaleFactor: 0.85 },  // Compresión media mejorada - calidad casi idéntica al original
-  high: { jpegQuality: 0.2, scaleFactor: 0.5 }     // Más compresión - calidad reducida
+  low: { jpegQuality: 0.95, scaleFactor: 0.95 },       // Mínima compresión - calidad casi original
+  medium: { jpegQuality: 0.9, scaleFactor: 0.95 },     // Compresión media mejorada - calidad visualmente idéntica
+  high: { jpegQuality: 0.3, scaleFactor: 0.6 }         // Alta compresión - calidad reducida pero legible
 };
 
 export const useCompressPDF = () => {
@@ -31,31 +30,52 @@ export const useCompressPDF = () => {
   const [compressionError, setCompressionError] = useState<string | null>(null);
   const [compressedFile, setCompressedFile] = useState<File | null>(null);
 
-  // Función auxiliar para renderizar página PDF a canvas
+  // Función auxiliar para renderizar página PDF a canvas con alta calidad
   async function renderPageToCanvas(pdfPage: pdfjsLib.PDFPageProxy, canvas: HTMLCanvasElement, scaleFactor: number): Promise<void> {
-    const viewport = pdfPage.getViewport({ scale: scaleFactor });
+    // Usar viewport con mayor escala para mejorar la calidad de renderizado
+    const viewport = pdfPage.getViewport({ scale: scaleFactor * 1.5 }); // Aumentamos la escala para mejor calidad
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
     if (!ctx) {
       throw new Error('No se pudo obtener el contexto 2D del canvas');
     }
     
-    // Fondo blanco para eliminar transparencia y mejorar compresión JPEG
+    // Configuración para alta calidad de renderizado
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    // Fondo blanco para eliminar transparencia
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
-      intent: 'print', // Usar intent print para mejor calidad de texto
+      intent: 'display', // Cambiado a 'display' para mejor calidad visual
+      renderInteractiveForms: true,
+      canvasFactory: {
+        create: function(width: number, height: number) {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          return canvas;
+        },
+        reset: function(canvasAndContext: any, width: number, height: number) {
+          canvasAndContext[0].width = width;
+          canvasAndContext[0].height = height;
+        },
+        destroy: function(canvasAndContext: any) {
+          // No es necesario hacer nada aquí
+        }
+      }
     };
     
     await pdfPage.render(renderContext).promise;
   }
 
-  // Método de compresión basado en canvas (similar a GhostScript)
+  // Método de compresión optimizado para calidad visual
   async function compressPDFWithCanvas(
     file: File,
     level: CompressionLevel
@@ -66,19 +86,32 @@ export const useCompressPDF = () => {
       
       // Cargar el documento con PDF.js
       const fileArrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileArrayBuffer) });
+      const loadingTask = pdfjsLib.getDocument({ 
+        data: new Uint8Array(fileArrayBuffer),
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.8.162/cmaps/',
+        cMapPacked: true,
+        disableFontFace: false, // Mantener fuentes originales para mejor visualización
+        useSystemFonts: true
+      });
+      
       const pdfDoc = await loadingTask.promise;
       
       // Crear un nuevo documento PDF
       const newPdfDoc = await PDFDocument.create();
       
-      // Eliminar metadatos
-      newPdfDoc.setTitle("");
-      newPdfDoc.setAuthor("");
-      newPdfDoc.setSubject("");
-      newPdfDoc.setKeywords([]);
-      newPdfDoc.setProducer("");
-      newPdfDoc.setCreator("");
+      // Copiamos metadatos básicos para mantener información relevante
+      if (level === 'low' || level === 'medium') {
+        // Solo eliminamos metadatos para compresión alta
+        newPdfDoc.setCreator("PDF Tools - Compresor PDF");
+      } else {
+        // Eliminar metadatos para ahorrar espacio en compresión alta
+        newPdfDoc.setTitle("");
+        newPdfDoc.setAuthor("");
+        newPdfDoc.setSubject("");
+        newPdfDoc.setKeywords([]);
+        newPdfDoc.setProducer("");
+        newPdfDoc.setCreator("");
+      }
       
       // Procesar cada página
       const totalPages = pdfDoc.numPages;
@@ -96,27 +129,34 @@ export const useCompressPDF = () => {
         const width = viewport.width;
         const height = viewport.height;
         
-        // Usar un canvas de mayor resolución para el nivel medio
+        // Crear canvas con configuración de alta calidad
         const canvas = document.createElement('canvas');
         
-        // Renderizar la página en el canvas con mejor calidad para nivel medio
-        if (level === 'medium') {
-          // Especificar el tipo correcto para el contexto 2D
+        // Renderizar la página con calidad ajustada según nivel
+        if (level === 'low' || level === 'medium') {
+          // Para calidad media y baja, usar configuración de alta calidad
           const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
           if (ctx) {
-            // Estas propiedades sí existen en CanvasRenderingContext2D
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
           }
         }
         
+        // Renderizado de alta calidad para todos los niveles
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
-        // Convertir a JPEG con calidad ajustada según nivel
-        const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+        // Para nivel medio, usar formato PNG en lugar de JPEG para textos más nítidos
+        let pageDataUrl;
+        if (level === 'medium') {
+          // Usar PNG para texto más nítido en nivel medio
+          pageDataUrl = canvas.toDataURL('image/png', 1.0);
+        } else {
+          // Usar JPEG con calidad ajustada para otros niveles
+          pageDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+        }
         
         // Extraer la base64
-        const base64 = jpegDataUrl.split(',')[1];
+        const base64 = pageDataUrl.split(',')[1];
         
         // Convertir base64 a Uint8Array
         const binaryString = atob(base64);
@@ -125,14 +165,19 @@ export const useCompressPDF = () => {
           bytes[j] = binaryString.charCodeAt(j);
         }
         
-        // Insertar la imagen JPEG en el nuevo PDF
-        const jpgImage = await newPdfDoc.embedJpg(bytes);
+        // Insertar la imagen en el nuevo PDF
+        let pageImage;
+        if (level === 'medium') {
+          pageImage = await newPdfDoc.embedPng(bytes);
+        } else {
+          pageImage = await newPdfDoc.embedJpg(bytes);
+        }
         
         // Agregar una nueva página con las dimensiones originales
         const newPage = newPdfDoc.addPage([width, height]);
         
         // Dibujar la imagen en la página
-        newPage.drawImage(jpgImage, {
+        newPage.drawImage(pageImage, {
           x: 0,
           y: 0,
           width: width,
@@ -141,7 +186,18 @@ export const useCompressPDF = () => {
       }
       
       // Guardar el documento comprimido
-      const compressedBytes = await newPdfDoc.save();
+      // Para nivel medio, usar más opciones para preservar calidad
+      let compressedBytes;
+      if (level === 'medium') {
+        compressedBytes = await newPdfDoc.save({
+          useObjectStreams: true,
+          addDefaultPage: false,
+          objectsPerTick: 100,
+          compress: true
+        });
+      } else {
+        compressedBytes = await newPdfDoc.save();
+      }
       
       // Crear un nuevo archivo
       return new File(

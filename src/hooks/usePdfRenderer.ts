@@ -43,7 +43,13 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
         }
         
         const fileUrl = URL.createObjectURL(file);
-        const loadingTask = pdfjsLib.getDocument(fileUrl);
+        const loadingTask = pdfjsLib.getDocument({
+          url: fileUrl,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.8.162/cmaps/',
+          cMapPacked: true,
+          disableFontFace: false,
+          useSystemFonts: true
+        });
         
         const pdf = await loadingTask.promise;
         setTotalPages(pdf.numPages);
@@ -74,28 +80,38 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       setIsLoading(true);
       
       const page = await pdf.getPage(pageNum);
-      const scale = 1.5;
+      // Aumentamos la escala para mejorar la calidad de visualización
+      const scale = 2.5; // Mayor escala para mejor calidad
       const viewport = page.getViewport({ scale });
 
       const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d') as CanvasRenderingContext2D;
       
       if (!context) {
         throw new Error('No se pudo obtener el contexto 2D del canvas');
       }
 
+      // Configurar canvas para mejor calidad
       canvas.height = viewport.height;
       canvas.width = viewport.width;
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+
+      // Fondo blanco para mejor visualización
+      context.fillStyle = 'white';
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
       const renderContext = {
         canvasContext: context,
         viewport: viewport,
+        intent: 'display', // Mejor calidad para visualización
+        renderInteractiveForms: true
       };
 
       await page.render(renderContext).promise;
       
-      // Use high quality JPEG for better compression while maintaining readability
-      setPageUrl(canvas.toDataURL('image/jpeg', 0.9));
+      // Usar PNG para visualización en lugar de JPEG para mayor calidad
+      setPageUrl(canvas.toDataURL('image/png', 1.0));
       setCurrentPage(pageNum);
     } catch (error) {
       console.error('Error al renderizar la página:', error);
