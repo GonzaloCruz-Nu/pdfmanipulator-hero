@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -20,7 +19,7 @@ interface CompressionInfo {
 // y compresión alta sea mayor reducción (peor calidad)
 const COMPRESSION_SETTINGS = {
   low: { jpegQuality: 0.8, scaleFactor: 0.9 },     // Menos compresión - mejor calidad visual
-  medium: { jpegQuality: 0.6, scaleFactor: 0.8 },  // Compresión media mejorada - mejor calidad manteniendo buen balance
+  medium: { jpegQuality: 0.7, scaleFactor: 0.85 },  // Compresión media mejorada - calidad casi idéntica al original
   high: { jpegQuality: 0.2, scaleFactor: 0.5 }     // Más compresión - calidad reducida
 };
 
@@ -49,6 +48,7 @@ export const useCompressPDF = () => {
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
+      intent: 'print', // Usar intent print para mejor calidad de texto
     };
     
     await pdfPage.render(renderContext).promise;
@@ -95,10 +95,19 @@ export const useCompressPDF = () => {
         const width = viewport.width;
         const height = viewport.height;
         
-        // Crear un canvas
+        // Usar un canvas de mayor resolución para el nivel medio
         const canvas = document.createElement('canvas');
         
-        // Renderizar la página en el canvas
+        // Renderizar la página en el canvas con mejor calidad para nivel medio
+        if (level === 'medium') {
+          // Usar antialiasing explícito para mejorar la calidad del texto
+          const ctx = canvas.getContext('2d', { alpha: false, antialias: true });
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+          }
+        }
+        
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
         // Convertir a JPEG con calidad ajustada según nivel

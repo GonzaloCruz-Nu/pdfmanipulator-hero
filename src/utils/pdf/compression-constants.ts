@@ -2,7 +2,7 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { imageQuality: 0.8, scaleFactor: 0.9, colorReduction: 0.95 },     // Compresión baja - mejor calidad, menor reducción
-  medium: { imageQuality: 0.6, scaleFactor: 0.8, colorReduction: 0.85 },   // Compresión media mejorada - mejor calidad manteniendo buen balance
+  medium: { imageQuality: 0.7, scaleFactor: 0.85, colorReduction: 0.9 },   // Compresión media mejorada - calidad casi idéntica al original
   high: { imageQuality: 0.2, scaleFactor: 0.5, colorReduction: 0.6 }      // Compresión alta - máxima reducción, menor calidad
 };
 
