@@ -50,7 +50,7 @@ const Index = () => {
             Sin servidores externos. Tus archivos nunca salen de tu dispositivo.
           </p>
           <div className="pt-4">
-            <Link to="/tools" className="btn-primary">
+            <Link to="/tools" className="inline-flex items-center justify-center rounded-md bg-naranja px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-naranja/90 transition-colors">
               Explorar herramientas
             </Link>
           </div>
@@ -126,7 +126,7 @@ const Index = () => {
             Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 
             se cargan a ningún servidor. Funciona incluso sin conexión a internet.
           </p>
-          <Link to="/about" className="btn-secondary">
+          <Link to="/about" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
             Conoce más
           </Link>
         </div>

@@ -1,9 +1,11 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 
 const Header: React.FC = () => {
+  const location = useLocation();
+
   return (
     <header className="py-6">
       <div className="container flex items-center justify-between">
@@ -14,17 +16,26 @@ const Header: React.FC = () => {
         <nav className="hidden md:block">
           <ul className="flex space-x-8">
             <li>
-              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link 
+                to="/" 
+                className={`${location.pathname === '/' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+              >
                 Inicio
               </Link>
             </li>
             <li>
-              <Link to="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link 
+                to="/tools" 
+                className={`${location.pathname === '/tools' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+              >
                 Herramientas
               </Link>
             </li>
             <li>
-              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link 
+                to="/about" 
+                className={`${location.pathname === '/about' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+              >
                 Acerca de
               </Link>
             </li>
