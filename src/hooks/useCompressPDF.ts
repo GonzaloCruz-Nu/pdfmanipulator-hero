@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -16,12 +15,12 @@ interface CompressionInfo {
   savedPercentage: number;
 }
 
-// Configuración de compresión por nivel - valores ajustados para que compresión baja sea menor reducción
-// y compresión alta sea mayor reducción
+// Configuración de compresión por nivel - valores ajustados para que compresión baja sea menor reducción (mejor calidad)
+// y compresión alta sea mayor reducción (peor calidad)
 const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.7, scaleFactor: 0.8 },     // Menos compresión
-  medium: { jpegQuality: 0.4, scaleFactor: 0.6 },  // Compresión media
-  high: { jpegQuality: 0.1, scaleFactor: 0.4 }     // Más compresión
+  low: { jpegQuality: 0.8, scaleFactor: 0.9 },     // Menos compresión - mejor calidad visual
+  medium: { jpegQuality: 0.5, scaleFactor: 0.7 },  // Compresión media - balance
+  high: { jpegQuality: 0.2, scaleFactor: 0.5 }     // Más compresión - calidad reducida
 };
 
 export const useCompressPDF = () => {
@@ -101,7 +100,7 @@ export const useCompressPDF = () => {
         // Renderizar la página en el canvas
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
-        // Convertir a JPEG con baja calidad
+        // Convertir a JPEG con calidad ajustada según nivel
         const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
         
         // Extraer la base64
