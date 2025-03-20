@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -50,8 +51,9 @@ export const useConvertPDF = () => {
         
         // Estructura para almacenar todo el contenido del PDF
         const allTextContent: string[] = [];
+        const allImageContents: { dataUrl: string, width: number, height: number }[] = [];
         
-        // Extraer texto de todas las páginas del PDF
+        // Extraer texto e imágenes de todas las páginas del PDF
         for (let i = 1; i <= numPages; i++) {
           setProgress(40 + Math.floor((i / numPages) * 30));
           
@@ -63,6 +65,32 @@ export const useConvertPDF = () => {
             'str' in item ? item.str : '').filter(Boolean);
           
           allTextContent.push(`--- PÁGINA ${i} ---\n${textItems.join(' ')}`);
+          
+          // Extraer imágenes de cada página
+          try {
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (context) {
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              
+              await page.render({
+                canvasContext: context,
+                viewport: viewport
+              }).promise;
+              
+              // Almacenar la imagen de la página
+              allImageContents.push({
+                dataUrl: canvas.toDataURL('image/jpeg', 0.7),
+                width: viewport.width,
+                height: viewport.height
+              });
+            }
+          } catch (error) {
+            console.warn(`No se pudo extraer imagen de la página ${i}:`, error);
+          }
         }
         
         setProgress(70);
@@ -126,6 +154,41 @@ export const useConvertPDF = () => {
             })
           );
           
+          // Añadir imagen de la página (si está disponible)
+          if (i < allImageContents.length) {
+            try {
+              const image = allImageContents[i];
+              // Convertir dataUrl a base64
+              const base64Image = image.dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
+              
+              // Calcular dimensiones apropiadas (conservar relación de aspecto)
+              const maxWidth = 500;
+              const ratio = image.width / image.height;
+              const width = Math.min(image.width, maxWidth);
+              const height = width / ratio;
+              
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: Buffer.from(base64Image, 'base64'),
+                      transformation: {
+                        width,
+                        height,
+                      },
+                      type: 'jpg',
+                    }),
+                  ],
+                  spacing: {
+                    after: 200,
+                  },
+                })
+              );
+            } catch (error) {
+              console.error('Error al insertar imagen en el documento DOCX:', error);
+            }
+          }
+          
           // Añadir el texto de la página
           // Dividir el contenido en párrafos para mejor formato
           const textParagraphs = pageContent.split('\n').filter(p => p.trim());
@@ -184,7 +247,7 @@ export const useConvertPDF = () => {
         setProgress(80);
         
         try {
-          // Generar el documento como blob
+          // Usar Packer.toBlob para generar el documento
           const blob = await Packer.toBlob(doc);
           
           // Crear archivo Word con nombre descriptivo
