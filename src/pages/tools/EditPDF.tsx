@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileText, Upload } from 'lucide-react';
+import { FileText, Upload, Download, Save } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,7 @@ const EditPDF = () => {
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       setSelectedFile(files[0]);
+      toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
@@ -78,15 +79,24 @@ const EditPDF = () => {
     }
   };
 
+  const handleSaveChanges = () => {
+    // En una implementación real, aquí utilizaríamos la función para guardar el PDF
+    // con las anotaciones, posiblemente convirtiendo el canvas a formato PDF
+    // usando bibliotecas como jsPDF o pdf-lib
+    toast.success('Esta función está en desarrollo. Las ediciones se guardarán en futuras versiones.', {
+      duration: 5000,
+    });
+  };
+
   return (
     <Layout>
       <Header />
       
       <div className="py-6">
         <div className="mb-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Visualizador de PDF</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Editor de PDF</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Visualiza tus documentos PDF directamente en tu navegador.
+            Añade texto, formas y anotaciones a tus documentos PDF.
           </p>
         </div>
 
@@ -99,7 +109,7 @@ const EditPDF = () => {
                 </div>
                 <h2 className="text-xl font-semibold mb-1">Seleccionar PDF</h2>
                 <p className="text-center text-muted-foreground">
-                  Sube un archivo PDF para visualizarlo
+                  Sube un archivo PDF para editarlo
                 </p>
               </div>
               
@@ -112,61 +122,74 @@ const EditPDF = () => {
             </div>
           </div>
         ) : (
-          <div className="h-[700px] rounded-xl overflow-hidden border shadow-md flex flex-col bg-white">
-            {/* Top toolbar */}
-            <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
-              <div className="flex items-center">
+          <div className="flex flex-col space-y-4">
+            {/* Action buttons */}
+            <div className="flex justify-between items-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedFile(null)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Cambiar archivo
+              </Button>
+              
+              <div className="flex gap-2">
                 <Button 
-                  variant="ghost" 
-                  size="sm" 
+                  variant="outline" 
                   onClick={() => setShowSidebar(!showSidebar)}
                 >
                   {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
                 </Button>
-              </div>
-              
-              <div className="flex-1 text-center">
-                <h2 className="text-sm font-medium truncate max-w-lg mx-auto">
-                  {selectedFile.name}
-                </h2>
-              </div>
-              
-              <div>
+                
                 <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSelectedFile(null)}
+                  variant="secondary"
+                  onClick={handleSaveChanges}
                 >
-                  Cambiar archivo
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar cambios
+                </Button>
+                
+                <Button>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar PDF
                 </Button>
               </div>
             </div>
             
-            {/* Main content area */}
-            <div className="flex-1 flex overflow-hidden">
-              {/* Thumbnails sidebar */}
-              {showSidebar && (
-                <div className="w-[150px] border-r shrink-0 overflow-y-auto">
-                  <PdfThumbnailList 
-                    pages={pageRenderedUrls}
+            {/* PDF editor */}
+            <div className="h-[700px] rounded-xl overflow-hidden border shadow-md flex flex-col bg-white">
+              <div className="p-3 border-b bg-gray-50">
+                <h2 className="text-sm font-medium truncate max-w-lg mx-auto text-center">
+                  {selectedFile.name}
+                </h2>
+              </div>
+              
+              {/* Main content area */}
+              <div className="flex-1 flex overflow-hidden">
+                {/* Thumbnails sidebar */}
+                {showSidebar && (
+                  <div className="w-[150px] border-r shrink-0 overflow-y-auto">
+                    <PdfThumbnailList 
+                      pages={pageRenderedUrls}
+                      currentPage={currentPage}
+                      onPageSelect={handlePageSelect}
+                    />
+                  </div>
+                )}
+                
+                {/* PDF content with editing tools */}
+                <div className="flex-1 relative overflow-hidden">
+                  <PdfViewerContent
+                    pageUrl={pageUrl}
+                    isLoading={isLoading}
+                    error={error}
+                    fileName={selectedFile.name}
                     currentPage={currentPage}
-                    onPageSelect={handlePageSelect}
+                    totalPages={totalPages}
+                    onNextPage={nextPage}
+                    onPrevPage={prevPage}
                   />
                 </div>
-              )}
-              
-              {/* PDF content */}
-              <div className="flex-1 relative overflow-hidden">
-                <PdfViewerContent
-                  pageUrl={pageUrl}
-                  isLoading={isLoading}
-                  error={error}
-                  fileName={selectedFile.name}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onNextPage={nextPage}
-                  onPrevPage={prevPage}
-                />
               </div>
             </div>
           </div>
@@ -176,12 +199,15 @@ const EditPDF = () => {
       {/* Help section */}
       <div className="mt-6 bg-blue-50 p-6 rounded-xl">
         <h2 className="text-lg font-semibold text-blue-700 mb-2">
-          Visualizador de PDF
+          ¿Cómo editar un PDF?
         </h2>
-        <p className="text-blue-600">
-          Este visualizador te permite ver tus documentos PDF directamente en el navegador.
-          Puedes navegar entre páginas y ver miniaturas de todas las páginas.
-        </p>
+        <ul className="list-disc list-inside text-blue-600 space-y-1">
+          <li>Selecciona las herramientas en la barra superior para añadir texto, formas o dibujar.</li>
+          <li>Usa la herramienta de selección para mover, redimensionar o eliminar elementos.</li>
+          <li>Personaliza el color y tamaño de cada elemento según tus necesidades.</li>
+          <li>Navega entre las páginas usando los controles inferiores o las miniaturas laterales.</li>
+          <li>Al finalizar, guarda tu PDF con los cambios realizados.</li>
+        </ul>
       </div>
     </Layout>
   );
