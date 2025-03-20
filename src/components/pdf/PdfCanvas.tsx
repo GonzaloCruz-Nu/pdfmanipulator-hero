@@ -32,15 +32,17 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange }) => 
       console.log("Container dimensions:", containerWidth, containerHeight);
       console.log("Image dimensions:", img.width, img.height);
       
+      // Establecer dimensiones del canvas más grandes
       canvas.setDimensions({
         width: containerWidth,
         height: containerHeight
       });
       
-      // Calculate scale to fit the PDF image in the container
+      // Calcular escala para que el PDF ocupe más espacio
+      // Aumentamos el factor de escala para que se vea más grande
       const scale = Math.min(
-        (containerWidth * 0.9) / img.width!,
-        (containerHeight * 0.9) / img.height!
+        (containerWidth * 0.85) / img.width!,
+        (containerHeight * 0.85) / img.height!
       );
       
       // Apply scaling
@@ -66,7 +68,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange }) => 
   return (
     <div 
       ref={containerRef} 
-      className="w-full flex-1 flex justify-center items-center overflow-hidden relative bg-gray-100"
+      className="w-full h-full flex-1 flex justify-center items-center overflow-hidden relative bg-gray-100"
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>

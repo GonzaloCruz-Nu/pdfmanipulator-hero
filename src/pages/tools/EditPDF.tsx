@@ -72,7 +72,7 @@ const EditPDF = () => {
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       setSelectedFile(files[0]);
-      toast.success(`PDF loaded: ${files[0].name}`);
+      toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
@@ -84,7 +84,7 @@ const EditPDF = () => {
   };
 
   const handleSaveChanges = () => {
-    toast.success('This feature is under development. Your edits will be saved in future versions.', {
+    toast.success('Esta función está en desarrollo. Tus cambios se guardarán en futuras versiones.', {
       duration: 5000,
     });
   };
@@ -95,9 +95,9 @@ const EditPDF = () => {
       
       <div className="py-6">
         <div className="mb-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">PDF Editor</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Editor de PDF</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Add text, shapes and annotations to your PDF documents.
+            Añade texto, formas y anotaciones a tus documentos PDF.
           </p>
         </div>
 
@@ -108,9 +108,9 @@ const EditPDF = () => {
                 <div className="rounded-full bg-primary/10 p-3 mb-4">
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold mb-1">Select PDF</h2>
+                <h2 className="text-xl font-semibold mb-1">Seleccionar PDF</h2>
                 <p className="text-center text-muted-foreground">
-                  Upload a PDF file to edit it
+                  Sube un archivo PDF para editarlo
                 </p>
               </div>
               
@@ -131,7 +131,7 @@ const EditPDF = () => {
                 onClick={() => setSelectedFile(null)}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Change file
+                Cambiar archivo
               </Button>
               
               <div className="flex gap-2">
@@ -139,7 +139,7 @@ const EditPDF = () => {
                   variant="outline" 
                   onClick={() => setShowSidebar(!showSidebar)}
                 >
-                  {showSidebar ? 'Hide thumbnails' : 'Show thumbnails'}
+                  {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
                 </Button>
                 
                 <Button 
@@ -147,12 +147,12 @@ const EditPDF = () => {
                   onClick={handleSaveChanges}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Save changes
+                  Guardar cambios
                 </Button>
                 
                 <Button>
                   <Download className="h-4 w-4 mr-2" />
-                  Download PDF
+                  Descargar PDF
                 </Button>
               </div>
             </div>

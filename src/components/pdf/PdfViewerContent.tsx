@@ -40,18 +40,18 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   };
 
   const handleClearCanvas = () => {
-    toast.success('All elements have been removed');
+    toast.success('Todos los elementos han sido eliminados');
   };
 
   const handleDeleteSelected = () => {
-    toast.success('Selected element deleted');
+    toast.success('Elemento seleccionado eliminado');
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="mt-2 text-sm text-muted-foreground">Loading PDF...</p>
+        <p className="mt-2 text-sm text-muted-foreground">Cargando PDF...</p>
       </div>
     );
   }
