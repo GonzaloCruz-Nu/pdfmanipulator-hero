@@ -41,7 +41,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Baja</span>
-          <span className="block text-xs mt-1">Mejor calidad, 20-40% ahorro</span>
+          <span className="block text-xs mt-1">Buenísima calidad, menor compresión</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -52,7 +52,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Media</span>
-          <span className="block text-xs mt-1">Calidad casi idéntica, 25-50% ahorro</span>
+          <span className="block text-xs mt-1">Buena calidad, más compresión</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -63,7 +63,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Alta</span>
-          <span className="block text-xs mt-1">Máxima reducción, 70-90% ahorro</span>
+          <span className="block text-xs mt-1">Menor calidad, máxima compresión</span>
         </button>
       </div>
 
