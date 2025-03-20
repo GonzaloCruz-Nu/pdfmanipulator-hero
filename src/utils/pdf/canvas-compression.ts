@@ -36,8 +36,11 @@ export const canvasBasedCompression = async (
   fileName: string
 ): Promise<File | null> => {
   try {
+    // Crear copias de seguridad del ArrayBuffer para evitar problemas de "detached ArrayBuffer"
+    const fileBufferCopy = new Uint8Array(fileBuffer.slice(0));
+    
     // Cargar documento con pdf-lib para crear uno nuevo
-    const originalDoc = await PDFDocument.load(fileBuffer);
+    const originalDoc = await PDFDocument.load(fileBufferCopy);
     const newDoc = await PDFDocument.create();
     
     // Eliminar todos los metadatos
@@ -50,10 +53,13 @@ export const canvasBasedCompression = async (
     
     // Configurar factores de escala y calidad según el nivel deseado
     const jpegQuality = level === 'high' ? 0.3 : level === 'medium' ? 0.5 : 0.7;
-    const scaleFactor = level === 'high' ? 0.3 : level === 'medium' ? 0.5 : 0.7;
+    const scaleFactor = level === 'high' ? 0.5 : level === 'medium' ? 0.7 : 0.8;
+    
+    // Usar otra copia para pdf.js
+    const pdfJsBuffer = new Uint8Array(fileBuffer.slice(0));
     
     // Cargar documento con pdf.js para renderizado
-    const loadingTask = pdfjsLib.getDocument(fileBuffer);
+    const loadingTask = pdfjsLib.getDocument({ data: pdfJsBuffer });
     const pdfDoc = await loadingTask.promise;
     
     // Procesar cada página
@@ -84,12 +90,12 @@ export const canvasBasedCompression = async (
       const jpgImage = await newDoc.embedJpg(Buffer.from(base64, 'base64'));
       
       // Agregar una nueva página con las dimensiones del canvas y dibujar la imagen
-      const newPage = newDoc.addPage([canvas.width, canvas.height]);
+      const newPage = newDoc.addPage([width, height]);
       newPage.drawImage(jpgImage, {
         x: 0,
         y: 0,
-        width: canvas.width,
-        height: canvas.height
+        width: width,
+        height: height
       });
     }
     

@@ -11,11 +11,6 @@ export { calculateCompression } from './compression-utils';
 // Re-export compression methods
 export { canvasBasedCompression } from './canvas-compression';
 export { standardCompression } from './standard-compression';
-export { aggressiveCompression } from './aggressive-compression';
-export { extremeCompression } from './extreme-compression';
-export { imageQualityCompression } from './image-quality-compression';
-export { ultimateCompression } from './ultimate-compression';
-export { ghostscriptLikeCompression } from './ghostscript-like-compression';
 
 // Configure PDF.js worker for any other methods that might need it
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;

@@ -9,9 +9,12 @@ export const standardCompression = async (
   fileName: string
 ): Promise<File | null> => {
   try {
+    // Crear copia de seguridad del ArrayBuffer
+    const fileBufferCopy = new Uint8Array(fileBuffer.slice(0));
+    
     const { imageQuality, scaleFactor } = COMPRESSION_FACTORS[level];
     
-    const pdfDoc = await PDFDocument.load(fileBuffer, { 
+    const pdfDoc = await PDFDocument.load(fileBufferCopy, { 
       ignoreEncryption: true,
       updateMetadata: false,
     });
