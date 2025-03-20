@@ -8,27 +8,32 @@ const Header: React.FC = () => {
 
   return (
     <header className="py-6">
-      <div className="container flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2 text-foreground">
+      <div className="container flex flex-col md:flex-row items-center justify-between">
+        <div className="flex-1 hidden md:block">
+          {/* Empty div for flex spacing */}
+        </div>
+        
+        <Link to="/" className="flex items-center space-x-2 text-foreground mb-4 md:mb-0">
           <FileText className="h-8 w-8 text-naranja" />
           <span className="text-xl font-medium">PDFmanager</span>
         </Link>
-        <nav className="hidden md:block">
-          <ul className="flex space-x-8">
+        
+        <nav className="flex-1">
+          <ul className="flex justify-center md:justify-end space-x-8">
             <li>
               <Link 
                 to="/" 
                 className={`${location.pathname === '/' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
-                Inicio
+                Herramientas
               </Link>
             </li>
             <li>
               <Link 
-                to="/tools" 
-                className={`${location.pathname === '/tools' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+                to="/wiki" 
+                className={`${location.pathname === '/wiki' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
-                Herramientas
+                Wiki
               </Link>
             </li>
             <li>
