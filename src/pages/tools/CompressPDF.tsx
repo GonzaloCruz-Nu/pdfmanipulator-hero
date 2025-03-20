@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, FileDown, Download, AlertCircle, Check, FileCheck } from 'lucide-react';
-import { PDFDocument, PDFName, PDFDict } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -38,7 +39,7 @@ const CompressPDF = () => {
     switch (level) {
       case 'low': return 0.8;     // 20% compression
       case 'medium': return 0.5;  // 50% compression
-      case 'high': return 0.3;    // 70% compression - ajustado para mejor compresión
+      case 'high': return 0.3;    // 70% compression
       default: return 0.5;
     }
   };
@@ -70,6 +71,15 @@ const CompressPDF = () => {
       // Factor de compresión basado en el nivel seleccionado
       const compressionFactor = calculateCompressionFactor(compressionLevel);
       
+      // Determinar el factor de escala para imágenes según el nivel de compresión
+      let imageQuality;
+      switch (compressionLevel) {
+        case 'low': imageQuality = 0.8; break;
+        case 'medium': imageQuality = 0.5; break;
+        case 'high': imageQuality = 0.2; break;
+        default: imageQuality = 0.5;
+      }
+      
       // Copiar cada página al nuevo documento con compresión
       for (let i = 0; i < originalPages.length; i++) {
         const page = originalPages[i];
@@ -77,15 +87,21 @@ const CompressPDF = () => {
         
         // Copiar la página
         const [embeddedPage] = await compressedPdfDoc.embedPages([page]);
+        
+        // Calcular dimensiones reducidas para compresión
+        const targetWidth = width * compressionFactor;
+        const targetHeight = height * compressionFactor;
+        
+        // Crear página con tamaño original pero contenido escalado
         const newPage = compressedPdfDoc.addPage([width, height]);
         
-        // Dibujar la página
+        // Dibujar la página con escalado para reducir calidad según el nivel de compresión
         newPage.drawPage(embeddedPage, {
           x: 0,
           y: 0,
-          width: width,
-          height: height,
-          opacity: 1.0 // Mantenemos la opacidad completa
+          width: targetWidth,
+          height: targetHeight,
+          opacity: imageQuality
         });
         
         // Actualizar progreso
@@ -94,17 +110,8 @@ const CompressPDF = () => {
       
       setProgress(70);
       
-      // Opciones de compresión según el nivel seleccionado
-      const compressionOptions = {
-        useObjectStreams: true,
-        addDefaultPage: false,
-        objectsPerTick: 100,
-        // Establecer compresión adecuada
-        useCompression: true
-      };
-      
-      // Guardar el PDF con las opciones de compresión
-      const compressedBytes = await compressedPdfDoc.save(compressionOptions);
+      // Guardar el PDF con las opciones básicas
+      const compressedBytes = await compressedPdfDoc.save();
       const compressedBlob = new Blob([compressedBytes], { type: 'application/pdf' });
       const compressedFileObj = new File(
         [compressedBlob], 
@@ -183,19 +190,19 @@ const CompressPDF = () => {
       // Determinar factor de calidad más agresivo para imágenes
       let qualityFactor;
       switch (compressionLevel) {
-        case 'low': qualityFactor = 0.7; break;
-        case 'medium': qualityFactor = 0.5; break;
-        case 'high': qualityFactor = 0.2; break;
-        default: qualityFactor = 0.5;
+        case 'low': qualityFactor = 0.5; break;       // Más agresivo: 0.5 en lugar de 0.7
+        case 'medium': qualityFactor = 0.3; break;    // Más agresivo: 0.3 en lugar de 0.5
+        case 'high': qualityFactor = 0.1; break;      // Más agresivo: 0.1 en lugar de 0.2
+        default: qualityFactor = 0.3;
       }
       
       // Factor de escala para reducir las dimensiones de página
       let scaleFactor;
       switch (compressionLevel) {
-        case 'low': scaleFactor = 0.9; break;
-        case 'medium': scaleFactor = 0.8; break;
-        case 'high': scaleFactor = 0.7; break;
-        default: scaleFactor = 0.8;
+        case 'low': scaleFactor = 0.7; break;         // Más agresivo: 0.7 en lugar de 0.9
+        case 'medium': scaleFactor = 0.5; break;      // Más agresivo: 0.5 en lugar de 0.8
+        case 'high': scaleFactor = 0.3; break;        // Más agresivo: 0.3 en lugar de 0.7
+        default: scaleFactor = 0.5;
       }
       
       // Comprimir cada página con calidad reducida
@@ -203,35 +210,32 @@ const CompressPDF = () => {
         const page = pages[i];
         const { width, height } = page.getSize();
         
-        // Escalar dimensiones para páginas
-        let targetWidth = width * scaleFactor;
-        let targetHeight = height * scaleFactor;
+        // Calcular nuevas dimensiones reducidas
+        const targetWidth = width * scaleFactor;
+        const targetHeight = height * scaleFactor;
         
-        // Copiar página con dimensiones reducidas
+        // Copiar página con dimensiones originales
         const [embeddedPage] = await newPdfDoc.embedPages([page]);
         const newPage = newPdfDoc.addPage([width, height]);
         
-        // Dibujar con calidad y dimensiones reducidas
+        // Dibujar la página con tamaño reducido (dejando bordes blancos)
+        // Centrar la página reducida en la página original
+        const xOffset = (width - targetWidth) / 2;
+        const yOffset = (height - targetHeight) / 2;
+        
         newPage.drawPage(embeddedPage, {
-          x: 0,
-          y: 0,
+          x: xOffset,
+          y: yOffset,
           width: targetWidth,
           height: targetHeight,
-          opacity: qualityFactor // Reducir opacidad para mejorar compresión
+          opacity: qualityFactor
         });
         
         setProgress(75 + Math.floor(((i + 1) / pages.length) * 20));
       }
       
       // Guardar con máxima compresión
-      const options = {
-        useObjectStreams: true,
-        addDefaultPage: false,
-        objectsPerTick: 20,
-        useCompression: true
-      };
-      
-      const compressedBytes = await newPdfDoc.save(options);
+      const compressedBytes = await newPdfDoc.save();
       
       const compressedBlob = new Blob([compressedBytes], { type: 'application/pdf' });
       const altCompressedFile = new File(
@@ -261,11 +265,8 @@ const CompressPDF = () => {
       const fileArrayBuffer = await file.arrayBuffer();
       const pdfDoc = await PDFDocument.load(fileArrayBuffer);
       
-      // Comprimir con opciones más simples
-      const bytes = await pdfDoc.save({
-        useObjectStreams: true,
-        useCompression: true
-      });
+      // Comprimir con opciones básicas
+      const bytes = await pdfDoc.save();
       
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const basicCompressedFile = new File(
