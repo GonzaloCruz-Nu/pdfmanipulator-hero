@@ -54,7 +54,7 @@ export const useCompressPDF = () => {
         console.log("Compresión canvas completada:", canvasCompression.savedPercentage.toFixed(2) + "%");
         
         // Si la compresión basada en canvas fue efectiva
-        if (canvasCompression.savedPercentage > 5) { // Al menos 5% de reducción
+        if (canvasCompression.savedPercentage > 1) { // Reducido a 1% para ser más permisivo
           setProgress(90);
           setCompressedFile(canvasResult);
           setCompressionInfo({
@@ -80,7 +80,7 @@ export const useCompressPDF = () => {
         console.log("Compresión estándar completada:", standardCompression.savedPercentage.toFixed(2) + "%");
         
         // Si compresión estándar fue efectiva
-        if (standardCompression.savedPercentage > 1) { // Al menos 1% de reducción
+        if (standardCompression.savedPercentage > 0.1) { // Reducido a 0.1% para ser más permisivo
           setProgress(90);
           setCompressedFile(standardResult);
           setCompressionInfo({

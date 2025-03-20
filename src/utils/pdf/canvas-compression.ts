@@ -52,8 +52,8 @@ export const canvasBasedCompression = async (
     newDoc.setCreator("");
     
     // Configurar factores de escala y calidad según el nivel deseado
-    const jpegQuality = level === 'high' ? 0.3 : level === 'medium' ? 0.5 : 0.7;
-    const scaleFactor = level === 'high' ? 0.5 : level === 'medium' ? 0.7 : 0.8;
+    const jpegQuality = level === 'high' ? 0.2 : level === 'medium' ? 0.3 : 0.4;
+    const scaleFactor = level === 'high' ? 0.4 : level === 'medium' ? 0.5 : 0.7;
     
     // Usar otra copia para pdf.js
     const pdfJsBuffer = new Uint8Array(fileBuffer.slice(0));
