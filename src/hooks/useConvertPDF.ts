@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
 
 // Configurar worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -47,14 +47,7 @@ export const useConvertPDF = () => {
         setProgress(40);
         
         // Crear un documento de Word
-        const doc = new Document({
-          sections: [
-            {
-              properties: {},
-              children: []
-            }
-          ]
-        });
+        const paragraphs: Paragraph[] = [];
         
         // Procesar cada página del PDF
         for (let i = 1; i <= numPages; i++) {
@@ -66,43 +59,53 @@ export const useConvertPDF = () => {
             'str' in item ? item.str : '');
           const text = textItems.join(' ');
           
-          // Agregar el texto al documento Word
-          doc.addSection({
-            properties: {},
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Página ${i}`,
-                    bold: true
-                  })
-                ]
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: text
-                  })
-                ]
-              })
-            ]
-          });
+          // Agregar el texto como párrafos al documento Word
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Página ${i}`,
+                  bold: true
+                })
+              ]
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: text
+                })
+              ]
+            })
+          );
         }
+        
+        // Crear el documento con los párrafos recopilados
+        const doc = new Document({
+          sections: [
+            {
+              children: paragraphs
+            }
+          ]
+        });
         
         setProgress(80);
         
-        // Generar el archivo DOCX
-        const buffer = await Packer.toBuffer(doc);
-        const docxBlob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        
-        // Crear archivo Word
-        const docxFile = new File(
-          [docxBlob],
-          `${file.name.replace('.pdf', '')}.docx`,
-          { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
-        );
-        
-        resultFiles.push(docxFile);
+        try {
+          // Generar el archivo DOCX como Blob
+          const blob = await Packer.toBlob(doc);
+          
+          // Crear archivo Word
+          const docxFile = new File(
+            [blob],
+            `${file.name.replace('.pdf', '')}.docx`,
+            { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+          );
+          
+          resultFiles.push(docxFile);
+        } catch (error) {
+          console.error('Error al generar el archivo DOCX:', error);
+          throw new Error('Error al generar el archivo DOCX');
+        }
       } else {
         // Procesar cada página del PDF para otros formatos
         for (let i = 1; i <= numPages; i++) {
