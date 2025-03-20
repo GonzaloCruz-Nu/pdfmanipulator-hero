@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { PanelRightOpen, FileText, Pen, Text, ImageIcon, Square, Circle, Eraser, Save } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -12,6 +11,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { cn } from '@/lib/utils';
 import PdfViewerContent from '@/components/pdf/PdfViewerContent';
 import PdfControls from '@/components/pdf/PdfControls';
+import FileUpload from '@/components/FileUpload';
 
 interface ToolButtonProps {
   icon: React.ElementType;
@@ -52,21 +52,10 @@ const EditPDF = () => {
     prevPage,
   } = usePdfRenderer(selectedFile);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedFile(event.target.files[0]);
+  const handleFileSelected = (files: File[]) => {
+    if (files.length > 0) {
+      setSelectedFile(files[0]);
     }
-  };
-
-  const handleFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (event.dataTransfer.files && event.dataTransfer.files[0]) {
-      setSelectedFile(event.dataTransfer.files[0]);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
   };
 
   const renderToolbar = () => {
@@ -158,27 +147,13 @@ const EditPDF = () => {
         </div>
 
         {!selectedFile ? (
-          <div 
-            className="border-2 border-dashed border-border rounded-xl h-[400px] flex flex-col items-center justify-center p-6"
-            onDrop={handleFileDrop}
-            onDragOver={handleDragOver}
-          >
-            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium mb-2">Selecciona o arrastra un PDF</h3>
-            <p className="text-muted-foreground text-center mb-6">
-              Arrastra y suelta un archivo PDF aquí o haz clic en el botón para seleccionarlo.
-            </p>
-            <label>
-              <Input 
-                type="file" 
-                accept=".pdf" 
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <Button asChild>
-                <span>Seleccionar PDF</span>
-              </Button>
-            </label>
+          <div className="border-2 border-dashed border-border rounded-xl h-[400px] flex flex-col items-center justify-center p-6">
+            <FileUpload
+              onFilesSelected={handleFileSelected}
+              multiple={false}
+              accept=".pdf"
+              maxFiles={1}
+            />
           </div>
         ) : (
           <ResizablePanelGroup 
