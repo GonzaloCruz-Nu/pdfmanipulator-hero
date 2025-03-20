@@ -57,25 +57,25 @@ const ConvertPDF = () => {
           // - If Word is less than 20KB and PDF is greater than 200KB = strong warning
           // - If Word is less than 50KB and PDF is greater than 500KB = mild warning
           if (fileSize < 20000 && file.size > 200000) {
-            toast.warning(`The generated Word document is very small (${fileSizeFormatted}). The PDF probably contains mainly images or non-extractable text.`);
+            toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}). El PDF probablemente contiene principalmente imágenes o texto no extraíble.`);
           } else if (fileSize < 50000 && file.size > 500000) {
-            toast.warning(`The Word document (${fileSizeFormatted}) is considerably smaller than the original PDF. Some images or complex elements may not have been converted.`);
+            toast.warning(`El documento Word (${fileSizeFormatted}) es considerablemente más pequeño que el PDF original. Algunas imágenes o elementos complejos pueden no haberse convertido.`);
           } else {
-            toast.success(`PDF successfully converted to Word (${fileSizeFormatted})`);
+            toast.success(`PDF convertido exitosamente a Word (${fileSizeFormatted})`);
           }
           console.log('Conversion completed successfully, result:', result);
         } else {
           setErrorMessage(result.message);
-          toast.error(result.message || 'Error converting PDF');
+          toast.error(result.message || 'Error al convertir PDF');
           console.error('Conversion error:', result.message);
         }
       } catch (error) {
         console.error('Conversion error:', error);
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error during conversion');
-        toast.error('Error converting PDF to Word');
+        setErrorMessage(error instanceof Error ? error.message : 'Error desconocido durante la conversión');
+        toast.error('Error al convertir PDF a Word');
       }
     } else {
-      toast.error('Please select a PDF file');
+      toast.error('Por favor selecciona un archivo PDF');
     }
   };
 

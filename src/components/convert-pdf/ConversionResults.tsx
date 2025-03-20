@@ -37,7 +37,7 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
             return (
               <li key={index} className="flex items-center justify-between rounded-md bg-gray-100 p-3 text-sm">
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-naranja" />
+                  <FileText className="h-4 w-4 text-[rgb(246,141,46)]" />
                   <span className="truncate max-w-[200px]">{convertedFile.name}</span>
                   <span className="text-xs text-muted-foreground">
                     ({fileSizeFormatted})
@@ -50,7 +50,7 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
         <Button 
           onClick={onDownload} 
           variant="secondary"
-          className="w-full bg-azul hover:bg-azul/90 text-white"
+          className="w-full bg-[rgb(31,42,68)] hover:bg-[rgb(31,42,68)]/90 text-white"
         >
           <Download className="mr-2 h-4 w-4" /> 
           Descargar documento Word
@@ -71,7 +71,7 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
                 El PDF puede contener principalmente imágenes, gráficos o texto no extraíble.
               </p>
               <div className="mt-2">
-                <Link to="/tools/ocr" className="text-naranja flex items-center">
+                <Link to="/tools/ocr" className="text-[rgb(246,141,46)] flex items-center">
                   <Scan className="h-3 w-3 mr-1" /> Prueba nuestra herramienta OCR para documentos escaneados
                 </Link>
               </div>
