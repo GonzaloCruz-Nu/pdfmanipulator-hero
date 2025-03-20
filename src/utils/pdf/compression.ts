@@ -95,7 +95,10 @@ export const aggressiveCompression = async (
       currentPage.scale(1/scaleFactor, 1/scaleFactor);
       
       // Eliminar anotaciones (como enlaces) para reducir tamaño
-      currentPage.node.delete('Annots');
+      // Fix for Line 98: Don't use string for PDFName
+      if (currentPage.node.has('Annots')) {
+        currentPage.node.delete('Annots');
+      }
     }
     
     const compressedBytes = await newPdfDoc.save({
@@ -227,7 +230,10 @@ export const imageQualityCompression = async (
       });
       
       // Eliminar datos innecesarios
-      newPage.node.delete('Annots');
+      // Fix for Line 230: Don't use string for PDFName
+      if (newPage.node.has('Annots')) {
+        newPage.node.delete('Annots');
+      }
     }
     
     // Guardar con opciones agresivas de compresión
@@ -301,13 +307,13 @@ export const ultimateCompression = async (
           color: rgb(1, 1, 1), // Blanco
         });
         
-        // Dibujar contenido original en escala de grises (usando un único color)
+        // Fix for Line 310: Remove color property and use opacity for grayscale effect
+        // Dibujar contenido original en escala de grises
         newPage.drawPage(embeddedPage, {
           x: 0,
           y: 0,
           width: width * sizeReduction,
           height: height * sizeReduction,
-          color: rgb(0, 0, 0), // Negro
           opacity: 0.9
         });
       } else {
@@ -322,7 +328,10 @@ export const ultimateCompression = async (
       }
       
       // Eliminar anotaciones y metadatos adicionales
-      newPage.node.delete('Annots');
+      // Fix for Line 325: Don't use string for PDFName
+      if (newPage.node.has('Annots')) {
+        newPage.node.delete('Annots');
+      }
     }
     
     // Guardar con configuraciones agresivas
