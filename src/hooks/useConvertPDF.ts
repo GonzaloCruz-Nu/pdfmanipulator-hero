@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -177,7 +176,7 @@ export const useConvertPDF = () => {
                         width,
                         height,
                       },
-                      type: 'image/jpeg', // Especificar el tipo de imagen
+                      type: 'jpg', // Especificar el tipo de imagen como extensión
                     }),
                   ],
                   spacing: {
