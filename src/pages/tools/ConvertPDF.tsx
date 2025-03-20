@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileType, Download, FileText, Info } from 'lucide-react';
+import { FileType, Download, FileText, Info, AlertTriangle } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
   const [conversionStarted, setConversionStarted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const { 
     convertPDF, 
@@ -27,6 +28,7 @@ const ConvertPDF = () => {
   // Resetear el estado cuando se selecciona un nuevo archivo
   useEffect(() => {
     setConversionStarted(false);
+    setErrorMessage(null);
   }, [file]);
 
   const handleFileSelected = (files: File[]) => {
@@ -42,6 +44,7 @@ const ConvertPDF = () => {
     if (file) {
       try {
         setConversionStarted(true);
+        setErrorMessage(null);
         console.log('Iniciando conversión para:', file.name);
         const result = await convertPDF(file, 'docx');
         
@@ -49,11 +52,13 @@ const ConvertPDF = () => {
           toast.success('PDF convertido exitosamente a Word');
           console.log('Conversión completada con éxito, resultado:', result);
         } else {
+          setErrorMessage(result.message);
           toast.error(result.message || 'Error al convertir el PDF');
           console.error('Error en la conversión:', result.message);
         }
       } catch (error) {
         console.error('Error en conversión:', error);
+        setErrorMessage(error instanceof Error ? error.message : 'Error desconocido al convertir');
         toast.error('Error al convertir el PDF a Word');
       }
     } else {
@@ -185,9 +190,9 @@ const ConvertPDF = () => {
             
             {conversionStarted && !isProcessing && convertedFiles.length === 0 && (
               <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  No se pudo generar el documento Word. El archivo PDF podría estar protegido o contener solo imágenes.
-                  Intenta con la herramienta OCR para documentos escaneados.
+                  {errorMessage || 'No se pudo generar el documento Word. El archivo PDF podría estar protegido o contener solo imágenes.'}
                 </AlertDescription>
               </Alert>
             )}

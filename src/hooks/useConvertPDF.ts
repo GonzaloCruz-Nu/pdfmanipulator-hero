@@ -110,6 +110,16 @@ export const useConvertPDF = () => {
         allPageContent.reduce((acc, page) => acc + page.text.length, 0), 'caracteres');
       console.log('Creando documento DOCX...');
       
+      // Verificar si se extrajo contenido
+      if (allPageContent.every(page => page.text.trim().length === 0)) {
+        console.error('No se extrajo texto de ninguna página del PDF');
+        return { 
+          success: false, 
+          files: [], 
+          message: 'No se pudo extraer ningún texto del documento. Puede ser un PDF escaneado o con imágenes.' 
+        };
+      }
+
       // Crear el documento DOCX con mejor formato
       const doc = new Document({
         title: file.name.replace('.pdf', ''),
@@ -171,7 +181,6 @@ export const useConvertPDF = () => {
                       new TextRun({
                         text: "Esta página no contiene texto extraíble. Podría ser una imagen o estar escaneada.",
                         italics: true,
-                        // Cambio de "red" a un código hexadecimal de color rojo
                         color: "#FF0000"
                       })
                     ]
@@ -225,27 +234,46 @@ export const useConvertPDF = () => {
       setProgress(85);
       console.log('Estructura de documento DOCX creada, generando archivo binario...');
       
-      // Generar el blob del documento
-      const blob = await Packer.toBlob(doc);
-      console.log('Blob generado, tamaño:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
-      
-      // Crear archivo Word con nombre descriptivo
-      const docxFile = new File(
-        [blob],
-        `${file.name.replace('.pdf', '')}_convertido.docx`,
-        { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
-      );
-      
-      setConvertedFiles([docxFile]);
-      
-      setProgress(100);
-      console.log('Conversión completada con éxito');
-      
-      return {
-        success: true,
-        files: [docxFile],
-        message: 'PDF convertido a DOCX correctamente'
-      };
+      try {
+        // Generar el blob del documento
+        const blob = await Packer.toBlob(doc);
+        console.log('Blob generado correctamente, tamaño:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+        
+        if (!blob || blob.size === 0) {
+          throw new Error('El blob generado está vacío');
+        }
+        
+        // Crear archivo Word con nombre descriptivo
+        const docxFile = new File(
+          [blob],
+          `${file.name.replace('.pdf', '')}_convertido.docx`,
+          { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+        );
+        
+        console.log('Archivo Word creado:', docxFile.name, 'tamaño:', (docxFile.size / 1024 / 1024).toFixed(2), 'MB');
+        
+        if (docxFile.size === 0) {
+          throw new Error('El archivo generado está vacío');
+        }
+        
+        setConvertedFiles([docxFile]);
+        
+        setProgress(100);
+        console.log('Conversión completada con éxito');
+        
+        return {
+          success: true,
+          files: [docxFile],
+          message: 'PDF convertido a DOCX correctamente'
+        };
+      } catch (blobError) {
+        console.error('Error al generar el archivo DOCX:', blobError);
+        return {
+          success: false,
+          files: [],
+          message: 'Error al generar el archivo DOCX: ' + (blobError instanceof Error ? blobError.message : 'Error desconocido')
+        };
+      }
     } catch (error) {
       console.error('Error al convertir el PDF:', error);
       toast.error('Error al convertir el PDF');
@@ -253,7 +281,7 @@ export const useConvertPDF = () => {
       return {
         success: false,
         files: [],
-        message: 'Error al convertir el PDF'
+        message: 'Error al convertir el PDF: ' + (error instanceof Error ? error.message : 'Error desconocido')
       };
     } finally {
       setProgress(100);
@@ -271,17 +299,27 @@ export const useConvertPDF = () => {
       return;
     }
     
-    // Descargar el archivo directamente
-    const url = URL.createObjectURL(convertedFiles[0]);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = convertedFiles[0].name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Documento Word descargado correctamente');
+    try {
+      // Verificación adicional antes de la descarga
+      if (convertedFiles[0].size === 0) {
+        throw new Error('El archivo a descargar está vacío');
+      }
+      
+      // Descargar el archivo directamente
+      const url = URL.createObjectURL(convertedFiles[0]);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = convertedFiles[0].name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Documento Word descargado correctamente');
+    } catch (error) {
+      console.error('Error al descargar el archivo:', error);
+      toast.error('Error al descargar el archivo: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+    }
   };
 
   return {
