@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import PdfPreview from '@/components/PdfPreview';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
+import { toast } from 'sonner';
 
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -31,7 +32,15 @@ const ConvertPDF = () => {
 
   const handleConvert = async () => {
     if (file) {
-      await convertPDF(file, 'docx');
+      try {
+        await convertPDF(file, 'docx');
+        toast.success('PDF convertido exitosamente a Word');
+      } catch (error) {
+        console.error('Error en conversión:', error);
+        toast.error('Error al convertir el PDF a Word');
+      }
+    } else {
+      toast.error('Por favor, selecciona un archivo PDF');
     }
   };
 
@@ -82,7 +91,7 @@ const ConvertPDF = () => {
               
               {file && (
                 <div className="text-sm text-muted-foreground mt-2">
-                  Tamaño del archivo: {(file.size / (1024 * 1024)).toFixed(2)} MB
+                  Archivo: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
                 </div>
               )}
             </div>
@@ -126,7 +135,7 @@ const ConvertPDF = () => {
 
             {convertedFiles.length > 0 && (
               <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
-                <h2 className="text-xl font-semibold">Archivos convertidos</h2>
+                <h2 className="text-xl font-semibold">Archivo convertido</h2>
                 <ul className="space-y-2">
                   {convertedFiles.map((file, index) => (
                     <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">

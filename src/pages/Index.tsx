@@ -46,7 +46,7 @@ const Index = () => {
             <span className="text-primary">sin salir de tu navegador</span>
           </h1>
           <p className="max-w-2xl mx-auto text-muted-foreground text-lg">
-            Herramientas potentes para unir, dividir, comprimir y convertir PDFs.
+            Herramientas potentes para unir, dividir, comprimir y convertir PDFs a Word.
             Sin servidores externos. Tus archivos nunca salen de tu dispositivo.
           </p>
           <div className="pt-4">
