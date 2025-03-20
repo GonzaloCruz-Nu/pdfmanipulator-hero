@@ -53,10 +53,17 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
         let isEncrypted = false;
         try {
           const metadata = await pdf.getMetadata();
-          isEncrypted = !!(metadata && metadata.info && metadata.info.IsEncrypted);
+          isEncrypted = Boolean(
+            metadata?.info && 'IsEncrypted' in metadata.info && metadata.info['IsEncrypted']
+          );
           
-          if (!isEncrypted && metadata && metadata.metadata) {
-            isEncrypted = !!(metadata.metadata.get('IsEncrypted') === 'true');
+          if (!isEncrypted && metadata?.metadata) {
+            try {
+              const encryptedValue = metadata.metadata.get('IsEncrypted');
+              isEncrypted = encryptedValue === 'true';
+            } catch (metadataErr) {
+              console.warn('Error accessing metadata value:', metadataErr);
+            }
           }
         } catch (err) {
           console.warn('Could not check encryption status:', err);
