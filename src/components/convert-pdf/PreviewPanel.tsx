@@ -50,7 +50,18 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
         const pdf = await loadingTask.promise;
         console.log(`PDF analysis: Document has ${pdf.numPages} pages`);
         
-        const isEncrypted = pdf.getEncryptionType() !== null;
+        let isEncrypted = false;
+        try {
+          const metadata = await pdf.getMetadata();
+          isEncrypted = !!(metadata && metadata.info && metadata.info.IsEncrypted);
+          
+          if (!isEncrypted && metadata && metadata.metadata) {
+            isEncrypted = !!(metadata.metadata.get('IsEncrypted') === 'true');
+          }
+        } catch (err) {
+          console.warn('Could not check encryption status:', err);
+          isEncrypted = false;
+        }
         
         let totalTextCharacters = 0;
         let hasImages = false;
