@@ -26,6 +26,8 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
   useEffect(() => {
     if (!canvas) return;
 
+    console.log("Updating tool to:", activeTool, "with color:", color, "and size:", size);
+
     canvas.isDrawingMode = false;
 
     switch (activeTool) {
@@ -54,6 +56,8 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
   // Handle canvas mouse events for drawing shapes
   const handleCanvasMouseDown = useCallback((e: fabric.IEvent) => {
     if (!canvas || activeTool === 'select' || activeTool === 'pen') return;
+    
+    console.log("Mouse down event with tool:", activeTool);
     
     const pointer = canvas.getPointer(e.e);
     const startX = pointer.x;
@@ -101,7 +105,7 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
 
     canvas.add(tempShape);
     
-    canvas.on('mouse:move', (moveEvent) => {
+    const handleMouseMove = (moveEvent: fabric.IEvent) => {
       const movePointer = canvas.getPointer(moveEvent.e);
       
       if (activeTool === 'rectangle') {
@@ -139,16 +143,19 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
       }
       
       canvas.renderAll();
-    });
+    };
     
-    canvas.on('mouse:up', () => {
-      canvas.off('mouse:move');
-      canvas.off('mouse:up');
+    const handleMouseUp = () => {
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
       onToolChange('select');
       
       canvas.setActiveObject(tempShape);
       canvas.renderAll();
-    });
+    };
+    
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
   }, [canvas, activeTool, color, size, fontSize, fontFamily, onToolChange]);
 
   useEffect(() => {

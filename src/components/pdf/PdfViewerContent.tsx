@@ -1,11 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import PdfEditToolbar, { EditToolType } from './PdfEditToolbar';
 import PdfCanvas from './PdfCanvas';
 import PdfCanvasTools from './PdfCanvasTools';
 import PdfNavigation from './PdfNavigation';
+import { fabric } from 'fabric';
 
 interface PdfViewerContentProps {
   pageUrl: string | null;
@@ -34,17 +34,35 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   const [size, setSize] = useState(2);
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState('Arial');
+  const canvasRef = useRef<fabric.Canvas | null>(null);
 
   const handleToolChange = (tool: EditToolType) => {
     setActiveTool(tool);
   };
 
   const handleClearCanvas = () => {
-    toast.success('Todos los elementos han sido eliminados');
+    if (canvasRef.current) {
+      // Keep the background image (PDF)
+      const bgImage = canvasRef.current.backgroundImage;
+      canvasRef.current.clear();
+      
+      if (bgImage) {
+        canvasRef.current.setBackgroundImage(bgImage, canvasRef.current.renderAll.bind(canvasRef.current));
+      }
+      
+      canvasRef.current.renderAll();
+      toast.success('Todos los elementos han sido eliminados');
+    }
   };
 
   const handleDeleteSelected = () => {
-    toast.success('Elemento seleccionado eliminado');
+    if (canvasRef.current) {
+      const activeObject = canvasRef.current.getActiveObject();
+      if (activeObject) {
+        canvasRef.current.remove(activeObject);
+        toast.success('Elemento seleccionado eliminado');
+      }
+    }
   };
 
   if (isLoading) {
@@ -87,10 +105,11 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         <PdfCanvas 
           pageUrl={pageUrl}
           onSelectionChange={setHasSelection}
+          fabricRef={canvasRef}
         />
         
         <PdfCanvasTools
-          canvas={null}
+          canvas={canvasRef.current}
           activeTool={activeTool}
           color={color}
           size={size}
