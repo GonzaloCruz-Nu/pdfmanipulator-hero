@@ -35,31 +35,42 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
   return (
     <div className="mt-6">
       {compressionInfo && compressedFile && (
-        <div>
-          <div className="flex items-center p-4 bg-green-50 text-green-800 rounded-lg border border-green-200 mb-4">
-            <Check className="h-5 w-5 mr-2 flex-shrink-0" />
-            <div className="text-sm">
-              <p className="font-medium">Compresión completada</p>
-              <p>Tamaño original: {formatFileSize(compressionInfo.originalSize)}</p>
-              <p>Tamaño comprimido: {formatFileSize(compressionInfo.compressedSize)}</p>
-              <p>Reducción: <span className="font-bold">{compressionInfo.savedPercentage.toFixed(1)}%</span></p>
-              <p className="text-xs mt-1 text-green-600">Ahorro de espacio: {formatFileSize(compressionInfo.originalSize - compressionInfo.compressedSize)}</p>
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-md p-4">
+            <h3 className="text-green-800 font-medium mb-2">Compresión completada</h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-start">
+                <span className="text-green-800">Tamaño original:</span>
+                <span className="ml-auto text-green-800 font-medium">{formatFileSize(compressionInfo.originalSize)}</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-green-800">Tamaño comprimido:</span>
+                <span className="ml-auto text-green-800 font-medium">{formatFileSize(compressionInfo.compressedSize)}</span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-green-800">Reducción:</span>
+                <span className="ml-auto text-green-800 font-medium">{compressionInfo.savedPercentage.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-start text-xs text-green-700 mt-2">
+                <span>Ahorro de espacio:</span>
+                <span className="ml-auto">{formatFileSize(compressionInfo.originalSize - compressionInfo.compressedSize)}</span>
+              </div>
             </div>
           </div>
           
           <Button
             onClick={onDownload}
-            variant="secondary"
-            className="w-full"
+            variant="outline"
+            className="w-full py-5 border-gray-300 hover:bg-gray-50 flex items-center justify-center"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-5 w-5 mr-2" />
             Descargar PDF comprimido
           </Button>
         </div>
       )}
 
       {compressionError && (
-        <Alert variant="destructive" className="bg-red-50">
+        <Alert variant="destructive" className="bg-red-50 border-red-200 mt-4">
           <AlertCircle className="h-5 w-5 mr-2" />
           <AlertDescription>
             {compressionError}
@@ -68,7 +79,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
       )}
 
       {!file && (
-        <div className="flex items-center p-4 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200">
+        <div className="flex items-center p-4 bg-blue-50 text-blue-800 rounded-lg border border-blue-200">
           <Info className="h-5 w-5 mr-2 flex-shrink-0" />
           <p className="text-sm">
             Selecciona un archivo PDF para comenzar a comprimirlo.

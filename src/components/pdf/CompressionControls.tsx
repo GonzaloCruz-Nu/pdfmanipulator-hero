@@ -27,47 +27,47 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
 
   return (
     <div className="mt-6">
-      <h3 className="text-md font-medium mb-2">Nivel de compresión</h3>
+      <h3 className="text-md font-medium mb-2">Selecciona el nivel de compresión deseado</h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Selecciona el nivel de compresión deseado. Mayor compresión puede afectar la calidad visual del PDF.
+        Mayor compresión puede afectar la calidad visual del PDF.
       </p>
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           onClick={() => setCompressionLevel('low')}
-          className={`px-4 py-2 rounded-md text-sm ${
+          className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'low' 
-              ? 'bg-primary text-white' 
-              : 'bg-secondary text-muted-foreground'
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700'
           }`}
         >
-          Baja
-          <span className="block text-xs opacity-75">Ahorro: 40-60%</span>
+          <span className="block font-medium">Baja</span>
+          <span className="block text-xs mt-1">Ahorro: 40-60%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
-          className={`px-4 py-2 rounded-md text-sm ${
+          className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'medium' 
-              ? 'bg-primary text-white' 
-              : 'bg-secondary text-muted-foreground'
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700'
           }`}
         >
-          Media
-          <span className="block text-xs opacity-75">Ahorro: 60-80%</span>
+          <span className="block font-medium">Media</span>
+          <span className="block text-xs mt-1">Ahorro: 60-80%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
-          className={`px-4 py-2 rounded-md text-sm ${
+          className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'high' 
-              ? 'bg-primary text-white' 
-              : 'bg-secondary text-muted-foreground'
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700'
           }`}
         >
-          Alta
-          <span className="block text-xs opacity-75">Ahorro: 80-95%</span>
+          <span className="block font-medium">Alta</span>
+          <span className="block text-xs mt-1">Ahorro: 80-95%</span>
         </button>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800">
+      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
         <p>Usando técnicas de compresión tipo GhostScript para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño).</p>
       </div>
 
@@ -75,7 +75,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
         onClick={onCompress}
         disabled={isProcessing || !file}
         variant="default"
-        className="w-full"
+        className="w-full bg-blue-500 hover:bg-blue-600 py-6 text-base flex items-center justify-center"
       >
         {isProcessing ? (
           <>
@@ -87,7 +87,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           </>
         ) : (
           <>
-            <Zap className="h-4 w-4 mr-2" />
+            <Zap className="h-5 w-5 mr-2" />
             Comprimir PDF
           </>
         )}

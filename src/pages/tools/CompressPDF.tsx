@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, FileDown, FileCheck, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Zap, FileDown, FileCheck } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -49,8 +48,8 @@ const CompressPDF = () => {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center justify-center mb-6">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Zap className="h-8 w-8 text-primary" />
+            <div className="bg-blue-500/10 p-3 rounded-full">
+              <Zap className="h-8 w-8 text-blue-500" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-center mb-2">Comprimir PDF</h1>
