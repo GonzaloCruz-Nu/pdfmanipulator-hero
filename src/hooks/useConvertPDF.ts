@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle, AlignmentType, ImageRun } from 'docx';
 
 // Configurar worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -33,8 +33,11 @@ export const useConvertPDF = () => {
       setConvertedFiles([]);
 
       // Cargar el PDF
-      const fileUrl = URL.createObjectURL(file);
-      const loadingTask = pdfjsLib.getDocument(fileUrl);
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfData = new Uint8Array(arrayBuffer);
+      setProgress(20);
+      
+      const loadingTask = pdfjsLib.getDocument({ data: pdfData });
       const pdf = await loadingTask.promise;
       
       setProgress(30);
@@ -47,86 +50,196 @@ export const useConvertPDF = () => {
         setProgress(40);
         
         // Estructura para almacenar todo el contenido del PDF
-        let allContent = '';
+        const allTextContent: string[] = [];
+        const allImageContents: { dataUrl: string, width: number, height: number }[] = [];
         
-        // Extraer texto de todas las páginas del PDF
+        // Extraer texto e imágenes de todas las páginas del PDF
         for (let i = 1; i <= numPages; i++) {
           setProgress(40 + Math.floor((i / numPages) * 30));
           
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
-          const textItems = textContent.items.map((item: any) => 
-            'str' in item ? item.str : '');
           
-          // Agregar separadores de página claros
-          allContent += `\n\n--- PÁGINA ${i} ---\n\n`;
-          allContent += textItems.join(' ');
+          // Extraer texto página por página
+          const textItems = textContent.items.map((item: any) => 
+            'str' in item ? item.str : '').filter(Boolean);
+          
+          allTextContent.push(`--- PÁGINA ${i} ---\n${textItems.join(' ')}`);
+          
+          // Intenta extraer imágenes si es posible
+          try {
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            if (context) {
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              
+              await page.render({
+                canvasContext: context,
+                viewport: viewport
+              }).promise;
+              
+              // Almacenar la imagen de la página
+              allImageContents.push({
+                dataUrl: canvas.toDataURL('image/jpeg', 0.8),
+                width: viewport.width,
+                height: viewport.height
+              });
+            }
+          } catch (error) {
+            console.warn(`No se pudo extraer imagen de la página ${i}:`, error);
+          }
         }
         
         setProgress(70);
         
-        // Crear el documento DOCX con formato mejorado
+        // Crear el documento DOCX con formato mejorado y contenido completo
+        const docChildren = [];
+        
+        // Añadir título del documento
+        docChildren.push(
+          new Paragraph({
+            text: `Documento: ${file.name.replace('.pdf', '')}`,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            thematicBreak: true,
+            spacing: {
+              after: 200,
+            },
+          })
+        );
+        
+        // Añadir metadatos de conversión
+        docChildren.push(
+          new Paragraph({
+            text: `Convertido de PDF a DOCX - ${numPages} páginas`,
+            alignment: AlignmentType.CENTER,
+            spacing: {
+              after: 400,
+            },
+          })
+        );
+        
+        // Procesar el contenido página por página
+        for (let i = 0; i < allTextContent.length; i++) {
+          const pageContent = allTextContent[i];
+          const pageNumber = i + 1;
+          
+          // Añadir encabezado de página
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Página ${pageNumber}`,
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+              heading: HeadingLevel.HEADING_2,
+              thematicBreak: true,
+              spacing: {
+                before: 400,
+                after: 200,
+              },
+              border: {
+                bottom: {
+                  color: "999999",
+                  space: 1,
+                  style: BorderStyle.SINGLE,
+                  size: 6,
+                },
+              },
+            })
+          );
+          
+          // Añadir imagen de la página (si está disponible)
+          if (allImageContents[i]) {
+            try {
+              const image = allImageContents[i];
+              // Convertir dataUrl a base64
+              const base64Image = image.dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
+              
+              // Calcular dimensiones apropiadas (conservar relación de aspecto)
+              const maxWidth = 500;  // ancho máximo en puntos para el documento
+              const ratio = image.width / image.height;
+              const width = Math.min(image.width, maxWidth);
+              const height = width / ratio;
+              
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: Uint8Array.from(atob(base64Image), c => c.charCodeAt(0)),
+                      transformation: {
+                        width,
+                        height,
+                      },
+                    }),
+                  ],
+                  spacing: {
+                    after: 200,
+                  },
+                })
+              );
+            } catch (error) {
+              console.error('Error al insertar imagen en el documento DOCX:', error);
+            }
+          }
+          
+          // Añadir el texto de la página
+          // Dividir el contenido en párrafos para mejor formato
+          const textParagraphs = pageContent.split('\n').filter(p => p.trim());
+          
+          for (const paragraph of textParagraphs) {
+            if (paragraph.startsWith('--- PÁGINA')) continue;
+            
+            // Separar el texto en párrafos más pequeños para mejorar la legibilidad
+            const sentences = paragraph.split(/(?<=\.|\?|\!)\s+/g);
+            
+            for (let j = 0; j < sentences.length; j += 3) {
+              const sentenceGroup = sentences.slice(j, j + 3).join(' ');
+              if (sentenceGroup.trim()) {
+                docChildren.push(
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: sentenceGroup,
+                      }),
+                    ],
+                    spacing: {
+                      line: 360,
+                      after: 120,
+                    }
+                  })
+                );
+              }
+            }
+          }
+          
+          // Añadir separador entre páginas
+          if (i < allTextContent.length - 1) {
+            docChildren.push(
+              new Paragraph({
+                text: "",
+                thematicBreak: true,
+                spacing: {
+                  before: 200,
+                  after: 200,
+                },
+              })
+            );
+          }
+        }
+        
+        // Construir el documento final
         const doc = new Document({
           title: file.name.replace('.pdf', ''),
           description: 'Documento convertido de PDF a DOCX',
           sections: [{
             properties: {},
-            children: [
-              new Paragraph({
-                text: `Documento: ${file.name.replace('.pdf', '')}`,
-                heading: HeadingLevel.HEADING_1,
-                alignment: AlignmentType.CENTER,
-                thematicBreak: true,
-              }),
-              
-              new Paragraph({
-                text: `Convertido de PDF a DOCX`,
-                alignment: AlignmentType.CENTER,
-                spacing: {
-                  after: 200,
-                },
-              }),
-              
-              // Dividir el contenido por páginas y crear párrafos estructurados
-              ...allContent.split('--- PÁGINA').map((pageContent, index) => {
-                if (index === 0) return [];
-                
-                const pageNumber = pageContent.split('---')[0].trim();
-                const content = pageContent.split('---')[1]?.trim() || '';
-                
-                return [
-                  new Paragraph({
-                    text: `Página ${pageNumber}`,
-                    heading: HeadingLevel.HEADING_2,
-                    thematicBreak: true,
-                    spacing: {
-                      before: 400,
-                      after: 200,
-                    },
-                    border: {
-                      bottom: {
-                        color: "999999",
-                        space: 1,
-                        style: BorderStyle.SINGLE,
-                        size: 6,
-                      },
-                    },
-                  }),
-                  ...content.split('\n').filter(line => line.trim()).map(line => 
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: line,
-                        }),
-                      ],
-                      spacing: {
-                        line: 360,
-                      }
-                    })
-                  ),
-                ];
-              }).flat(),
-            ],
+            children: docChildren,
           }],
         });
         

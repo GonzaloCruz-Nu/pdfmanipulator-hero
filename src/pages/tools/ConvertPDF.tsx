@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import PdfPreview from '@/components/PdfPreview';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
 
@@ -80,6 +81,12 @@ const ConvertPDF = () => {
                 multiple={false}
                 accept=".pdf"
               />
+              
+              {file && (
+                <div className="text-sm text-muted-foreground mt-2">
+                  Tamaño del archivo: {(file.size / (1024 * 1024)).toFixed(2)} MB
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
@@ -106,6 +113,16 @@ const ConvertPDF = () => {
                 </p>
               </div>
               
+              {isProcessing && (
+                <div className="space-y-2 py-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Progreso</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+              )}
+              
               <Button 
                 onClick={handleConvert} 
                 disabled={!file || isProcessing}
@@ -114,12 +131,19 @@ const ConvertPDF = () => {
                 {isProcessing ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                    Convirtiendo... {progress}%
+                    Convirtiendo...
                   </>
                 ) : (
                   'Convertir PDF'
                 )}
               </Button>
+              
+              {format === 'docx' && (
+                <p className="text-xs text-muted-foreground">
+                  La conversión a Word preservará tanto el texto como el contenido visual del PDF.
+                  Para documentos grandes, este proceso puede tardar varios minutos.
+                </p>
+              )}
             </div>
 
             {convertedFiles.length > 0 && (
@@ -131,6 +155,9 @@ const ConvertPDF = () => {
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="truncate max-w-[200px]">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
                       </div>
                     </li>
                   ))}
