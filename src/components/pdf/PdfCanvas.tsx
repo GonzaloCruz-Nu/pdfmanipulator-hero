@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { fabric } from 'fabric';
 import { useFabricCanvas } from '@/hooks/useFabricCanvas';
-import { ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PdfCanvasProps {
@@ -16,6 +16,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     onSelectionChange,
   });
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
   const [initialImgData, setInitialImgData] = useState<{
     img: fabric.Image | null;
     width: number;
@@ -124,12 +125,98 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     console.log("Applied zoom level:", zoomLevel, "new scale:", scale);
   }, [zoomLevel, canvas, initialImgData]);
 
+  // Setup panning functionality
+  useEffect(() => {
+    if (!canvas) return;
+
+    let isDragging = false;
+    let lastPosX = 0;
+    let lastPosY = 0;
+
+    // Only enable panning mode when isPanning is true
+    const handleMouseDown = (opt: fabric.IEvent) => {
+      if (!isPanning) return;
+      
+      isDragging = true;
+      
+      const evt = opt.e as MouseEvent;
+      lastPosX = evt.clientX;
+      lastPosY = evt.clientY;
+      
+      // Disable object selection while panning
+      if (isPanning) {
+        canvas.selection = false;
+        canvas.discardActiveObject();
+        canvas.forEachObject(function(obj) {
+          obj.selectable = false;
+        });
+        canvas.renderAll();
+      }
+    };
+
+    const handleMouseMove = (opt: fabric.IEvent) => {
+      if (!isDragging || !isPanning || !canvas.backgroundImage) return;
+      
+      const evt = opt.e as MouseEvent;
+      const deltaX = evt.clientX - lastPosX;
+      const deltaY = evt.clientY - lastPosY;
+      
+      // Move the background image
+      const bg = canvas.backgroundImage;
+      bg.set({
+        left: (bg.left || 0) + deltaX,
+        top: (bg.top || 0) + deltaY
+      });
+      
+      // Also move all objects on the canvas
+      canvas.forEachObject(function(obj) {
+        obj.set({
+          left: obj.left! + deltaX,
+          top: obj.top! + deltaY
+        });
+        obj.setCoords();
+      });
+      
+      canvas.renderAll();
+      
+      lastPosX = evt.clientX;
+      lastPosY = evt.clientY;
+    };
+
+    const handleMouseUp = () => {
+      isDragging = false;
+      
+      // Re-enable object selection after panning
+      if (isPanning) {
+        canvas.selection = true;
+        canvas.forEachObject(function(obj) {
+          obj.selectable = true;
+        });
+        canvas.renderAll();
+      }
+    };
+
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
+
+    return () => {
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
+    };
+  }, [canvas, isPanning]);
+
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%
   };
 
   const handleZoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Minimum zoom 50%
+  };
+
+  const togglePanning = () => {
+    setIsPanning(prev => !prev);
   };
 
   return (
@@ -139,13 +226,23 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
       
-      {/* Zoom controls */}
+      {/* Zoom and pan controls */}
       <div className="absolute bottom-4 right-4 flex gap-2 z-10">
+        <Button 
+          variant={isPanning ? "default" : "secondary"} 
+          size="sm" 
+          onClick={togglePanning} 
+          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+          title={isPanning ? "Modo movimiento activado" : "Mover PDF"}
+        >
+          <Move className="h-4 w-4" />
+        </Button>
         <Button 
           variant="secondary" 
           size="sm" 
           onClick={handleZoomIn} 
           className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+          title="Acercar"
         >
           <ZoomIn className="h-4 w-4" />
         </Button>
@@ -154,10 +251,18 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
           size="sm" 
           onClick={handleZoomOut} 
           className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+          title="Alejar"
         >
           <ZoomOut className="h-4 w-4" />
         </Button>
       </div>
+      
+      {/* Indicator for pan mode */}
+      {isPanning && (
+        <div className="absolute top-4 left-4 bg-primary/80 text-white px-3 py-1.5 rounded-md text-xs font-medium">
+          Modo movimiento: Click y arrastra para mover
+        </div>
+      )}
     </div>
   );
 };

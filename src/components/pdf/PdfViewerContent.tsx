@@ -37,9 +37,14 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   const [size, setSize] = useState(2);
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState('Arial');
+  const [isPanning, setIsPanning] = useState(false);
   const canvasRef = useRef<fabric.Canvas | null>(null);
 
   const handleToolChange = (tool: EditToolType) => {
+    // Disable panning mode when selecting a tool
+    if (isPanning) {
+      setIsPanning(false);
+    }
     setActiveTool(tool);
   };
 
@@ -141,6 +146,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
           fontSize={fontSize}
           fontFamily={fontFamily}
           onToolChange={setActiveTool}
+          isPanning={isPanning}
         />
         
         <PdfNavigation

@@ -11,6 +11,7 @@ interface PdfCanvasToolsProps {
   fontSize: number;
   fontFamily: string;
   onToolChange: (tool: EditToolType) => void;
+  isPanning?: boolean;
 }
 
 const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
@@ -21,10 +22,19 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
   fontSize,
   fontFamily,
   onToolChange,
+  isPanning = false,
 }) => {
   // Handle tool changes
   useEffect(() => {
     if (!canvas) return;
+
+    // If panning is active, disable all other tools
+    if (isPanning) {
+      canvas.isDrawingMode = false;
+      canvas.selection = false;
+      canvas.defaultCursor = 'grab';
+      return;
+    }
 
     console.log("Updating tool to:", activeTool, "with color:", color, "and size:", size);
 
@@ -51,11 +61,11 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
     }
     
     canvas.renderAll();
-  }, [activeTool, color, size, canvas]);
+  }, [activeTool, color, size, canvas, isPanning]);
 
   // Handle canvas mouse events for drawing shapes
   const handleCanvasMouseDown = useCallback((e: fabric.IEvent) => {
-    if (!canvas || activeTool === 'select' || activeTool === 'pen') return;
+    if (!canvas || activeTool === 'select' || activeTool === 'pen' || isPanning) return;
     
     console.log("Mouse down event with tool:", activeTool);
     
@@ -156,7 +166,7 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
     
     canvas.on('mouse:move', handleMouseMove);
     canvas.on('mouse:up', handleMouseUp);
-  }, [canvas, activeTool, color, size, fontSize, fontFamily, onToolChange]);
+  }, [canvas, activeTool, color, size, fontSize, fontFamily, onToolChange, isPanning]);
 
   useEffect(() => {
     if (!canvas) return;
