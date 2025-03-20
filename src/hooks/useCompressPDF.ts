@@ -11,6 +11,7 @@ import {
   MIN_SIZE_REDUCTION
 } from '@/utils/pdf/compression';
 
+// Tipos de nivel de compresión
 type CompressionLevel = 'low' | 'medium' | 'high';
 
 interface CompressionInfo {
@@ -42,65 +43,105 @@ export const useCompressPDF = () => {
       // Get original file bytes
       const fileBuffer = await file.arrayBuffer();
       const fileSize = file.size;
-
-      // Primera estrategia: compresión estándar
+      
       setProgress(15);
+      
+      // Array para contener todos los resultados de compresión
+      const compressionResults: Array<{method: string; result: File | null; compression: {savedPercentage: number; compressedSize: number}}> = [];
+      
+      // 1. Primera estrategia: compresión estándar
       console.log("Intentando compresión estándar...");
       let result = await standardCompression(fileBuffer, compressionLevel, file.name);
       let compression = calculateCompression(fileSize, result?.size || fileSize);
+      compressionResults.push({
+        method: 'standard',
+        result,
+        compression
+      });
       
-      // Si no logramos buena compresión, probamos otra estrategia
-      if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-        setProgress(30);
-        console.log("Intentando compresión agresiva...");
-        result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
-        compression = calculateCompression(fileSize, result?.size || fileSize);
-        
-        // Si aún no es buena, probamos otra estrategia
-        if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-          setProgress(45);
-          console.log("Intentando compresión extrema...");
-          result = await extremeCompression(fileBuffer, compressionLevel, file.name);
-          compression = calculateCompression(fileSize, result?.size || fileSize);
-          
-          // Si todavía no funciona, probamos compresión de calidad de imagen
-          if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-            setProgress(60);
-            console.log("Intentando compresión de calidad de imagen...");
-            result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
-            compression = calculateCompression(fileSize, result?.size || fileSize);
-            
-            // Si aún no funciona, intentamos la compresión máxima
-            if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-              setProgress(75);
-              console.log("Intentando compresión última...");
-              result = await ultimateCompression(fileBuffer, compressionLevel, file.name);
-              compression = calculateCompression(fileSize, result?.size || fileSize);
-            }
-          }
-        }
-      }
-
+      setProgress(30);
+      
+      // 2. Estrategia agresiva
+      console.log("Intentando compresión agresiva...");
+      result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
+      compression = calculateCompression(fileSize, result?.size || fileSize);
+      compressionResults.push({
+        method: 'aggressive',
+        result,
+        compression
+      });
+      
+      setProgress(45);
+      
+      // 3. Estrategia extrema
+      console.log("Intentando compresión extrema...");
+      result = await extremeCompression(fileBuffer, compressionLevel, file.name);
+      compression = calculateCompression(fileSize, result?.size || fileSize);
+      compressionResults.push({
+        method: 'extreme',
+        result,
+        compression
+      });
+      
+      setProgress(60);
+      
+      // 4. Estrategia de calidad de imagen
+      console.log("Intentando compresión de calidad de imagen...");
+      result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
+      compression = calculateCompression(fileSize, result?.size || fileSize);
+      compressionResults.push({
+        method: 'imageQuality',
+        result,
+        compression
+      });
+      
+      setProgress(75);
+      
+      // 5. Estrategia última
+      console.log("Intentando compresión última...");
+      result = await ultimateCompression(fileBuffer, compressionLevel, file.name);
+      compression = calculateCompression(fileSize, result?.size || fileSize);
+      compressionResults.push({
+        method: 'ultimate',
+        result,
+        compression
+      });
+      
+      setProgress(85);
+      
+      // Ordenar resultados por mayor porcentaje de compresión
+      compressionResults.sort((a, b) => 
+        b.compression.savedPercentage - a.compression.savedPercentage
+      );
+      
+      // Seleccionar el mejor resultado (con mayor compresión)
+      const bestResult = compressionResults[0];
+      console.log("Mejor resultado:", bestResult.method, "con", bestResult.compression.savedPercentage.toFixed(2) + "%");
+      
       setProgress(90);
 
-      // Verificar resultados finales con un umbral más bajo (0.1%)
-      if (!result) {
+      // Verificar si el mejor resultado es aceptable (más de 0.1% de compresión)
+      if (!bestResult.result) {
         setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
         setCompressedFile(null);
         setCompressionInfo(null);
         toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
       } 
-      else if (compression.savedPercentage <= 0.1) { // Solo si es menor o igual a 0.1%
-        setCompressionError('No se pudo reducir el tamaño del archivo. Puede que ya esté optimizado.');
+      else if (bestResult.compression.savedPercentage <= 0.1) {
+        setCompressionError('No se pudo reducir significativamente el tamaño del archivo. Puede que ya esté optimizado.');
         setCompressedFile(null);
         setCompressionInfo(null);
-        toast.error('No se pudo reducir el tamaño del archivo.');
+        toast.error('No se pudo comprimir el archivo PDF.');
       } 
       else {
-        // Si logramos comprimir, guardamos el resultado
-        setCompressedFile(result);
-        setCompressionInfo(compression);
-        toast.success(`PDF comprimido con éxito. Ahorro: ${compression.savedPercentage.toFixed(1)}%`);
+        // Guardamos el mejor resultado
+        setCompressedFile(bestResult.result);
+        setCompressionInfo({
+          originalSize: fileSize,
+          compressedSize: bestResult.compression.compressedSize,
+          savedPercentage: bestResult.compression.savedPercentage
+        });
+        toast.success(`PDF comprimido con éxito. Ahorro: ${bestResult.compression.savedPercentage.toFixed(1)}%`);
       }
       
       setProgress(100);

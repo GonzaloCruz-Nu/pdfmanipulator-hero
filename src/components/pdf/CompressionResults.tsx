@@ -25,6 +25,13 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
   onDownload,
   file
 }) => {
+  // Función para mostrar tamaño con formato
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+    else return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  };
+
   return (
     <div className="mt-6">
       {compressionInfo && compressedFile && (
@@ -33,9 +40,10 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             <Check className="h-5 w-5 mr-2 flex-shrink-0" />
             <div className="text-sm">
               <p className="font-medium">Compresión completada</p>
-              <p>Tamaño original: {(compressionInfo.originalSize / 1024 / 1024).toFixed(2)} MB</p>
-              <p>Tamaño comprimido: {(compressionInfo.compressedSize / 1024 / 1024).toFixed(2)} MB</p>
-              <p>Reducción: {compressionInfo.savedPercentage.toFixed(1)}%</p>
+              <p>Tamaño original: {formatFileSize(compressionInfo.originalSize)}</p>
+              <p>Tamaño comprimido: {formatFileSize(compressionInfo.compressedSize)}</p>
+              <p>Reducción: <span className="font-bold">{compressionInfo.savedPercentage.toFixed(1)}%</span></p>
+              <p className="text-xs mt-1 text-green-600">Ahorro de espacio: {formatFileSize(compressionInfo.originalSize - compressionInfo.compressedSize)}</p>
             </div>
           </div>
           
