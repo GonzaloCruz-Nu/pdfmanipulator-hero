@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -124,8 +123,8 @@ export const useCompressPDF = () => {
       
       for (let i = 0; i < totalPages; i++) {
         // Actualizar progreso para cada página
-        const pageProgress = 10 + Math.floor(i * pageProgressWeight);
-        setProgress(pageProgress);
+        const currentPageProgress = 10 + Math.floor(i * pageProgressWeight);
+        setProgress(currentPageProgress);
         
         // Obtener la página
         const pdfPage = await pdfDoc.getPage(i + 1);
