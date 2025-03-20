@@ -5,7 +5,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { cn } from '@/lib/utils';
 
 // Configuración de PDF.js - Aseguramos que el worker coincida con la versión de la API
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PdfPreviewProps {
   file: File | null;
@@ -19,6 +19,8 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
   const [pageUrl, setPageUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) {
@@ -29,6 +31,14 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
 
     const loadPdf = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Revocar URL anterior si existe
+        if (pageUrl) {
+          URL.revokeObjectURL(pageUrl);
+        }
+        
         const fileUrl = URL.createObjectURL(file);
         const loadingTask = pdfjsLib.getDocument(fileUrl);
         
@@ -40,6 +50,9 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
         renderPage(pdf, 1);
       } catch (error) {
         console.error('Error al cargar el PDF:', error);
+        setError('No se pudo cargar el PDF. El archivo podría estar dañado.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -55,6 +68,8 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
 
   const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => {
     try {
+      setIsLoading(true);
+      
       const page = await pdf.getPage(pageNum);
       const scale = 1.5;
       const viewport = page.getViewport({ scale });
@@ -76,10 +91,14 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
 
       await page.render(renderContext).promise;
       
+      // Use high quality JPEG for better compression while maintaining readability
       setPageUrl(canvas.toDataURL('image/jpeg', 0.9));
       setCurrentPage(pageNum);
     } catch (error) {
       console.error('Error al renderizar la página:', error);
+      setError('No se pudo renderizar la página del PDF.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,7 +118,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
     setIsFullscreen(!isFullscreen);
   };
 
-  if (!file || !pageUrl) {
+  if (!file) {
     return null;
   }
 
@@ -130,7 +149,21 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
 
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-          {pageUrl && (
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="mt-2 text-sm text-muted-foreground">Cargando PDF...</p>
+            </div>
+          )}
+          
+          {error && !isLoading && (
+            <div className="text-center p-4 text-red-500">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+              <p>{error}</p>
+            </div>
+          )}
+          
+          {pageUrl && !isLoading && !error && (
             <img
               src={pageUrl}
               alt={`Página ${currentPage} de ${file.name}`}
@@ -146,14 +179,14 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
           <div className="flex space-x-2">
             <button
               onClick={prevPage}
-              disabled={currentPage <= 1}
+              disabled={currentPage <= 1 || isLoading}
               className="rounded-full p-2 text-muted-foreground hover:bg-secondary disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={nextPage}
-              disabled={currentPage >= totalPages}
+              disabled={currentPage >= totalPages || isLoading}
               className="rounded-full p-2 text-muted-foreground hover:bg-secondary disabled:opacity-50"
             >
               <ChevronRight className="h-4 w-4" />
