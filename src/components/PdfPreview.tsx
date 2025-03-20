@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { usePdfRenderer } from '@/hooks/usePdfRenderer';
 import PdfViewerContent from './pdf/PdfViewerContent';
+import { toast } from 'sonner';
 
 interface PdfPreviewProps {
   file: File | null;
@@ -20,6 +21,15 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
     nextPage,
     prevPage
   } = usePdfRenderer(file);
+  
+  // Add state to store modified page data URL
+  const [modifiedPageDataUrl, setModifiedPageDataUrl] = useState<string | null>(null);
+
+  // Handler for saving changes
+  const handleSaveChanges = (dataUrl: string) => {
+    setModifiedPageDataUrl(dataUrl);
+    toast.success('Cambios guardados correctamente');
+  };
 
   if (!file) {
     return null;
@@ -50,6 +60,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
           totalPages={totalPages}
           onNextPage={nextPage}
           onPrevPage={prevPage}
+          onSaveChanges={handleSaveChanges}
         />
       </div>
     </div>

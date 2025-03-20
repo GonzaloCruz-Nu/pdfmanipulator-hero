@@ -27,11 +27,14 @@ export const saveModifiedPage = async (
     }
     
     // Convertir la página modificada de data URL a imagen
+    // Extraer la parte base64 del data URL (eliminar "data:image/jpeg;base64,")
     const imgData = modifiedPageDataUrl.split(',')[1];
-    const imgBuffer = Buffer.from(imgData, 'base64');
+    
+    // En el navegador, no tenemos Buffer, así que usamos Uint8Array directamente
+    const imgBytes = Uint8Array.from(atob(imgData), c => c.charCodeAt(0));
     
     // Cargar la imagen modificada en el documento
-    const img = await pdfDoc.embedJpg(imgBuffer);
+    const img = await pdfDoc.embedJpg(imgBytes);
     
     // Obtener la página a modificar (restar 1 porque el array empieza en 0)
     const pageIndex = currentPage - 1;
