@@ -139,7 +139,8 @@ export const createDocxFromPdfContent = async (
           new Paragraph({
             text: "",
             spacing: { after: 400 },
-            pageBreakAfter: true,
+            pageBreakBefore: false,
+            break: 1  // Usar break: 1 en lugar de pageBreakAfter: true
           }),
           
           // Tabla de información

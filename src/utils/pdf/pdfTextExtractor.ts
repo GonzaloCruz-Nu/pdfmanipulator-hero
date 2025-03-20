@@ -56,8 +56,11 @@ export const extractTextFromPDF = async (
     // Intentar obtener metadatos del documento
     try {
       const metadata = await pdf.getMetadata();
-      if (metadata && metadata.info && metadata.info.Title) {
-        documentTitle = metadata.info.Title;
+      if (metadata && metadata.info) {
+        // Comprobamos si existe la propiedad 'Title' usando el operador in
+        if (metadata.info && typeof metadata.info === 'object' && 'Title' in metadata.info) {
+          documentTitle = metadata.info['Title'] as string;
+        }
       }
     } catch (metadataError) {
       console.warn("No se pudieron obtener los metadatos del PDF:", metadataError);
