@@ -48,8 +48,8 @@ const CompressPDF = () => {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center justify-center mb-6">
-            <div className="bg-blue-500/10 p-3 rounded-full">
-              <Zap className="h-8 w-8 text-blue-500" />
+            <div className="bg-naranja/10 p-3 rounded-full">
+              <Zap className="h-8 w-8 text-naranja" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-center mb-2">Comprimir PDF</h1>
@@ -104,7 +104,7 @@ const CompressPDF = () => {
                 <PdfPreview 
                   file={compressedFile || file}
                   className={compressedFile ? "border-2 border-green-500" : ""}
-                  showEditor={false} // Explicitly set to false
+                  showEditor={false}
                 />
               ) : (
                 <div className="h-[400px] flex items-center justify-center bg-secondary/50 rounded-xl">
