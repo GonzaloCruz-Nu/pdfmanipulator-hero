@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, FileDown, Download, AlertCircle, Check, FileCheck } from 'lucide-react';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, degrees } from 'pdf-lib';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -142,7 +142,9 @@ const CompressPDF = () => {
       // Reducir calidad de imágenes incrustadas si es posible
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
-        page.setRotation({ angle: page.getRotation().angle }); // Forzar recompresión
+        // Aquí está la corrección: usando degrees() para crear un objeto Rotation válido
+        const currentAngle = page.getRotation().angle;
+        page.setRotation(degrees(currentAngle));
       }
       
       const compressedBytes = await pdfDoc.save({
