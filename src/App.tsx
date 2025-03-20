@@ -14,6 +14,7 @@ import UnlockPDF from "./pages/tools/UnlockPDF";
 import EditPDF from "./pages/tools/EditPDF";
 import ConvertPDF from "./pages/tools/ConvertPDF";
 import NotFound from "./pages/NotFound";
+import CompressPDFGuide from "./pages/wiki/CompressPDFGuide";
 import { useEffect } from "react";
 
 // Create a new QueryClient instance with retry settings to avoid infinite error loops
@@ -51,6 +52,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Tools />} />
             <Route path="/wiki" element={<Wiki />} />
+            <Route path="/wiki/compress" element={<CompressPDFGuide />} />
             <Route path="/about" element={<About />} />
             <Route path="/tools/merge" element={<MergePDF />} />
             <Route path="/tools/split" element={<SplitPDF />} />

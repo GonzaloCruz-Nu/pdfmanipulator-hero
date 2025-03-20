@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Book, FileText, HelpCircle } from 'lucide-react';
+import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
+import { Link } from 'react-router-dom';
 
 const Wiki = () => {
   const fadeInUp = {
@@ -52,16 +53,48 @@ const Wiki = () => {
             variants={fadeInUp}
             className="bg-white shadow-subtle rounded-xl p-6"
           >
-            <div className="flex items-start mb-4">
-              <div className="mr-4 rounded-full bg-primary/10 p-3 text-primary">
-                <FileText className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Guía de Herramientas</h3>
-                <p className="text-muted-foreground text-sm">
-                  Aprende a usar cada una de nuestras herramientas para editar, combinar y manipular PDFs.
-                </p>
-              </div>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold border-b pb-2 mb-4">Guías de Herramientas</h2>
+              <ul className="space-y-4">
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <Merge className="h-5 w-5 mr-2 text-primary" />
+                    Unir PDFs
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Combina múltiples documentos PDF en un solo archivo.
+                  </p>
+                  <Link to="/wiki/merge" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+                
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <Scissors className="h-5 w-5 mr-2 text-primary" />
+                    Dividir PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Extrae páginas específicas o divide un PDF en múltiples archivos.
+                  </p>
+                  <Link to="/wiki/split" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <Zap className="h-5 w-5 mr-2 text-primary" />
+                    Comprimir PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Reduce el tamaño de tus archivos PDF manteniendo la calidad.
+                  </p>
+                  <Link to="/wiki/compress" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+              </ul>
             </div>
           </motion.div>
 
@@ -69,48 +102,138 @@ const Wiki = () => {
             variants={fadeInUp}
             className="bg-white shadow-subtle rounded-xl p-6"
           >
-            <div className="flex items-start mb-4">
-              <div className="mr-4 rounded-full bg-primary/10 p-3 text-primary">
-                <Book className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Tutoriales</h3>
-                <p className="text-muted-foreground text-sm">
-                  Tutoriales paso a paso para tareas comunes con archivos PDF.
-                </p>
-              </div>
-            </div>
-          </motion.div>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold border-b pb-2 mb-4">Más Herramientas</h2>
+              <ul className="space-y-4">
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <Unlock className="h-5 w-5 mr-2 text-primary" />
+                    Desbloquear PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Elimina contraseñas y restricciones de tus documentos PDF.
+                  </p>
+                  <Link to="/wiki/unlock" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+                
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <FileCog className="h-5 w-5 mr-2 text-primary" />
+                    Editar PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Añade texto, imágenes y anotaciones a tus documentos PDF.
+                  </p>
+                  <Link to="/wiki/edit" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
 
-          <motion.div 
-            variants={fadeInUp}
-            className="bg-white shadow-subtle rounded-xl p-6"
-          >
-            <div className="flex items-start mb-4">
-              <div className="mr-4 rounded-full bg-primary/10 p-3 text-primary">
-                <HelpCircle className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Preguntas Frecuentes</h3>
-                <p className="text-muted-foreground text-sm">
-                  Respuestas a las preguntas más comunes sobre nuestras herramientas.
-                </p>
-              </div>
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <FileSearch className="h-5 w-5 mr-2 text-primary" />
+                    Convertir PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Convierte tus PDFs a formatos editables como Word.
+                  </p>
+                  <Link to="/wiki/convert" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+              </ul>
             </div>
           </motion.div>
         </motion.div>
 
         <motion.div 
-          className="bg-white rounded-2xl p-8 shadow-subtle text-center max-w-3xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="max-w-4xl mx-auto"
         >
-          <h2 className="text-2xl font-bold mb-4">¡Estamos construyendo nuestra Wiki!</h2>
-          <p className="text-muted-foreground mb-6">
-            Estamos trabajando en crear guías detalladas para todas nuestras herramientas.
-            Pronto encontrarás aquí toda la información que necesitas.
-          </p>
+          <motion.div 
+            variants={fadeInUp}
+            className="bg-white shadow-subtle rounded-xl p-6 mb-6"
+          >
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <Book className="h-5 w-5 mr-2 text-primary" />
+              Tutorial: Comprimir un PDF
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="border-l-4 border-primary pl-4">
+                <h3 className="font-medium mb-1">Paso 1: Seleccionar archivo</h3>
+                <p className="text-sm text-muted-foreground">
+                  Haz clic en "Seleccionar PDF" o arrastra y suelta tu archivo en la zona indicada.
+                </p>
+              </div>
+              
+              <div className="border-l-4 border-primary pl-4">
+                <h3 className="font-medium mb-1">Paso 2: Elegir nivel de compresión</h3>
+                <p className="text-sm text-muted-foreground">
+                  Selecciona entre compresión baja, media o alta según tus necesidades.
+                </p>
+              </div>
+              
+              <div className="border-l-4 border-primary pl-4">
+                <h3 className="font-medium mb-1">Paso 3: Comprimir</h3>
+                <p className="text-sm text-muted-foreground">
+                  Haz clic en "Comprimir PDF" y espera a que se complete el proceso.
+                </p>
+              </div>
+              
+              <div className="border-l-4 border-primary pl-4">
+                <h3 className="font-medium mb-1">Paso 4: Descargar</h3>
+                <p className="text-sm text-muted-foreground">
+                  Una vez completado, descarga tu archivo PDF comprimido.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-4 text-sm">
+              <Link to="/tools/compress" className="text-primary hover:underline">
+                Ir a Comprimir PDF →
+              </Link>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            variants={fadeInUp}
+            className="bg-white shadow-subtle rounded-xl p-6"
+          >
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <HelpCircle className="h-5 w-5 mr-2 text-primary" />
+              Preguntas Frecuentes
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-1">¿Es seguro usar estas herramientas con mis documentos?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Sí, todas nuestras herramientas funcionan directamente en tu navegador. 
+                  Tus archivos nunca se suben a nuestros servidores, garantizando total privacidad.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">¿Hay límites en el tamaño de los archivos?</h3>
+                <p className="text-sm text-muted-foreground">
+                  El límite depende de la capacidad de tu navegador, pero generalmente 
+                  puedes procesar archivos de hasta 100MB sin problemas.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-1">¿Cómo puedo reportar un error o solicitar una característica?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Contáctanos a través de la sección "Acerca de" con tus comentarios o sugerencias.
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       </div>
     </Layout>
