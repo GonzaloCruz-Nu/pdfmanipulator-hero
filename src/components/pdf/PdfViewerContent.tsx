@@ -37,12 +37,10 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState('Arial');
   
+  // Initialize Fabric canvas
   useEffect(() => {
     if (canvasRef.current && !canvas) {
       const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-        width: 800,
-        height: 1000,
-        backgroundColor: '#FFFFFF',
         selection: true,
       });
       
@@ -54,6 +52,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     }
   }, []);
 
+  // Track selection changes
   useEffect(() => {
     if (!canvas) return;
 
@@ -72,6 +71,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     };
   }, [canvas]);
 
+  // Update canvas size on window resize
   useEffect(() => {
     const updateCanvasSize = () => {
       if (canvas && containerRef.current) {
@@ -92,48 +92,38 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     };
   }, [canvas]);
 
+  // Display PDF when pageUrl changes
   useEffect(() => {
     if (!canvas || !pageUrl) return;
     
+    // Clear existing content
     canvas.clear();
     
+    // Load PDF image as background
     fabric.Image.fromURL(pageUrl, (img) => {
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-        scaleX: canvas.width! / img.width!,
-        scaleY: canvas.height! / img.height!,
-        originX: 'left',
-        originY: 'top',
-      });
-      
       if (containerRef.current) {
         const containerWidth = containerRef.current.clientWidth;
         const containerHeight = containerRef.current.clientHeight;
-        
-        const imgRatio = img.width! / img.height!;
-        let newWidth = containerWidth;
-        let newHeight = containerWidth / imgRatio;
-        
-        if (newHeight > containerHeight) {
-          newHeight = containerHeight;
-          newWidth = containerHeight * imgRatio;
-        }
         
         canvas.setDimensions({
           width: containerWidth,
           height: containerHeight
         });
         
-        // Ajustar el fondo al tamaño del contenedor manteniendo la proporción
+        // Calculate scale to fit the PDF image in the container
         const scale = Math.min(
-          containerWidth / img.width!,
-          containerHeight / img.height!
+          (containerWidth * 0.9) / img.width!,
+          (containerHeight * 0.9) / img.height!
         );
         
+        // Apply scaling
         img.scale(scale);
         
+        // Center the image in the canvas
         const leftPos = (containerWidth - img.getScaledWidth()) / 2;
         const topPos = (containerHeight - img.getScaledHeight()) / 2;
         
+        // Set as background with positioning
         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
           originX: 'left',
           originY: 'top',
@@ -142,10 +132,12 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         });
         
         canvas.renderAll();
+        console.log("PDF displayed with dimensions:", img.width, img.height, "at scale:", scale);
       }
     });
   }, [pageUrl, canvas]);
 
+  // Handle tool changes
   useEffect(() => {
     if (!canvas) return;
 
@@ -174,6 +166,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     canvas.renderAll();
   }, [activeTool, color, size, canvas]);
 
+  // Handle canvas mouse events for drawing shapes
   const handleCanvasMouseDown = useCallback((e: fabric.IEvent) => {
     if (!canvas || activeTool === 'select' || activeTool === 'pen') return;
     
@@ -349,7 +342,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
       
       <div 
         ref={containerRef} 
-        className="w-full flex-1 flex justify-center items-center overflow-hidden relative"
+        className="w-full flex-1 flex justify-center items-center overflow-hidden relative bg-gray-100"
       >
         <canvas ref={canvasRef} className="absolute inset-0" />
         
