@@ -101,7 +101,7 @@ const About = () => {
           <h2 className="text-2xl font-bold mb-4">Limitaciones y consideraciones</h2>
           <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
             <li>El rendimiento depende de la capacidad de procesamiento del dispositivo del usuario</li>
-            <li>Archivos muy grandes (>100MB) pueden ralentizar el navegador</li>
+            <li>Archivos muy grandes ({'>'}100MB) pueden ralentizar el navegador</li>
             <li>Algunas operaciones complejas pueden consumir mucha memoria</li>
             <li>La compatibilidad puede variar según el navegador (recomendamos Chrome o Firefox actualizados)</li>
             <li>Sin conexión a internet, no se podrán cargar bibliotecas externas como PDF.js si no están cacheadas</li>
