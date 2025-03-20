@@ -8,6 +8,9 @@ import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Input } from '@/components/ui/input';
 
 const SplitPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -202,30 +205,37 @@ const SplitPDF = () => {
                 <div className="mt-6">
                   <h3 className="text-md font-medium mb-3">2. Selecciona el método de división</h3>
                   
-                  <div className="flex space-x-4 mb-4">
-                    <button
-                      className={`px-4 py-2 rounded-md text-sm ${splitMethod === 'range' ? 'bg-primary text-white' : 'bg-secondary text-foreground'}`}
-                      onClick={() => setSplitMethod('range')}
+                  {/* Reemplazamos los botones personalizados con el componente ToggleGroup de shadcn/ui */}
+                  <ToggleGroup 
+                    type="single" 
+                    value={splitMethod}
+                    onValueChange={(value) => {
+                      if (value) setSplitMethod(value as 'range' | 'extract');
+                    }}
+                    className="flex space-x-4 mb-4"
+                  >
+                    <ToggleGroupItem 
+                      value="range" 
+                      className="bg-orange-100 text-foreground data-[state=on]:bg-primary data-[state=on]:text-white"
                     >
                       Por rango
-                    </button>
-                    <button
-                      className={`px-4 py-2 rounded-md text-sm ${splitMethod === 'extract' ? 'bg-primary text-white' : 'bg-secondary text-foreground'}`}
-                      onClick={() => setSplitMethod('extract')}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="extract" 
+                      className="bg-orange-100 text-foreground data-[state=on]:bg-primary data-[state=on]:text-white"
                     >
                       Seleccionar páginas
-                    </button>
-                  </div>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
 
                   {splitMethod === 'range' ? (
                     <div className="mb-4">
                       <label className="block text-sm font-medium mb-1" htmlFor="pageRange">
                         Rango de páginas (ej. 1-3,5,7-9)
                       </label>
-                      <input
+                      <Input
                         id="pageRange"
                         type="text"
-                        className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/40"
                         placeholder="1-3,5,7-9"
                         value={pageRange}
                         onChange={(e) => setPageRange(e.target.value)}
@@ -249,7 +259,11 @@ const SplitPDF = () => {
                         {Array.from({ length: pageCount }, (_, i) => i + 1).map(pageNum => (
                           <button
                             key={pageNum}
-                            className={`p-2 text-sm rounded-md ${selectedPages.includes(pageNum) ? 'bg-primary text-white' : 'bg-secondary text-foreground hover:bg-secondary/80'}`}
+                            className={`p-2 text-sm rounded-md ${
+                              selectedPages.includes(pageNum) 
+                                ? 'bg-primary text-white' 
+                                : 'bg-orange-100 text-foreground hover:bg-orange-200'
+                            }`}
                             onClick={() => togglePageSelection(pageNum)}
                           >
                             {pageNum}
@@ -265,10 +279,11 @@ const SplitPDF = () => {
               )}
 
               <div className="mt-6">
-                <button
+                <Button
                   onClick={splitPDF}
                   disabled={isProcessing || !file}
-                  className="btn-primary w-full flex items-center justify-center"
+                  className="w-full"
+                  variant="default"
                 >
                   {isProcessing ? (
                     <>
@@ -284,7 +299,7 @@ const SplitPDF = () => {
                       Extraer páginas
                     </>
                   )}
-                </button>
+                </Button>
               </div>
 
               {!file && (
