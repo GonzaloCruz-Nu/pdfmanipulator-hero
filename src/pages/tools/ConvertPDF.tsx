@@ -56,9 +56,13 @@ const ConvertPDF = () => {
             ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
             : (fileSize / 1024).toFixed(2) + ' KB';
             
-          // Actualizar el umbral para avisar al usuario de archivos pequeños
-          if (fileSize < 100000 && file.size > 200000) { // si el Word es menor a 100KB y el PDF era mayor a 200KB
-            toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}), es posible que el PDF sea principalmente imágenes`);
+          // Umbrales actualizados para avisos:
+          // - Si el Word es menor a 20KB y el PDF es mayor a 200KB = advertencia fuerte
+          // - Si el Word es menor a 50KB y el PDF es mayor a 500KB = advertencia leve
+          if (fileSize < 20000 && file.size > 200000) {
+            toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}). Es probable que el PDF contenga principalmente imágenes o texto no extraíble.`);
+          } else if (fileSize < 50000 && file.size > 500000) {
+            toast.warning(`El documento Word (${fileSizeFormatted}) es considerablemente más pequeño que el PDF original. Algunas imágenes o elementos complejos pueden no haberse convertido.`);
           } else {
             toast.success(`PDF convertido exitosamente a Word (${fileSizeFormatted})`);
           }
@@ -125,7 +129,7 @@ const ConvertPDF = () => {
               
               {file && (
                 <div className="text-sm text-muted-foreground mt-2">
-                  Archivo: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                  Archivo: {file.name} ({(file.size / 1024 / 1024)).toFixed(2)} MB)
                 </div>
               )}
             </div>
@@ -179,11 +183,14 @@ const ConvertPDF = () => {
                 <h2 className="text-xl font-semibold">Archivo convertido</h2>
                 <ul className="space-y-2">
                   {convertedFiles.map((file, index) => {
-                    // Mostrar tamaño en KB para archivos pequeños
+                    // Mostrar tamaño siempre en KB para archivos pequeños
                     const fileSize = file.size;
                     const fileSizeFormatted = fileSize > 1024 * 1024 
                       ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
                       : (fileSize / 1024).toFixed(2) + ' KB';
+                    
+                    // Mostrar tamaño como porcentaje del original
+                    const sizePercentage = this.file ? ((file.size / this.file.size) * 100).toFixed(1) + '%' : '';
                     
                     return (
                       <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
@@ -207,13 +214,20 @@ const ConvertPDF = () => {
                   Descargar documento Word
                 </Button>
                 
-                {convertedFiles[0]?.size < 100000 && file && file.size > 200000 && (
+                {/* Advertencia mejorada para archivos muy pequeños */}
+                {convertedFiles[0]?.size < 20000 && file && file.size > 200000 && (
                   <Alert className="mt-2 bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription className="text-xs text-amber-800">
-                      El documento Word generado es muy pequeño ({(convertedFiles[0].size / 1024).toFixed(2)} KB
-                      ) mientras que el PDF original tiene {(file.size / (1024 * 1024)).toFixed(2)} MB. 
-                      El PDF podría contener principalmente imágenes o texto no extraíble.
+                      <p className="font-semibold">Documento Word muy pequeño detectado:</p>
+                      <ul className="list-disc pl-4 mt-1 space-y-1">
+                        <li>PDF original: {(file.size / (1024 * 1024)).toFixed(2)} MB</li>
+                        <li>Word generado: {(convertedFiles[0].size / 1024).toFixed(2)} KB</li>
+                        <li>Porcentaje del tamaño original: {((convertedFiles[0].size / file.size) * 100).toFixed(2)}%</li>
+                      </ul>
+                      <p className="mt-2">
+                        El PDF podría contener principalmente imágenes, gráficos o texto no extraíble.
+                      </p>
                       <div className="mt-2">
                         <Link to="/tools/ocr" className="text-primary flex items-center">
                           <Scan className="h-3 w-3 mr-1" /> Intenta nuestra herramienta OCR para documentos escaneados
