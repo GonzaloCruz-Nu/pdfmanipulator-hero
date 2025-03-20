@@ -29,10 +29,10 @@ const CompressPDF = () => {
 
   const calculateCompressionFactor = (level: 'low' | 'medium' | 'high'): number => {
     switch (level) {
-      case 'low': return 0.8;     // 20% compression
-      case 'medium': return 0.5;  // 50% compression
-      case 'high': return 0.3;    // 70% compression
-      default: return 0.5;
+      case 'low': return 0.85;     // 15% compression
+      case 'medium': return 0.6;   // 40% compression
+      case 'high': return 0.35;    // 65% compression
+      default: return 0.6;
     }
   };
 
@@ -67,22 +67,32 @@ const CompressPDF = () => {
         // Obtener las dimensiones originales
         const { width, height } = page.getSize();
         
+        // Mantener dimensiones originales para evitar cortes
+        // pero optimizar el contenido interno
+        
+        // Eliminar metadatos y anotaciones innecesarias según el nivel de compresión
+        if (compressionLevel === 'medium' || compressionLevel === 'high') {
+          // Forma segura de eliminar anotaciones si existen
+          // Evitamos errores de TypeScript usando métodos seguros de pdf-lib
+          try {
+            const annots = page.node.lookup('Annots');
+            if (annots) {
+              page.node.delete('Annots');
+            }
+          } catch (e) {
+            // Ignorar si no hay anotaciones
+          }
+        }
+        
         // Aplicar compresión más agresiva en modo alto
         if (compressionLevel === 'high') {
-          // Reducir las dimensiones para compresión alta
-          page.setSize(width * compressionFactor, height * compressionFactor);
-          
-          // Eliminar algunos metadatos para reducir más el tamaño
-          const annotations = page.node.lookupMaybe(
-            "Annots",
-            PDFDocument.PDFArray
-          );
-          if (annotations) {
-            page.node.delete("Annots");
+          // Eliminamos más metadatos pero mantenemos las dimensiones originales
+          try {
+            page.node.delete('Thumb');  // Eliminar miniaturas
+            page.node.delete('UserUnit');  // Eliminar unidades personalizadas
+          } catch (e) {
+            // Ignorar si estos metadatos no existen
           }
-        } else {
-          // Compresión normal para modos bajo y medio
-          page.setSize(width * compressionFactor, height * compressionFactor);
         }
         
         // Actualizar progreso
@@ -92,19 +102,33 @@ const CompressPDF = () => {
       setProgress(80);
       
       // Aplicar opciones de compresión según el nivel
-      const compressionOptions: any = {
+      let compressionOptions: any = {};
+      
+      // Opciones básicas para todos los niveles
+      compressionOptions = {
         useObjectStreams: true,
       };
       
-      // Añadir opciones adicionales para compresión media y alta
-      if (compressionLevel === 'medium' || compressionLevel === 'high') {
-        compressionOptions.addDefaultPage = false;
-        compressionOptions.objectsPerTick = 50;
+      // Añadir opciones adicionales para compresión media
+      if (compressionLevel === 'medium') {
+        compressionOptions = {
+          ...compressionOptions,
+          addDefaultPage: false,
+          objectsPerTick: 100,
+          updateFieldAppearances: false,
+        };
       }
       
-      // Para alta compresión, añadir más opciones
+      // Para alta compresión, añadir opciones más agresivas
       if (compressionLevel === 'high') {
-        compressionOptions.updateFieldAppearances = false;
+        compressionOptions = {
+          ...compressionOptions,
+          addDefaultPage: false,
+          objectsPerTick: 50,
+          updateFieldAppearances: false,
+          // Compresión más agresiva:
+          compress: true,
+        };
       }
       
       // Guardar el PDF comprimido con las opciones correspondientes

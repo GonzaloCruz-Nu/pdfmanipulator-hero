@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { cn } from '@/lib/utils';
 
-// Configuración de PDF.js - Update worker version to match API version
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+// Configuración de PDF.js - Aseguramos que el worker coincida con la versión de la API
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PdfPreviewProps {
   file: File | null;
@@ -25,10 +26,10 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
     }
 
     const loadPdf = async () => {
-      const fileUrl = URL.createObjectURL(file);
-      const loadingTask = pdfjsLib.getDocument(fileUrl);
-      
       try {
+        const fileUrl = URL.createObjectURL(file);
+        const loadingTask = pdfjsLib.getDocument(fileUrl);
+        
         const pdf = await loadingTask.promise;
         setTotalPages(pdf.numPages);
         
