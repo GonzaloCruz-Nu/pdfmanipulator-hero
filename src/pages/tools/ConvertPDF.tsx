@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileType, Download, FileText, Info, AlertTriangle } from 'lucide-react';
+import { FileType, Download, FileText, Info, AlertTriangle, Scan } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -11,6 +11,7 @@ import PdfPreview from '@/components/PdfPreview';
 import { useConvertPDF } from '@/hooks/useConvertPDF';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -49,7 +50,11 @@ const ConvertPDF = () => {
         const result = await convertPDF(file, 'docx');
         
         if (result.success) {
-          toast.success('PDF convertido exitosamente a Word');
+          if (result.files[0].size < 1024 && file.size > 100000) { // si el Word es menor a 1KB y el PDF era mayor a 100KB
+            toast.warning('El documento Word generado es muy pequeño, es posible que el PDF sea principalmente imágenes');
+          } else {
+            toast.success('PDF convertido exitosamente a Word');
+          }
           console.log('Conversión completada con éxito, resultado:', result);
         } else {
           setErrorMessage(result.message);
@@ -185,6 +190,20 @@ const ConvertPDF = () => {
                   <Download className="mr-2 h-4 w-4" /> 
                   Descargar documento Word
                 </Button>
+                
+                {convertedFiles[0]?.size < 1024 && file && file.size > 100000 && (
+                  <Alert variant="warning" className="mt-2 bg-amber-50 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <AlertDescription className="text-xs text-amber-800">
+                      El documento Word generado es muy pequeño. El PDF podría contener principalmente imágenes o texto no extraíble.
+                      <div className="mt-2">
+                        <Link to="/tools/ocr" className="text-primary flex items-center">
+                          <Scan className="h-3 w-3 mr-1" /> Intenta nuestra herramienta OCR para documentos escaneados
+                        </Link>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
             
@@ -193,6 +212,11 @@ const ConvertPDF = () => {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   {errorMessage || 'No se pudo generar el documento Word. El archivo PDF podría estar protegido o contener solo imágenes.'}
+                  <div className="mt-2">
+                    <Link to="/tools/ocr" className="text-white/90 hover:text-white flex items-center">
+                      <Scan className="h-3 w-3 mr-1" /> Intenta con la herramienta OCR para documentos escaneados
+                    </Link>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
