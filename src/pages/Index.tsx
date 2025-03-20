@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileOutput, Zap, FileWord } from 'lucide-react';
+import { Merge, Scissors, FileText, FileOutput, Zap, FileType } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -102,7 +102,7 @@ const Index = () => {
             <ToolCard
               title="PDF a Word"
               description="Convierte tus PDFs a documentos Word editables"
-              icon={FileWord}
+              icon={FileType}
               to="/tools/convert"
             />
           </motion.div>
