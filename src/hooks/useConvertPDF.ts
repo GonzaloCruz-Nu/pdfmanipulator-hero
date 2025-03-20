@@ -167,6 +167,7 @@ export const useConvertPDF = () => {
               const width = Math.min(image.width, maxWidth);
               const height = width / ratio;
               
+              // Corregido: Proporcionar las propiedades requeridas para ImageRun
               docChildren.push(
                 new Paragraph({
                   children: [
@@ -176,6 +177,7 @@ export const useConvertPDF = () => {
                         width,
                         height,
                       },
+                      type: 'image/jpeg', // Especificar el tipo de imagen
                     }),
                   ],
                   spacing: {
