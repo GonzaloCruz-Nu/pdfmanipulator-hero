@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -84,10 +83,10 @@ export const useConvertPDF = () => {
             const page = await pdf.getPage(i);
             
             // Modo mejorado de extracción de texto con opciones compatibles
+            // Eliminamos 'normalizeWhitespace' que no es compatible con los tipos
             const textContent = await page.getTextContent({
-              // Solo usar propiedades válidas
+              // Solo usar propiedades válidas según API de PDF.js
               includeMarkedContent: true,
-              normalizeWhitespace: true,
             });
             
             // Extraer texto página por página con mejor manejo de espacios y saltos de línea
