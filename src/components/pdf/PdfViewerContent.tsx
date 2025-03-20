@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ interface PdfViewerContentProps {
   totalPages: number;
   onNextPage: () => void;
   onPrevPage: () => void;
+  onSaveChanges: (dataUrl: string) => void;
 }
 
 const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
@@ -26,7 +28,8 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   currentPage,
   totalPages,
   onNextPage,
-  onPrevPage
+  onPrevPage,
+  onSaveChanges
 }) => {
   const [hasSelection, setHasSelection] = useState(false);
   const [activeTool, setActiveTool] = useState<EditToolType>('select');
@@ -65,6 +68,27 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     }
   };
 
+  const handleSaveChanges = () => {
+    if (!canvasRef.current) {
+      toast.error('No se puede guardar la página. Inténtalo de nuevo.');
+      return;
+    }
+
+    try {
+      // Obtener la imagen del canvas como URL de datos
+      const dataUrl = canvasRef.current.toDataURL({
+        format: 'jpeg',
+        quality: 0.95
+      });
+      
+      // Llamar a la función proporcionada para guardar cambios
+      onSaveChanges(dataUrl);
+    } catch (error) {
+      console.error('Error al guardar cambios:', error);
+      toast.error('Error al guardar los cambios en el PDF');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
@@ -99,6 +123,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         onClearCanvas={handleClearCanvas}
         onDeleteSelected={handleDeleteSelected}
         hasSelection={hasSelection}
+        onSaveChanges={handleSaveChanges}
       />
       
       <div className="flex-1 relative overflow-hidden">

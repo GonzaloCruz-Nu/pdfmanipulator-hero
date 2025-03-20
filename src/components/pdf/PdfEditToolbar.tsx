@@ -7,7 +7,8 @@ import {
   Pen, 
   Trash2, 
   Move,
-  ChevronDown
+  ChevronDown,
+  Save
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { 
@@ -60,6 +61,7 @@ interface PdfEditToolbarProps {
   onSizeChange: (size: number) => void;
   onClearCanvas: () => void;
   onDeleteSelected: () => void;
+  onSaveChanges?: () => void;
   fontSize?: number;
   onFontSizeChange?: (size: number) => void;
   fontFamily?: string;
@@ -76,6 +78,7 @@ const PdfEditToolbar: React.FC<PdfEditToolbarProps> = ({
   onSizeChange,
   onClearCanvas,
   onDeleteSelected,
+  onSaveChanges,
   fontSize = 16,
   onFontSizeChange,
   fontFamily = 'Arial',
@@ -256,6 +259,19 @@ const PdfEditToolbar: React.FC<PdfEditToolbarProps> = ({
         <Trash2 size={16} className="mr-1" />
         <span>Limpiar todo</span>
       </Button>
+
+      {/* Save changes button */}
+      {onSaveChanges && (
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={onSaveChanges}
+          className="h-9 ml-auto"
+        >
+          <Save size={16} className="mr-1" />
+          <span>Guardar cambios</span>
+        </Button>
+      )}
     </div>
   );
 };

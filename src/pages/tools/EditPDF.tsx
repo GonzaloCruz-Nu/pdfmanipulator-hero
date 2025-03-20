@@ -9,11 +9,13 @@ import { usePdfRenderer } from '@/hooks/usePdfRenderer';
 import PdfViewerContent from '@/components/pdf/PdfViewerContent';
 import PdfThumbnailList from '@/components/pdf/PdfThumbnailList';
 import { toast } from 'sonner';
+import { saveModifiedPage } from '@/utils/pdf/saveModifiedPdf';
 
 const EditPDF = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
+  const [modifiedPageDataUrl, setModifiedPageDataUrl] = useState<string | null>(null);
 
   const {
     currentPage,
@@ -83,10 +85,25 @@ const EditPDF = () => {
     }
   };
 
-  const handleSaveChanges = () => {
-    toast.success('Esta función está en desarrollo. Tus cambios se guardarán en futuras versiones.', {
+  const handleSavePageChanges = (dataUrl: string) => {
+    setModifiedPageDataUrl(dataUrl);
+    toast.success('Cambios guardados. Ahora puedes descargar el PDF editado.', {
       duration: 5000,
     });
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!selectedFile || !modifiedPageDataUrl) {
+      toast.error('No hay cambios para guardar o no se ha seleccionado un PDF.');
+      return;
+    }
+
+    try {
+      await saveModifiedPage(selectedFile, currentPage, modifiedPageDataUrl);
+    } catch (error) {
+      console.error('Error al descargar el PDF:', error);
+      toast.error('Error al descargar el PDF editado');
+    }
   };
 
   return (
@@ -144,13 +161,17 @@ const EditPDF = () => {
                 
                 <Button 
                   variant="secondary"
-                  onClick={handleSaveChanges}
+                  onClick={handleDownloadPdf}
+                  disabled={!modifiedPageDataUrl}
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Guardar cambios
                 </Button>
                 
-                <Button>
+                <Button 
+                  onClick={handleDownloadPdf}
+                  disabled={!modifiedPageDataUrl}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Descargar PDF
                 </Button>
@@ -189,6 +210,7 @@ const EditPDF = () => {
                     totalPages={totalPages}
                     onNextPage={nextPage}
                     onPrevPage={prevPage}
+                    onSaveChanges={handleSavePageChanges}
                   />
                 </div>
               </div>
