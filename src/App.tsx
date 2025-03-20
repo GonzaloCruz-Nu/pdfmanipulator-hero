@@ -10,6 +10,7 @@ import About from "./pages/About";
 import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
 import CompressPDF from "./pages/tools/CompressPDF";
+import UnlockPDF from "./pages/tools/UnlockPDF";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/tools/merge" element={<MergePDF />} />
           <Route path="/tools/split" element={<SplitPDF />} />
           <Route path="/tools/compress" element={<CompressPDF />} />
+          <Route path="/tools/unlock" element={<UnlockPDF />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

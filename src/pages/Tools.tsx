@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileOutput, Zap, FileCog, FileSearch, FileLock } from 'lucide-react';
+import { Merge, Scissors, FileText, FileOutput, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -74,6 +74,15 @@ const Tools = () => {
               description="Reduce el tamaño de tus archivos PDF sin perder calidad"
               icon={Zap}
               to="/tools/compress"
+            />
+          </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Desbloquear PDF"
+              description="Elimina la contraseña de tus documentos PDF protegidos"
+              icon={Unlock}
+              to="/tools/unlock"
             />
           </motion.div>
           
