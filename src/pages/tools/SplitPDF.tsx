@@ -322,7 +322,10 @@ const SplitPDF = () => {
               <h2 className="text-xl font-bold mb-4">Vista previa</h2>
               
               {file ? (
-                <PdfPreview file={file} />
+                <PdfPreview 
+                  file={file}
+                  showEditor={false} // Explicitly set to false
+                />
               ) : (
                 <div className="h-[400px] flex items-center justify-center bg-secondary/50 rounded-xl">
                   <div className="text-center p-6">

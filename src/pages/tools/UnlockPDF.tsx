@@ -174,6 +174,7 @@ const UnlockPDF = () => {
                 <PdfPreview 
                   file={unlockedFile} 
                   onClose={() => setShowPreview(false)}
+                  showEditor={false} // Explicitly set to false
                 />
               )}
             </div>

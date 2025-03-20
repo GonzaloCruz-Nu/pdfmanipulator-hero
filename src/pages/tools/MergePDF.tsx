@@ -191,6 +191,7 @@ const MergePDF = () => {
                 <PdfPreview 
                   file={selectedFile}
                   onClose={() => setSelectedFile(null)}
+                  showEditor={false} // Explicitly set to false
                 />
               ) : (
                 <div className="h-[400px] flex items-center justify-center bg-secondary/50 rounded-xl">

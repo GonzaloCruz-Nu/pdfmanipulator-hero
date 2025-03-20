@@ -104,6 +104,7 @@ const CompressPDF = () => {
                 <PdfPreview 
                   file={compressedFile || file}
                   className={compressedFile ? "border-2 border-green-500" : ""}
+                  showEditor={false} // Explicitly set to false
                 />
               ) : (
                 <div className="h-[400px] flex items-center justify-center bg-secondary/50 rounded-xl">
