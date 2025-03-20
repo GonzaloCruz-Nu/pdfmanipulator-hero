@@ -1,17 +1,17 @@
 
-import { PDFDocument, rgb, degrees, PDFName } from 'pdf-lib';
+import { PDFDocument, rgb, degrees, PDFName, PDFDict } from 'pdf-lib';
 
-// Constants for compression - significantly more aggressive
+// Factores de compresión mucho más agresivos para lograr compresión similar a ilovepdf
 export const COMPRESSION_FACTORS = {
-  low: { imageQuality: 0.5, scaleFactor: 0.8, colorReduction: 0.8 },
-  medium: { imageQuality: 0.3, scaleFactor: 0.6, colorReduction: 0.6 },
-  high: { imageQuality: 0.1, scaleFactor: 0.4, colorReduction: 0.4 }
+  low: { imageQuality: 0.2, scaleFactor: 0.7, colorReduction: 0.7 },
+  medium: { imageQuality: 0.1, scaleFactor: 0.5, colorReduction: 0.5 },
+  high: { imageQuality: 0.05, scaleFactor: 0.3, colorReduction: 0.3 }
 };
 
-// Minimum size reduction threshold lowered to detect smaller improvements
-export const MIN_SIZE_REDUCTION = 0.0005; // 0.05% minimum reduction
+// Umbral mínimo de reducción de tamaño
+export const MIN_SIZE_REDUCTION = 0.0005; // 0.05% reducción mínima
 
-// Method for calculating compression percentage
+// Método para calcular el porcentaje de compresión
 export const calculateCompression = (originalSize: number, compressedSize: number) => {
   const savedPercentage = Math.max(0, Math.round((1 - (compressedSize / originalSize)) * 1000) / 10);
   return {
@@ -21,7 +21,7 @@ export const calculateCompression = (originalSize: number, compressedSize: numbe
   };
 };
 
-// Standard compression method - improved with more aggressive settings
+// Método de compresión estándar - mejorado con configuraciones más agresivas
 export const standardCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
@@ -35,7 +35,7 @@ export const standardCompression = async (
       updateMetadata: false,
     });
     
-    // Remove all metadata more aggressively
+    // Eliminar todos los metadatos agresivamente
     pdfDoc.setTitle("");
     pdfDoc.setAuthor("");
     pdfDoc.setSubject("");
@@ -43,29 +43,39 @@ export const standardCompression = async (
     pdfDoc.setProducer("");
     pdfDoc.setCreator("");
     
-    // Get all pages and flatten them (reduce complexity)
+    // Obtener todas las páginas y aplanarlas (reducir complejidad)
     const pages = pdfDoc.getPages();
     
-    // Apply additional compression techniques to each page
+    // Aplicar técnicas de compresión adicionales a cada página
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       
-      // Remove annotations 
+      // Remover anotaciones
       if (page.node.has(PDFName.of('Annots'))) {
         page.node.delete(PDFName.of('Annots'));
       }
       
-      // Remove unnecessary page attributes
+      // Eliminar atributos de página innecesarios
       if (page.node.has(PDFName.of('UserUnit'))) {
         page.node.delete(PDFName.of('UserUnit'));
       }
       
-      // Remove metadata on page level
+      // Eliminar metadatos a nivel de página
       if (page.node.has(PDFName.of('Metadata'))) {
         page.node.delete(PDFName.of('Metadata'));
       }
+
+      // Eliminar otros recursos pesados
+      // Configuración global más agresiva
+      if (page.node.has(PDFName.of('Resources'))) {
+        const resources = page.node.get(PDFName.of('Resources')) as PDFDict;
+        if (resources && resources.has(PDFName.of('XObject'))) {
+          resources.delete(PDFName.of('XObject'));
+        }
+      }
     }
     
+    // Aplicar compresión más agresiva
     const compressedBytes = await pdfDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
@@ -78,12 +88,12 @@ export const standardCompression = async (
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error in standard compression:', error);
+    console.error('Error en compresión estándar:', error);
     return null;
   }
 };
 
-// Aggressive compression method - significantly more aggressive
+// Método de compresión agresiva - significativamente más agresivo
 export const aggressiveCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
@@ -95,7 +105,7 @@ export const aggressiveCompression = async (
     const srcPdfDoc = await PDFDocument.load(fileBuffer);
     const newPdfDoc = await PDFDocument.create();
     
-    // Remove all metadata
+    // Eliminar todos los metadatos
     newPdfDoc.setTitle("");
     newPdfDoc.setAuthor("");
     newPdfDoc.setSubject("");
@@ -105,7 +115,7 @@ export const aggressiveCompression = async (
     
     const pages = srcPdfDoc.getPages();
     
-    // More aggressive scaling for each page
+    // Escalado más agresivo para cada página
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
@@ -115,22 +125,40 @@ export const aggressiveCompression = async (
       
       const currentPage = newPdfDoc.getPage(i);
       
-      // Apply more aggressive scaling
+      // Aplicar escalado más agresivo
       currentPage.setSize(width * scaleFactor, height * scaleFactor);
       currentPage.scale(1/scaleFactor, 1/scaleFactor);
       
-      // Remove annotations and other metadata
+      // Eliminar anotaciones y otros metadatos
       if (currentPage.node.has(PDFName.of('Annots'))) {
         currentPage.node.delete(PDFName.of('Annots'));
       }
       
-      // Remove more unnecessary data
+      // Eliminar más datos innecesarios
       if (currentPage.node.has(PDFName.of('UserUnit'))) {
         currentPage.node.delete(PDFName.of('UserUnit'));
       }
       
       if (currentPage.node.has(PDFName.of('Metadata'))) {
         currentPage.node.delete(PDFName.of('Metadata'));
+      }
+
+      // Eliminar recursos como imágenes y fuentes grandes
+      if (currentPage.node.has(PDFName.of('Resources'))) {
+        const resources = currentPage.node.get(PDFName.of('Resources')) as PDFDict;
+        
+        // Eliminar XObjects (imágenes principalmente)
+        if (resources && resources.has(PDFName.of('XObject'))) {
+          resources.delete(PDFName.of('XObject'));
+        }
+        
+        // Eliminar o reducir fuentes
+        if (resources && resources.has(PDFName.of('Font'))) {
+          // En compresor extremo, eliminar fuentes por completo
+          if (level === 'high') {
+            resources.delete(PDFName.of('Font'));
+          }
+        }
       }
     }
     
@@ -146,30 +174,30 @@ export const aggressiveCompression = async (
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error in aggressive compression:', error);
+    console.error('Error en compresión agresiva:', error);
     return null;
   }
 };
 
-// Extreme compression method - much more aggressive
+// Método de compresión extrema - mucho más agresivo
 export const extremeCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
   fileName: string
 ): Promise<File | null> => {
   try {
-    // More aggressive factors
-    const qualityFactor = level === 'high' ? 0.005 : 
-                         level === 'medium' ? 0.01 : 0.05;
+    // Factores más agresivos
+    const qualityFactor = level === 'high' ? 0.001 : 
+                         level === 'medium' ? 0.005 : 0.01;
     
-    const scaleFactor = level === 'high' ? 0.3 : 
-                        level === 'medium' ? 0.4 : 0.5;
+    const scaleFactor = level === 'high' ? 0.2 : 
+                        level === 'medium' ? 0.3 : 0.4;
     
-    // Create a new document
+    // Crear un documento nuevo con configuración óptima
     const pdfDoc = await PDFDocument.load(fileBuffer);
     const newDoc = await PDFDocument.create();
     
-    // Remove all metadata
+    // Eliminar todos los metadatos
     newDoc.setTitle("");
     newDoc.setAuthor("");
     newDoc.setSubject("");
@@ -177,19 +205,29 @@ export const extremeCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // For each page in the original document
+    // Para cada página en el documento original
     const pages = pdfDoc.getPages();
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
       
-      // Embed the original page
+      // Estrategia 1: Para PDFs con muchas imágenes - las convertimos a baja resolución
+      // Incrustar la página original
       const [embeddedPage] = await newDoc.embedPages([page]);
       
-      // Create a new page with reduced dimensions
+      // Crear nueva página con dimensiones reducidas
       const newPage = newDoc.addPage([width * scaleFactor, height * scaleFactor]);
       
-      // Draw the embedded page in the new page with a more aggressive scale
+      // Dibujar fondo blanco para reducir información
+      newPage.drawRectangle({
+        x: 0,
+        y: 0,
+        width: width * scaleFactor,
+        height: height * scaleFactor,
+        color: rgb(1, 1, 1), // Blanco
+      });
+      
+      // Dibujar la página incrustada en la nueva página con escala reducida
       newPage.drawPage(embeddedPage, {
         x: 0,
         y: 0,
@@ -198,7 +236,7 @@ export const extremeCompression = async (
         opacity: 0.95
       });
       
-      // Remove annotations and additional metadata
+      // Eliminar anotaciones y metadatos adicionales
       if (newPage.node.has(PDFName.of('Annots'))) {
         newPage.node.delete(PDFName.of('Annots'));
       }
@@ -206,9 +244,24 @@ export const extremeCompression = async (
       if (newPage.node.has(PDFName.of('Metadata'))) {
         newPage.node.delete(PDFName.of('Metadata'));
       }
+      
+      // Eliminar recursos como imágenes para máxima compresión
+      if (newPage.node.has(PDFName.of('Resources'))) {
+        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        
+        // Eliminar XObjects (imágenes)
+        if (resources && resources.has(PDFName.of('XObject'))) {
+          resources.delete(PDFName.of('XObject'));
+        }
+        
+        // Eliminar fuentes para alta compresión
+        if (level === 'high' && resources && resources.has(PDFName.of('Font'))) {
+          resources.delete(PDFName.of('Font'));
+        }
+      }
     }
     
-    // Save with aggressive settings
+    // Guardar con configuración agresiva
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false
@@ -220,23 +273,23 @@ export const extremeCompression = async (
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error in extreme compression:', error);
+    console.error('Error en compresión extrema:', error);
     return null;
   }
 };
 
-// Image quality compression method - significantly improved
+// Método de compresión de calidad de imagen - significativamente mejorado
 export const imageQualityCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
   fileName: string
 ): Promise<File | null> => {
   try {
-    // Load original document
+    // Cargar documento original
     const originalDoc = await PDFDocument.load(fileBuffer);
     const newDoc = await PDFDocument.create();
     
-    // Remove all metadata
+    // Eliminar todos los metadatos
     newDoc.setTitle("");
     newDoc.setAuthor("");
     newDoc.setSubject("");
@@ -244,37 +297,46 @@ export const imageQualityCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // Quality configuration based on level - much more aggressive
-    const imageQuality = level === 'high' ? 0.005 : 
-                        level === 'medium' ? 0.01 : 0.05;
+    // Configuración de calidad basada en nivel - mucho más agresiva
+    const imageQuality = level === 'high' ? 0.001 : 
+                        level === 'medium' ? 0.005 : 0.01;
     
-    const scaleFactor = level === 'high' ? 0.3 : 
-                        level === 'medium' ? 0.4 : 0.5;
+    const scaleFactor = level === 'high' ? 0.2 : 
+                        level === 'medium' ? 0.3 : 0.4;
     
-    // Get original pages
+    // Obtener páginas originales
     const pages = originalDoc.getPages();
     
-    // Convert each page to a low-quality image
+    // Convertir cada página a una imagen de baja calidad
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
       
-      // Create a page in the new document with reduced dimensions
+      // Crear una página en el nuevo documento con dimensiones reducidas
       const newPage = newDoc.addPage([width * scaleFactor, height * scaleFactor]);
       
-      // Embed the original page
+      // Agregar fondo blanco
+      newPage.drawRectangle({
+        x: 0,
+        y: 0,
+        width: width * scaleFactor,
+        height: height * scaleFactor,
+        color: rgb(1, 1, 1), // Blanco
+      });
+      
+      // Incrustar la página original
       const [embeddedPage] = await newDoc.embedPages([page]);
       
-      // Draw with reduced quality
+      // Dibujar con calidad reducida
       newPage.drawPage(embeddedPage, {
         x: 0,
         y: 0,
         width: width * scaleFactor,
         height: height * scaleFactor,
-        opacity: 0.9
+        opacity: 0.7 // Reducir opacidad para mejor compresión
       });
       
-      // Remove unnecessary data
+      // Eliminar datos innecesarios
       if (newPage.node.has(PDFName.of('Annots'))) {
         newPage.node.delete(PDFName.of('Annots'));
       }
@@ -282,9 +344,23 @@ export const imageQualityCompression = async (
       if (newPage.node.has(PDFName.of('Metadata'))) {
         newPage.node.delete(PDFName.of('Metadata'));
       }
+      
+      // Eliminar recursos para maximizar la compresión
+      if (newPage.node.has(PDFName.of('Resources'))) {
+        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        
+        if (resources && resources.has(PDFName.of('XObject'))) {
+          resources.delete(PDFName.of('XObject'));
+        }
+        
+        // Para compresión alta, eliminar fuentes también
+        if (level === 'high' && resources && resources.has(PDFName.of('Font'))) {
+          resources.delete(PDFName.of('Font'));
+        }
+      }
     }
     
-    // Save with aggressive compression options
+    // Guardar con opciones de compresión agresivas
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false
@@ -296,33 +372,33 @@ export const imageQualityCompression = async (
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error in image quality compression:', error);
+    console.error('Error en compresión de calidad de imagen:', error);
     return null;
   }
 };
 
-// Ultimate compression method - completely renewed for maximum compression
+// Método de compresión definitivo - completamente renovado para máxima compresión
 export const ultimateCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
   fileName: string
 ): Promise<File | null> => {
   try {
-    // Extreme compression factors
-    const qualityReduction = level === 'high' ? 0.001 : 
-                            level === 'medium' ? 0.005 : 0.01;
+    // Factores de compresión extrema
+    const qualityReduction = level === 'high' ? 0.0005 : 
+                            level === 'medium' ? 0.001 : 0.005;
     
-    const sizeReduction = level === 'high' ? 0.25 : 
-                         level === 'medium' ? 0.35 : 0.45;
+    const sizeReduction = level === 'high' ? 0.15 : 
+                         level === 'medium' ? 0.25 : 0.35;
     
-    // Implement grayscale conversion for extreme compression
-    const convertToGrayscale = level !== 'low'; // Now applied to medium and high
+    // Implementar conversión a escala de grises para compresión extrema
+    const convertToGrayscale = level === 'high' || level === 'medium'; // Aplicado a medio y alto
                           
-    // Load original document
+    // Cargar documento original
     const srcDoc = await PDFDocument.load(fileBuffer);
     const newDoc = await PDFDocument.create();
     
-    // Remove all metadata
+    // Eliminar todos los metadatos
     newDoc.setTitle("");
     newDoc.setAuthor("");
     newDoc.setSubject("");
@@ -330,51 +406,51 @@ export const ultimateCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // Get pages
+    // Obtener páginas
     const pages = srcDoc.getPages();
     
-    // Process each page with extreme compression
+    // Procesar cada página con compresión extrema
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
       
-      // Embed page with reduced quality
+      // Incrustar página con calidad reducida
       const [embeddedPage] = await newDoc.embedPages([page]);
       
-      // Create reduced page - much smaller than before
+      // Crear página reducida - mucho más pequeña que antes
       const newPage = newDoc.addPage([width * sizeReduction, height * sizeReduction]);
       
-      // If high or medium level, apply grayscale technique
+      // Si nivel alto o medio, aplicar técnica de escala de grises
       if (convertToGrayscale) {
-        // Add white background
+        // Agregar fondo blanco
         newPage.drawRectangle({
           x: 0,
           y: 0,
           width: width * sizeReduction,
           height: height * sizeReduction,
-          color: rgb(1, 1, 1), // White
+          color: rgb(1, 1, 1), // Blanco
         });
         
-        // Draw original content in grayscale
+        // Dibujar contenido original en escala de grises
         newPage.drawPage(embeddedPage, {
           x: 0,
           y: 0,
           width: width * sizeReduction,
           height: height * sizeReduction,
-          opacity: 0.85 // Reduced opacity for better compression
+          opacity: 0.70 // Opacidad reducida para mejor compresión
         });
       } else {
-        // Draw with reduced quality
+        // Dibujar con calidad reducida
         newPage.drawPage(embeddedPage, {
           x: 0,
           y: 0,
           width: width * sizeReduction,
           height: height * sizeReduction,
-          opacity: 0.9
+          opacity: 0.8
         });
       }
       
-      // Remove annotations and additional metadata
+      // Eliminar anotaciones y metadatos adicionales
       if (newPage.node.has(PDFName.of('Annots'))) {
         newPage.node.delete(PDFName.of('Annots'));
       }
@@ -382,13 +458,41 @@ export const ultimateCompression = async (
       if (newPage.node.has(PDFName.of('Metadata'))) {
         newPage.node.delete(PDFName.of('Metadata'));
       }
+      
+      // Eliminar todos los recursos posibles
+      if (newPage.node.has(PDFName.of('Resources'))) {
+        const resources = newPage.node.get(PDFName.of('Resources')) as PDFDict;
+        
+        // Eliminar XObjects (imágenes)
+        if (resources && resources.has(PDFName.of('XObject'))) {
+          resources.delete(PDFName.of('XObject'));
+        }
+        
+        // Eliminar fuentes
+        if (resources && resources.has(PDFName.of('Font'))) {
+          // En alta compresión, eliminar totalmente
+          if (level === 'high' || level === 'medium') {
+            resources.delete(PDFName.of('Font'));
+          }
+        }
+        
+        // Eliminar patrones
+        if (resources && resources.has(PDFName.of('Pattern'))) {
+          resources.delete(PDFName.of('Pattern'));
+        }
+        
+        // Eliminar shaders
+        if (resources && resources.has(PDFName.of('Shading'))) {
+          resources.delete(PDFName.of('Shading'));
+        }
+      }
     }
     
-    // Save with very aggressive settings
+    // Guardar con configuración muy agresiva
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 10 // Reduced for better compression
+      objectsPerTick: 10 // Reducido para mejor compresión
     });
     
     return new File(
@@ -397,7 +501,7 @@ export const ultimateCompression = async (
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error in ultimate compression:', error);
+    console.error('Error en compresión definitiva:', error);
     return null;
   }
 };

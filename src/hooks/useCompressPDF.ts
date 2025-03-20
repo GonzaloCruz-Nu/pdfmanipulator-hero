@@ -38,76 +38,85 @@ export const useCompressPDF = () => {
       setCompressionError(null);
       setCompressedFile(null);
       setCompressionInfo(null);
-      setProgress(10);
+      setProgress(5);
 
-      // Get original file bytes
+      // Obtener bytes del archivo original
       const fileBuffer = await file.arrayBuffer();
       const fileSize = file.size;
       
-      setProgress(15);
+      setProgress(10);
       
       // Array para contener todos los resultados de compresión
       const compressionResults: Array<{method: string; result: File | null; compression: {savedPercentage: number; compressedSize: number}}> = [];
       
-      // 1. Primera estrategia: compresión estándar
-      console.log("Intentando compresión estándar...");
-      let result = await standardCompression(fileBuffer, compressionLevel, file.name);
-      let compression = calculateCompression(fileSize, result?.size || fileSize);
-      compressionResults.push({
-        method: 'standard',
-        result,
-        compression
-      });
+      // 1. Intenta todas las estrategias de compresión en paralelo para mayor velocidad
+      const compressionPromises = [
+        // 1. Primera estrategia: compresión estándar
+        (async () => {
+          console.log("Intentando compresión estándar...");
+          const result = await standardCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'standard', result, compression };
+        })(),
+        
+        // 2. Estrategia agresiva
+        (async () => {
+          console.log("Intentando compresión agresiva...");
+          const result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'aggressive', result, compression };
+        })(),
+        
+        // 3. Estrategia extrema
+        (async () => {
+          console.log("Intentando compresión extrema...");
+          const result = await extremeCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'extreme', result, compression };
+        })(),
+        
+        // 4. Estrategia de calidad de imagen
+        (async () => {
+          console.log("Intentando compresión de calidad de imagen...");
+          const result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'imageQuality', result, compression };
+        })(),
+        
+        // 5. Estrategia última
+        (async () => {
+          console.log("Intentando compresión última...");
+          const result = await ultimateCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'ultimate', result, compression };
+        })()
+      ];
       
-      setProgress(30);
+      // Usar Promise.allSettled para ejecutar todas las estrategias incluso si algunas fallan
+      const results = await Promise.allSettled(compressionPromises);
       
-      // 2. Estrategia agresiva
-      console.log("Intentando compresión agresiva...");
-      result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
-      compression = calculateCompression(fileSize, result?.size || fileSize);
-      compressionResults.push({
-        method: 'aggressive',
-        result,
-        compression
-      });
+      setProgress(80);
       
-      setProgress(45);
-      
-      // 3. Estrategia extrema
-      console.log("Intentando compresión extrema...");
-      result = await extremeCompression(fileBuffer, compressionLevel, file.name);
-      compression = calculateCompression(fileSize, result?.size || fileSize);
-      compressionResults.push({
-        method: 'extreme',
-        result,
-        compression
-      });
-      
-      setProgress(60);
-      
-      // 4. Estrategia de calidad de imagen
-      console.log("Intentando compresión de calidad de imagen...");
-      result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
-      compression = calculateCompression(fileSize, result?.size || fileSize);
-      compressionResults.push({
-        method: 'imageQuality',
-        result,
-        compression
-      });
-      
-      setProgress(75);
-      
-      // 5. Estrategia última
-      console.log("Intentando compresión última...");
-      result = await ultimateCompression(fileBuffer, compressionLevel, file.name);
-      compression = calculateCompression(fileSize, result?.size || fileSize);
-      compressionResults.push({
-        method: 'ultimate',
-        result,
-        compression
+      // Filtrar los resultados exitosos
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.result) {
+          compressionResults.push(result.value);
+        }
       });
       
       setProgress(85);
+      
+      // Si no hay resultados exitosos
+      if (compressionResults.length === 0) {
+        setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
+        setCompressedFile(null);
+        setCompressionInfo(null);
+        toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
+        setProgress(100);
+        setTimeout(() => setProgress(0), 500);
+        setIsProcessing(false);
+        return null;
+      }
       
       // Ordenar resultados por mayor porcentaje de compresión
       compressionResults.sort((a, b) => 
@@ -120,7 +129,7 @@ export const useCompressPDF = () => {
       
       setProgress(90);
 
-      // Verificar si el mejor resultado es aceptable (más de 0.1% de compresión)
+      // Verificar si el mejor resultado es aceptable
       if (!bestResult.result) {
         setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
         setCompressedFile(null);
