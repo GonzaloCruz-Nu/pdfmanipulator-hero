@@ -79,7 +79,17 @@
   }
   
   .input-file {
-    @apply relative flex h-60 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 px-4 py-6 text-center transition hover:bg-secondary;
+    @apply relative flex h-60 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-gray-200/50 px-4 py-6 text-center transition;
+  }
+  
+  /* Asegurarnos que el hover sea más claro para mejor contraste con el texto */
+  .input-file:hover {
+    @apply bg-gray-100 border-naranja/30;
+  }
+  
+  /* Estilo para cuando se está arrastrando un archivo */
+  .input-file-dragging {
+    @apply border-naranja/50 bg-naranja/5;
   }
   
   .page-transition {
@@ -90,3 +100,4 @@
     @apply transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1;
   }
 }
+

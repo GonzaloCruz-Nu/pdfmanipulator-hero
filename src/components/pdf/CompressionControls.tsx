@@ -37,7 +37,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'low' 
               ? 'bg-naranja text-white' 
-              : 'bg-gray-100 text-gray-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <span className="block font-medium">Baja</span>
@@ -48,7 +48,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'medium' 
               ? 'bg-naranja text-white' 
-              : 'bg-gray-100 text-gray-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <span className="block font-medium">Media</span>
@@ -59,7 +59,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'high' 
               ? 'bg-naranja text-white' 
-              : 'bg-gray-100 text-gray-700'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           <span className="block font-medium">Alta</span>

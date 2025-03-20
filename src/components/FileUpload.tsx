@@ -74,7 +74,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onDrop={handleDrop}
         className={cn(
           "input-file",
-          isDragging && "border-primary/50 bg-primary/5",
+          isDragging && "input-file-dragging",
           files.length > 0 && "h-40"
         )}
       >
@@ -86,14 +86,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
           className="absolute inset-0 cursor-pointer opacity-0"
         />
         <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="rounded-full bg-secondary p-3">
-            <Upload className="h-6 w-6 text-muted-foreground" />
+          <div className="rounded-full bg-naranja/10 p-3">
+            <Upload className="h-6 w-6 text-naranja" />
           </div>
           <div className="space-y-1 text-center">
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium text-gray-800">
               {isDragging ? "Suelta aquí" : "Arrastra archivos o haz clic aquí"}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               {multiple ? `PDF (máx. ${maxFiles})` : "PDF"}
             </p>
           </div>
@@ -107,10 +107,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
             {files.map((file, index) => (
               <li
                 key={`${file.name}-${index}`}
-                className="flex items-center justify-between rounded-md bg-secondary/50 p-2 text-sm"
+                className="flex items-center justify-between rounded-md bg-gray-100 p-2 text-sm"
               >
                 <div className="flex items-center space-x-2">
-                  <FileIcon className="h-4 w-4 text-muted-foreground" />
+                  <FileIcon className="h-4 w-4 text-naranja" />
                   <span className="truncate max-w-[200px]">{file.name}</span>
                   <span className="text-xs text-muted-foreground">
                     ({(file.size / 1024 / 1024).toFixed(2)} MB)
@@ -119,7 +119,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 <button
                   type="button"
                   onClick={() => removeFile(index)}
-                  className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  className="rounded-full p-1 text-muted-foreground hover:bg-naranja/10 hover:text-naranja"
                 >
                   <X className="h-4 w-4" />
                 </button>
