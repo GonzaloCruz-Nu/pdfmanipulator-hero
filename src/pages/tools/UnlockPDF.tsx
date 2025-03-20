@@ -11,11 +11,13 @@ import { Label } from '@/components/ui/label';
 import { useUnlockPDF } from '@/hooks/useUnlockPDF';
 import PdfPreview from '@/components/PdfPreview';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const UnlockPDF = () => {
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
   
   const {
     unlockPDF,
@@ -29,12 +31,25 @@ const UnlockPDF = () => {
   const handleFilesSelected = (files: File[]) => {
     if (files.length > 0) {
       setFile(files[0]);
+      setNeedsPassword(false); // Reset password flag on new file
     }
   };
 
   const handleUnlock = async () => {
     if (!file) return;
-    await unlockPDF(file, password);
+    
+    // Try unlocking without password first
+    if (!needsPassword) {
+      const result = await unlockPDF(file);
+      
+      // If we need a password, let the user know
+      if (!result.success && result.message.includes('requiere una contraseña')) {
+        setNeedsPassword(true);
+      }
+    } else {
+      // Use password if needed
+      await unlockPDF(file, password);
+    }
   };
 
   const togglePreview = () => {
@@ -85,26 +100,36 @@ const UnlockPDF = () => {
 
               {file && (
                 <div>
-                  <Label htmlFor="password">2. Introduce la contraseña del PDF</Label>
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Contraseña del PDF"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="flex-1"
-                    />
+                  {needsPassword ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="password">2. Este PDF requiere contraseña</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Contraseña del PDF"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">2. Haz clic en desbloquear para eliminar la protección del PDF</p>
+                  )}
+                  
+                  <div className="mt-4">
                     <Button 
                       onClick={handleUnlock}
-                      disabled={!file || !password || isProcessing}
+                      disabled={!file || (needsPassword && !password) || isProcessing}
+                      className="w-full sm:w-auto"
                     >
                       {isProcessing ? (
                         <>Procesando</>
                       ) : (
                         <>
                           <Unlock className="h-4 w-4 mr-2" />
-                          Desbloquear
+                          Desbloquear PDF
                         </>
                       )}
                     </Button>
