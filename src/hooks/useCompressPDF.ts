@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -93,6 +94,9 @@ export const useCompressPDF = () => {
         useSystemFonts: true
       });
       
+      // Actualizar progreso inicial - carga del documento
+      setProgress(10);
+      
       const pdfDoc = await loadingTask.promise;
       
       // Crear un nuevo documento PDF
@@ -115,9 +119,12 @@ export const useCompressPDF = () => {
       // Procesar cada página
       const totalPages = pdfDoc.numPages;
       
+      // Reservar 80% del progreso para el procesamiento de páginas (del 10% al 90%)
+      const pageProgressWeight = 80 / totalPages;
+      
       for (let i = 0; i < totalPages; i++) {
-        // Actualizar progreso
-        const pageProgress = 10 + Math.floor((i / totalPages) * 80);
+        // Actualizar progreso para cada página
+        const pageProgress = 10 + Math.floor(i * pageProgressWeight);
         setProgress(pageProgress);
         
         // Obtener la página
@@ -182,7 +189,14 @@ export const useCompressPDF = () => {
           width: width,
           height: height
         });
+        
+        // Actualizar el progreso al final de cada página procesada
+        const completedPageProgress = 10 + Math.floor((i + 1) * pageProgressWeight);
+        setProgress(completedPageProgress);
       }
+      
+      // Actualizar progreso a 90% antes de guardar el documento
+      setProgress(90);
       
       // Guardar el documento comprimido
       // Para nivel medio, usar más opciones para preservar calidad
@@ -197,14 +211,24 @@ export const useCompressPDF = () => {
         compressedBytes = await newPdfDoc.save();
       }
       
+      // Actualizar progreso a 95% después de guardar
+      setProgress(95);
+      
       // Crear un nuevo archivo
-      return new File(
+      const result = new File(
         [compressedBytes],
         `comprimido_${file.name}`,
         { type: 'application/pdf' }
       );
+      
+      // Finalizar el progreso a 100%
+      setProgress(100);
+      
+      return result;
     } catch (error) {
       console.error('Error al comprimir PDF con canvas:', error);
+      // Asegurarse de que el progreso se complete incluso en caso de error
+      setProgress(100);
       return null;
     }
   }
@@ -238,10 +262,12 @@ export const useCompressPDF = () => {
       const fileSize = file.size;
       
       // Comprimir usando el método basado en canvas
-      setProgress(10);
-      
       const compressedFile = await compressPDFWithCanvas(file, compressionLevel);
-      setProgress(90);
+      
+      // Si el progreso no llegó a 100%, forzarlo a 100%
+      if (progress < 100) {
+        setProgress(100);
+      }
       
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
@@ -260,12 +286,15 @@ export const useCompressPDF = () => {
         toast.error('Error al comprimir el PDF.');
       }
       
-      setProgress(100);
+      // Asegurar que el progreso se complete
       setTimeout(() => setProgress(0), 500);
     } catch (error) {
       console.error('Error al comprimir PDF:', error);
       setCompressionError('Error al procesar el PDF. Intenta con otro archivo o nivel de compresión.');
       toast.error('Error al comprimir el PDF.');
+      // Asegurar que el progreso se complete incluso en caso de error
+      setProgress(100);
+      setTimeout(() => setProgress(0), 500);
     } finally {
       setIsProcessing(false);
     }
