@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileOutput, Zap, FileType } from 'lucide-react';
+import { Merge, Scissors, FileText, FileType, Zap } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -77,6 +77,7 @@ const Index = () => {
               description="Combina múltiples documentos PDF en un solo archivo"
               icon={Merge}
               to="/tools/merge"
+              className="h-full"
             />
           </motion.div>
           
@@ -86,6 +87,7 @@ const Index = () => {
               description="Divide un documento PDF en múltiples archivos"
               icon={Scissors}
               to="/tools/split"
+              className="h-full"
             />
           </motion.div>
           
@@ -95,6 +97,7 @@ const Index = () => {
               description="Reduce el tamaño de tus archivos PDF sin perder calidad"
               icon={Zap}
               to="/tools/compress"
+              className="h-full"
             />
           </motion.div>
           
@@ -104,6 +107,7 @@ const Index = () => {
               description="Convierte tus PDFs a documentos Word editables"
               icon={FileType}
               to="/tools/convert"
+              className="h-full"
             />
           </motion.div>
         </motion.div>

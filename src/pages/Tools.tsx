@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, FileText, FileOutput, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
+import { Merge, Scissors, FileText, FileType, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -56,6 +56,7 @@ const Tools = () => {
               description="Combina múltiples documentos PDF en un solo archivo"
               icon={Merge}
               to="/tools/merge"
+              className="h-full"
             />
           </motion.div>
           
@@ -65,6 +66,7 @@ const Tools = () => {
               description="Divide un documento PDF en múltiples archivos"
               icon={Scissors}
               to="/tools/split"
+              className="h-full"
             />
           </motion.div>
           
@@ -74,6 +76,7 @@ const Tools = () => {
               description="Reduce el tamaño de tus archivos PDF sin perder calidad"
               icon={Zap}
               to="/tools/compress"
+              className="h-full"
             />
           </motion.div>
           
@@ -83,15 +86,17 @@ const Tools = () => {
               description="Elimina la contraseña de tus documentos PDF protegidos"
               icon={Unlock}
               to="/tools/unlock"
+              className="h-full"
             />
           </motion.div>
           
           <motion.div variants={fadeInUp}>
             <ToolCard
-              title="Convertir PDF"
-              description="Convierte entre PDF y otros formatos"
-              icon={FileOutput}
+              title="PDF a Word"
+              description="Convierte tus PDFs a documentos Word editables"
+              icon={FileType}
               to="/tools/convert"
+              className="h-full"
             />
           </motion.div>
 
@@ -101,6 +106,7 @@ const Tools = () => {
               description="Edita el contenido de tus documentos PDF"
               icon={FileCog}
               to="/tools/edit"
+              className="h-full"
             />
           </motion.div>
 
@@ -110,6 +116,7 @@ const Tools = () => {
               description="Extrae texto de imágenes y documentos escaneados"
               icon={FileSearch}
               to="/tools/ocr"
+              className="h-full"
             />
           </motion.div>
 
@@ -119,6 +126,7 @@ const Tools = () => {
               description="Añade contraseñas y restricciones a tus PDFs"
               icon={FileLock}
               to="/tools/protect"
+              className="h-full"
             />
           </motion.div>
         </motion.div>
