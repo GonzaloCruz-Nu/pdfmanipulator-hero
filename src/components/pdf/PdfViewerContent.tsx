@@ -14,6 +14,7 @@ interface PdfViewerContentProps {
   textOptions?: {
     fontSize: number;
     color: string;
+    fontFamily?: string;
   };
   drawOptions?: {
     color: string;
@@ -30,7 +31,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   fileName,
   currentPage,
   activeTool,
-  textOptions = { fontSize: 16, color: '#000000' },
+  textOptions = { fontSize: 16, color: '#000000', fontFamily: 'Arial' },
   drawOptions = { color: '#000000', width: 2 },
   onAnnotationAdded,
 }) => {
@@ -39,6 +40,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<fabric.Image | null>(null);
+  const [scale, setScale] = useState(1);
 
   // Initialize canvas when component mounts
   useEffect(() => {
@@ -104,6 +106,11 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   useEffect(() => {
     if (!canvas) return;
     
+    // Disable all event handlers
+    canvas.off('mouse:down');
+    canvas.off('mouse:move');
+    canvas.off('mouse:up');
+    
     // Disable drawing mode by default
     canvas.isDrawingMode = false;
     
@@ -112,21 +119,19 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         canvas.defaultCursor = 'text';
         canvas.hoverCursor = 'text';
         canvas.on('mouse:down', addTextHandler);
-        return () => {
-          canvas.off('mouse:down', addTextHandler);
-        };
+        break;
       
       case 'editText':
         canvas.defaultCursor = 'default';
         canvas.hoverCursor = 'default';
-        // Permite editar el texto existente
-        return;
+        // Enable editing existing text objects
+        break;
       
       case 'pen':
         canvas.isDrawingMode = true;
         canvas.freeDrawingBrush.color = drawOptions.color;
         canvas.freeDrawingBrush.width = drawOptions.width;
-        return;
+        break;
       
       case 'rectangle':
         canvas.defaultCursor = 'crosshair';
@@ -134,11 +139,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         canvas.on('mouse:down', startRectangle);
         canvas.on('mouse:move', moveRectangle);
         canvas.on('mouse:up', endRectangle);
-        return () => {
-          canvas.off('mouse:down', startRectangle);
-          canvas.off('mouse:move', moveRectangle);
-          canvas.off('mouse:up', endRectangle);
-        };
+        break;
       
       case 'circle':
         canvas.defaultCursor = 'crosshair';
@@ -146,26 +147,27 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
         canvas.on('mouse:down', startCircle);
         canvas.on('mouse:move', moveCircle);
         canvas.on('mouse:up', endCircle);
-        return () => {
-          canvas.off('mouse:down', startCircle);
-          canvas.off('mouse:move', moveCircle);
-          canvas.off('mouse:up', endCircle);
-        };
+        break;
       
       case 'erase':
         canvas.defaultCursor = 'not-allowed';
         canvas.hoverCursor = 'not-allowed';
         canvas.on('mouse:down', eraseObject);
-        return () => {
-          canvas.off('mouse:down', eraseObject);
-        };
+        break;
       
       default:
         canvas.defaultCursor = 'default';
         canvas.hoverCursor = 'default';
         canvas.selection = true;
-        return;
+        break;
     }
+    
+    return () => {
+      // Clean up event handlers when the effect runs again
+      canvas.off('mouse:down');
+      canvas.off('mouse:move');
+      canvas.off('mouse:up');
+    };
   }, [activeTool, canvas, textOptions, drawOptions]);
 
   // Load PDF page as background when the page changes
@@ -215,12 +217,12 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     if (!canvas) return;
     
     const pointer = canvas.getPointer(e.e);
-    const text = new fabric.IText('Haz clic para editar', {
+    const text = new fabric.IText('Haga clic para editar', {
       left: pointer.x,
       top: pointer.y,
       fontSize: textOptions.fontSize,
+      fontFamily: textOptions.fontFamily || 'Arial',
       fill: textOptions.color,
-      fontFamily: 'Arial',
       editable: true,
     });
     
@@ -387,6 +389,25 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     }
     
     canvas.renderAll();
+  };
+
+  // Zoom controls
+  const zoomIn = () => {
+    if (!canvas) return;
+    setScale(prev => {
+      const newScale = Math.min(prev + 0.1, 3);
+      canvas.setZoom(newScale);
+      return newScale;
+    });
+  };
+
+  const zoomOut = () => {
+    if (!canvas) return;
+    setScale(prev => {
+      const newScale = Math.max(prev - 0.1, 0.5);
+      canvas.setZoom(newScale);
+      return newScale;
+    });
   };
 
   if (isLoading) {

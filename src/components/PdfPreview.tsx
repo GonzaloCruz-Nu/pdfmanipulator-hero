@@ -60,7 +60,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
             error={error}
             fileName={file.name}
             currentPage={currentPage}
-            activeTool="select" // Adding the default activeTool prop
+            activeTool="select"
           />
         </div>
       </div>
