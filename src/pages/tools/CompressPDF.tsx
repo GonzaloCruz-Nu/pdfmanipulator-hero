@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 
 const CompressPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -16,14 +17,21 @@ const CompressPDF = () => {
   const [compressionLevel, setCompressionLevel] = useState<'low' | 'medium' | 'high'>('medium');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: number;
+    compressedSize: number;
+    savedPercentage: number;
+  } | null>(null);
 
   const handleFileSelected = (selectedFiles: File[]) => {
     if (selectedFiles.length > 0) {
       setFile(selectedFiles[0]);
       setCompressedFile(null);
+      setCompressionInfo(null);
     } else {
       setFile(null);
       setCompressedFile(null);
+      setCompressionInfo(null);
     }
   };
 
@@ -119,6 +127,13 @@ const CompressPDF = () => {
           await compressWithImageDownsizing();
         } else {
           setCompressedFile(compressedFileObj);
+          // Calcular información de compresión
+          const savedPercentage = Math.round((1 - (compressedFileObj.size / file.size)) * 100);
+          setCompressionInfo({
+            originalSize: file.size,
+            compressedSize: compressedFileObj.size,
+            savedPercentage: savedPercentage
+          });
         }
       } else {
         // Compresión básica para nivel bajo
@@ -130,16 +145,22 @@ const CompressPDF = () => {
           { type: 'application/pdf' }
         );
         setCompressedFile(compressedFileObj);
+        
+        // Calcular información de compresión
+        const savedPercentage = Math.round((1 - (compressedFileObj.size / file.size)) * 100);
+        setCompressionInfo({
+          originalSize: file.size,
+          compressedSize: compressedFileObj.size,
+          savedPercentage: savedPercentage
+        });
       }
       
       setProgress(100);
       
       // Verificar si la compresión fue efectiva
-      if (compressedFile) {
-        const savedPercentage = Math.round((1 - (compressedFile.size / file.size)) * 100);
-        
-        if (savedPercentage > 5) {
-          toast.success(`PDF comprimido con éxito. Ahorro: ${savedPercentage}%`);
+      if (compressedFile && compressionInfo) {
+        if (compressionInfo.savedPercentage > 5) {
+          toast.success(`PDF comprimido con éxito. Ahorro: ${compressionInfo.savedPercentage}%`);
         } else {
           toast.info('Este PDF ya está bastante optimizado. Reducción limitada.');
         }
@@ -178,10 +199,10 @@ const CompressPDF = () => {
       // Determinar factor de calidad más agresivo para imágenes
       let qualityFactor;
       switch (compressionLevel) {
-        case 'low': return 0.6;
-        case 'medium': return 0.3;
-        case 'high': return 0.1;
-        default: return 0.3;
+        case 'low': qualityFactor = 0.6; break;
+        case 'medium': qualityFactor = 0.3; break;
+        case 'high': qualityFactor = 0.1; break;
+        default: qualityFactor = 0.3;
       }
       
       // Comprimir cada página con calidad reducida
@@ -238,6 +259,14 @@ const CompressPDF = () => {
       
       setCompressedFile(altCompressedFile);
       
+      // Calcular información de compresión
+      const savedPercentage = Math.round((1 - (altCompressedFile.size / file.size)) * 100);
+      setCompressionInfo({
+        originalSize: file.size,
+        compressedSize: altCompressedFile.size,
+        savedPercentage: savedPercentage
+      });
+      
       return altCompressedFile;
     } catch (error) {
       console.error('Error en compresión alternativa:', error);
@@ -270,6 +299,15 @@ const CompressPDF = () => {
     );
     
     setCompressedFile(basicCompressedFile);
+    
+    // Calcular información de compresión
+    const savedPercentage = Math.round((1 - (basicCompressedFile.size / file.size)) * 100);
+    setCompressionInfo({
+      originalSize: file.size,
+      compressedSize: basicCompressedFile.size,
+      savedPercentage: savedPercentage
+    });
+    
     return basicCompressedFile;
   };
 
@@ -360,14 +398,15 @@ const CompressPDF = () => {
                           : 'bg-secondary text-muted-foreground'
                       }`}
                     >
-                      Alta (70%)
+                      Alta (75%)
                     </button>
                   </div>
 
-                  <button
+                  <Button
                     onClick={compressPDF}
                     disabled={isProcessing || !file}
-                    className="btn-primary w-full flex items-center justify-center"
+                    variant="default"
+                    className="w-full"
                   >
                     {isProcessing ? (
                       <>
@@ -383,7 +422,7 @@ const CompressPDF = () => {
                         Comprimir PDF
                       </>
                     )}
-                  </button>
+                  </Button>
                   
                   {isProcessing && (
                     <div className="mt-4">
@@ -394,25 +433,26 @@ const CompressPDF = () => {
                 </div>
               )}
 
-              {compressedFile && (
+              {compressionInfo && compressedFile && (
                 <div className="mt-6">
                   <div className="flex items-center p-4 bg-green-50 text-green-800 rounded-lg border border-green-200 mb-4">
                     <Check className="h-5 w-5 mr-2 flex-shrink-0" />
                     <div className="text-sm">
                       <p className="font-medium">Compresión completada</p>
-                      <p>Tamaño original: {(file?.size || 0) / 1024 / 1024} MB</p>
-                      <p>Tamaño comprimido: {compressedFile.size / 1024 / 1024} MB</p>
-                      <p>Reducción: {Math.round((1 - (compressedFile.size / (file?.size || 1))) * 100)}%</p>
+                      <p>Tamaño original: {(compressionInfo.originalSize / 1024 / 1024).toFixed(2)} MB</p>
+                      <p>Tamaño comprimido: {(compressionInfo.compressedSize / 1024 / 1024).toFixed(2)} MB</p>
+                      <p>Reducción: {compressionInfo.savedPercentage}%</p>
                     </div>
                   </div>
                   
-                  <button
+                  <Button
                     onClick={downloadCompressedFile}
-                    className="btn-secondary w-full flex items-center justify-center"
+                    variant="secondary"
+                    className="w-full"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Descargar PDF comprimido
-                  </button>
+                  </Button>
                 </div>
               )}
 
