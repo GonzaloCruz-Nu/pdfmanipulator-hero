@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, Unlock } from 'lucide-react';
+import { Merge, Scissors, Zap, Unlock, FileCog, FileSearch, FileLock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -69,11 +69,6 @@ const Index = () => {
             Herramientas potentes para unir, dividir y comprimir PDFs.
             Sin servidores externos. Tus archivos nunca salen de tu dispositivo.
           </p>
-          <div className="pt-4">
-            <Link to="/tools" className="inline-flex items-center justify-center rounded-md bg-naranja px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-naranja/90 transition-colors">
-              Explorar herramientas
-            </Link>
-          </div>
         </motion.div>
 
         <motion.h2 
@@ -86,7 +81,7 @@ const Index = () => {
         </motion.h2>
 
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
@@ -130,27 +125,57 @@ const Index = () => {
               className="h-full"
             />
           </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Editar PDF"
+              description="Edita el contenido de tus documentos PDF"
+              icon={FileCog}
+              to="/tools/edit"
+              className="h-full"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="OCR PDF"
+              description="Extrae texto de imágenes y documentos escaneados"
+              icon={FileSearch}
+              to="/tools/ocr"
+              className="h-full"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Proteger PDF"
+              description="Añade contraseñas y restricciones a tus PDFs"
+              icon={FileLock}
+              to="/tools/protect"
+              className="h-full"
+            />
+          </motion.div>
+        </motion.div>
+
+        <motion.div 
+          className="rounded-2xl bg-white p-8 md:p-12 shadow-glass text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
+        >
+          <div className="mx-auto max-w-2xl">
+            <Zap className="h-12 w-12 text-naranja mx-auto mb-6" />
+            <h2 className="text-2xl font-bold mb-4">Privacidad por diseño</h2>
+            <p className="text-muted-foreground mb-6">
+              Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 
+              se cargan a ningún servidor. Funciona incluso sin conexión a internet.
+            </p>
+            <Link to="/about" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+              Conoce más
+            </Link>
+          </div>
         </motion.div>
       </div>
-
-      <motion.div 
-        className="rounded-2xl bg-white p-8 md:p-12 shadow-glass text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-      >
-        <div className="mx-auto max-w-2xl">
-          <Zap className="h-12 w-12 text-naranja mx-auto mb-6" />
-          <h2 className="text-2xl font-bold mb-4">Privacidad por diseño</h2>
-          <p className="text-muted-foreground mb-6">
-            Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 
-            se cargan a ningún servidor. Funciona incluso sin conexión a internet.
-          </p>
-          <Link to="/about" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
-            Conoce más
-          </Link>
-        </div>
-      </motion.div>
     </Layout>
   );
 };
