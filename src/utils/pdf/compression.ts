@@ -8,9 +8,9 @@ export const COMPRESSION_FACTORS = {
   high: { imageQuality: 0.2, scaleFactor: 0.75 }
 };
 
-// Minimum size reduction required to consider compression effective
-// Reducimos el umbral para considerar que la compresión fue efectiva
-export const MIN_SIZE_REDUCTION = 0.01; // 1% de reducción mínima
+// Reducimos el umbral para considerar que la compresión fue efectiva a casi cero
+// Esto permitirá que incluso pequeñas reducciones se consideren exitosas
+export const MIN_SIZE_REDUCTION = 0.001; // 0.1% de reducción mínima
 
 // Method for calculating compression percentage
 export const calculateCompression = (originalSize: number, compressedSize: number) => {
@@ -108,19 +108,19 @@ export const aggressiveCompression = async (
   }
 };
 
-// Extreme compression method
+// Extreme compression method - hacemos más agresivo este método
 export const extremeCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
   fileName: string
 ): Promise<File | null> => {
   try {
-    // Ajustamos los factores de compresión para ser más agresivos
-    const qualityFactor = level === 'high' ? 0.05 : 
-                          level === 'medium' ? 0.1 : 0.2;
+    // Ajustamos los factores de compresión para ser todavía más agresivos
+    const qualityFactor = level === 'high' ? 0.03 : 
+                          level === 'medium' ? 0.08 : 0.15;
     
-    const scaleFactor = level === 'high' ? 0.6 : 
-                        level === 'medium' ? 0.75 : 0.9;
+    const scaleFactor = level === 'high' ? 0.5 : 
+                        level === 'medium' ? 0.65 : 0.8;
     
     // Create a new document
     const pdfDoc = await PDFDocument.load(fileBuffer);
@@ -148,7 +148,7 @@ export const extremeCompression = async (
       });
     }
     
-    // Save the compressed document
+    // Save the compressed document with more aggressive compression
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
@@ -165,20 +165,20 @@ export const extremeCompression = async (
   }
 };
 
-// Method that compresses by reducing image quality
+// Method that compresses by reducing image quality - más agresivo
 export const imageQualityCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
   fileName: string
 ): Promise<File | null> => {
   try {
-    // Configurations based on compression level
+    // Configurations based on compression level - más agresivas
     const pdfDoc = await PDFDocument.load(fileBuffer);
     const pages = pdfDoc.getPages();
     
     // Maintain original dimensions but apply compression
-    const imageQuality = level === 'high' ? 0.01 : 
-                         level === 'medium' ? 0.05 : 0.1;
+    const imageQuality = level === 'high' ? 0.005 : 
+                         level === 'medium' ? 0.03 : 0.08;
     
     // Create a new document with one page per original
     const newDoc = await PDFDocument.create();
@@ -215,6 +215,66 @@ export const imageQualityCompression = async (
     );
   } catch (error) {
     console.error('Error in image quality compression:', error);
+    return null;
+  }
+};
+
+// Nuevo método de compresión - Aplicando todas las técnicas a la vez
+export const ultimateCompression = async (
+  fileBuffer: ArrayBuffer,
+  level: 'low' | 'medium' | 'high',
+  fileName: string
+): Promise<File | null> => {
+  try {
+    // Factores extremos de compresión
+    const qualityReduction = level === 'high' ? 0.01 : 
+                            level === 'medium' ? 0.03 : 0.05;
+    
+    const sizeReduction = level === 'high' ? 0.4 : 
+                         level === 'medium' ? 0.6 : 0.8;
+    
+    // Cargar documento
+    const srcDoc = await PDFDocument.load(fileBuffer);
+    const newDoc = await PDFDocument.create();
+    
+    // Obtener páginas
+    const pages = srcDoc.getPages();
+    
+    // Procesar cada página con compresión extrema
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const { width, height } = page.getSize();
+      
+      // Incrustar página
+      const [embeddedPage] = await newDoc.embedPages([page]);
+      
+      // Crear página reducida
+      const newPage = newDoc.addPage([width * sizeReduction, height * sizeReduction]);
+      
+      // Dibujar con calidad reducida
+      newPage.drawPage(embeddedPage, {
+        x: 0,
+        y: 0,
+        width: width * sizeReduction,
+        height: height * sizeReduction,
+        opacity: qualityReduction * 10
+      });
+    }
+    
+    // Guardar con configuraciones agresivas
+    const compressedBytes = await newDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+      objectsPerTick: 20,
+    });
+    
+    return new File(
+      [compressedBytes], 
+      `comprimido_ult_${fileName || 'documento.pdf'}`, 
+      { type: 'application/pdf' }
+    );
+  } catch (error) {
+    console.error('Error in ultimate compression:', error);
     return null;
   }
 };

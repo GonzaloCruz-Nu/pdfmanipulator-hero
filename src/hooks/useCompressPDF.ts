@@ -6,6 +6,7 @@ import {
   aggressiveCompression,
   extremeCompression,
   imageQualityCompression,
+  ultimateCompression,
   calculateCompression,
   MIN_SIZE_REDUCTION
 } from '@/utils/pdf/compression';
@@ -43,31 +44,39 @@ export const useCompressPDF = () => {
       const fileSize = file.size;
 
       // Primera estrategia: compresión estándar
-      setProgress(20);
+      setProgress(15);
       console.log("Intentando compresión estándar...");
       let result = await standardCompression(fileBuffer, compressionLevel, file.name);
       let compression = calculateCompression(fileSize, result?.size || fileSize);
       
       // Si no logramos buena compresión, probamos otra estrategia
       if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-        setProgress(40);
+        setProgress(30);
         console.log("Intentando compresión agresiva...");
         result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
         compression = calculateCompression(fileSize, result?.size || fileSize);
         
         // Si aún no es buena, probamos otra estrategia
         if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-          setProgress(60);
+          setProgress(45);
           console.log("Intentando compresión extrema...");
           result = await extremeCompression(fileBuffer, compressionLevel, file.name);
           compression = calculateCompression(fileSize, result?.size || fileSize);
           
           // Si todavía no funciona, probamos compresión de calidad de imagen
           if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-            setProgress(80);
+            setProgress(60);
             console.log("Intentando compresión de calidad de imagen...");
             result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
             compression = calculateCompression(fileSize, result?.size || fileSize);
+            
+            // Si aún no funciona, intentamos la compresión máxima
+            if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
+              setProgress(75);
+              console.log("Intentando compresión última...");
+              result = await ultimateCompression(fileBuffer, compressionLevel, file.name);
+              compression = calculateCompression(fileSize, result?.size || fileSize);
+            }
           }
         }
       }
@@ -81,11 +90,11 @@ export const useCompressPDF = () => {
         setCompressionInfo(null);
         toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
       } 
-      else if (compression.savedPercentage < 0.5) { // Si ahorra menos del 0.5%, consideramos que no vale la pena
-        setCompressionError('No se pudo reducir significativamente el tamaño del archivo. Puede que ya esté optimizado.');
+      else if (compression.savedPercentage <= 0) { // Solo si es exactamente 0 o negativo
+        setCompressionError('No se pudo reducir el tamaño del archivo. Puede que ya esté optimizado.');
         setCompressedFile(null);
         setCompressionInfo(null);
-        toast.error('No se pudo reducir significativamente el tamaño del archivo.');
+        toast.error('No se pudo reducir el tamaño del archivo.');
       } 
       else {
         // Si logramos comprimir, guardamos el resultado
