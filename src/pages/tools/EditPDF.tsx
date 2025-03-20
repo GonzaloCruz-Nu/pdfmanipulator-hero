@@ -175,8 +175,8 @@ const EditPDF = () => {
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button as="span">
-                Seleccionar PDF
+              <Button asChild>
+                <span>Seleccionar PDF</span>
               </Button>
             </label>
           </div>
