@@ -13,6 +13,16 @@ interface ConvertResult {
   message: string;
 }
 
+// Función para convertir base64 a ArrayBuffer (reemplazo para Buffer)
+const base64ToArrayBuffer = (base64: string): Uint8Array => {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
 export const useConvertPDF = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -167,11 +177,14 @@ export const useConvertPDF = () => {
               const width = Math.min(image.width, maxWidth);
               const height = width / ratio;
               
+              // Usamos nuestra función auxiliar en lugar de Buffer
+              const imageData = base64ToArrayBuffer(base64Image);
+              
               docChildren.push(
                 new Paragraph({
                   children: [
                     new ImageRun({
-                      data: Buffer.from(base64Image, 'base64'),
+                      data: imageData,
                       transformation: {
                         width,
                         height,
