@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -8,6 +7,7 @@ import {
   imageQualityCompression,
   ultimateCompression,
   canvasBasedCompression,
+  ghostscriptLikeCompression,
   calculateCompression,
   MIN_SIZE_REDUCTION
 } from '@/utils/pdf/compression';
@@ -52,7 +52,15 @@ export const useCompressPDF = () => {
       
       // 1. Intenta todas las estrategias de compresión en paralelo para mayor velocidad
       const compressionPromises = [
-        // Nueva estrategia basada en canvas - generalmente da los mejores resultados
+        // Nueva estrategia basada en GhostScript-like
+        (async () => {
+          console.log("Intentando compresión tipo GhostScript...");
+          const result = await ghostscriptLikeCompression(fileBuffer, compressionLevel, file.name);
+          const compression = calculateCompression(fileSize, result?.size || fileSize);
+          return { method: 'ghostscript', result, compression };
+        })(),
+        
+        // Estrategia basada en canvas - generalmente da buenos resultados
         (async () => {
           console.log("Intentando compresión basada en canvas...");
           const result = await canvasBasedCompression(fileBuffer, compressionLevel, file.name);
@@ -60,7 +68,7 @@ export const useCompressPDF = () => {
           return { method: 'canvas', result, compression };
         })(),
         
-        // 1. Primera estrategia: compresión estándar
+        // Estrategia estándar
         (async () => {
           console.log("Intentando compresión estándar...");
           const result = await standardCompression(fileBuffer, compressionLevel, file.name);
@@ -68,7 +76,7 @@ export const useCompressPDF = () => {
           return { method: 'standard', result, compression };
         })(),
         
-        // 2. Estrategia agresiva
+        // Estrategia agresiva
         (async () => {
           console.log("Intentando compresión agresiva...");
           const result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
@@ -76,7 +84,7 @@ export const useCompressPDF = () => {
           return { method: 'aggressive', result, compression };
         })(),
         
-        // 3. Estrategia extrema
+        // Estrategia extrema
         (async () => {
           console.log("Intentando compresión extrema...");
           const result = await extremeCompression(fileBuffer, compressionLevel, file.name);
@@ -84,7 +92,7 @@ export const useCompressPDF = () => {
           return { method: 'extreme', result, compression };
         })(),
         
-        // 4. Estrategia de calidad de imagen
+        // Estrategia de calidad de imagen
         (async () => {
           console.log("Intentando compresión de calidad de imagen...");
           const result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
@@ -92,7 +100,7 @@ export const useCompressPDF = () => {
           return { method: 'imageQuality', result, compression };
         })(),
         
-        // 5. Estrategia última
+        // Estrategia última
         (async () => {
           console.log("Intentando compresión última...");
           const result = await ultimateCompression(fileBuffer, compressionLevel, file.name);

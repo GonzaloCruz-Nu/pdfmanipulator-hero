@@ -68,7 +68,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800">
-        <p>Para una compresión óptima similar a ilovepdf, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>MEDIO</strong> (para equilibrio calidad/tamaño).</p>
+        <p>Para una compresión óptima similar a servicios profesionales como GhostScript e ilovepdf, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>MEDIO</strong> (para equilibrio calidad/tamaño).</p>
       </div>
 
       <Button
