@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun, SectionType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 
 // Configurar worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -46,60 +46,102 @@ export const useConvertPDF = () => {
         // Convertir a formato Word/DOCX
         setProgress(40);
         
-        // Crear un documento de Word
-        const paragraphs: Paragraph[] = [];
+        // Estructura para almacenar todo el contenido del PDF
+        let allContent = '';
         
-        // Procesar cada página del PDF
+        // Extraer texto de todas las páginas del PDF
         for (let i = 1; i <= numPages; i++) {
-          setProgress(40 + Math.floor((i / numPages) * 40));
+          setProgress(40 + Math.floor((i / numPages) * 30));
           
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
           const textItems = textContent.items.map((item: any) => 
             'str' in item ? item.str : '');
-          const text = textItems.join(' ');
           
-          // Agregar el texto como párrafos al documento Word
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Página ${i}`,
-                  bold: true
-                })
-              ]
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: text
-                })
-              ]
-            })
-          );
+          // Agregar separadores de página claros
+          allContent += `\n\n--- PÁGINA ${i} ---\n\n`;
+          allContent += textItems.join(' ');
         }
         
-        // Crear el documento con los párrafos recopilados
+        setProgress(70);
+        
+        // Crear el documento DOCX con formato mejorado
         const doc = new Document({
-          sections: [
-            {
-              children: paragraphs
-            }
-          ]
+          title: file.name.replace('.pdf', ''),
+          description: 'Documento convertido de PDF a DOCX',
+          sections: [{
+            properties: {},
+            children: [
+              new Paragraph({
+                text: `Documento: ${file.name.replace('.pdf', '')}`,
+                heading: HeadingLevel.HEADING_1,
+                alignment: AlignmentType.CENTER,
+                thematicBreak: true,
+              }),
+              
+              new Paragraph({
+                text: `Convertido de PDF a DOCX`,
+                alignment: AlignmentType.CENTER,
+                spacing: {
+                  after: 200,
+                },
+              }),
+              
+              // Dividir el contenido por páginas y crear párrafos estructurados
+              ...allContent.split('--- PÁGINA').map((pageContent, index) => {
+                if (index === 0) return [];
+                
+                const pageNumber = pageContent.split('---')[0].trim();
+                const content = pageContent.split('---')[1]?.trim() || '';
+                
+                return [
+                  new Paragraph({
+                    text: `Página ${pageNumber}`,
+                    heading: HeadingLevel.HEADING_2,
+                    thematicBreak: true,
+                    spacing: {
+                      before: 400,
+                      after: 200,
+                    },
+                    border: {
+                      bottom: {
+                        color: "999999",
+                        space: 1,
+                        style: BorderStyle.SINGLE,
+                        size: 6,
+                      },
+                    },
+                  }),
+                  ...content.split('\n').filter(line => line.trim()).map(line => 
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: line,
+                        }),
+                      ],
+                      spacing: {
+                        line: 360,
+                      }
+                    })
+                  ),
+                ];
+              }).flat(),
+            ],
+          }],
         });
         
         setProgress(80);
         
         try {
-          // En lugar de usar toBlob o toBuffer, usamos toBase64String que es más compatible con navegadores
+          // Generar el documento como base64 y convertirlo a Blob
           const base64 = await Packer.toBase64String(doc);
           
-          // Convertir base64 a Blob
+          // Convertir base64 a Blob de manera más eficiente
           const byteCharacters = atob(base64);
           const byteArrays = [];
           
-          for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-            const slice = byteCharacters.slice(offset, offset + 512);
+          for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+            const slice = byteCharacters.slice(offset, offset + 1024);
             
             const byteNumbers = new Array(slice.length);
             for (let i = 0; i < slice.length; i++) {
@@ -110,12 +152,14 @@ export const useConvertPDF = () => {
             byteArrays.push(byteArray);
           }
           
-          const blob = new Blob(byteArrays, {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+          const blob = new Blob(byteArrays, {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          });
           
-          // Crear archivo Word
+          // Crear archivo Word con nombre descriptivo
           const docxFile = new File(
             [blob],
-            `${file.name.replace('.pdf', '')}.docx`,
+            `${file.name.replace('.pdf', '')}_convertido.docx`,
             { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
           );
           
