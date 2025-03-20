@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -192,8 +191,7 @@ export const useCompressPDF = () => {
         compressedBytes = await newPdfDoc.save({
           useObjectStreams: true,
           addDefaultPage: false,
-          objectsPerTick: 100,
-          compress: true
+          objectsPerTick: 100
         });
       } else {
         compressedBytes = await newPdfDoc.save();
