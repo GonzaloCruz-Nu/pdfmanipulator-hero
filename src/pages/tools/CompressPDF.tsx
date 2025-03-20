@@ -8,6 +8,7 @@ import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
+import { Progress } from '@/components/ui/progress';
 
 const CompressPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -28,10 +29,10 @@ const CompressPDF = () => {
 
   const calculateCompressionFactor = (level: 'low' | 'medium' | 'high'): number => {
     switch (level) {
-      case 'low': return 0.9;     // 10% compression
-      case 'medium': return 0.7;  // 30% compression
-      case 'high': return 0.5;    // 50% compression
-      default: return 0.7;
+      case 'low': return 0.8;     // 20% compression
+      case 'medium': return 0.5;  // 50% compression
+      case 'high': return 0.3;    // 70% compression
+      default: return 0.5;
     }
   };
 
@@ -59,13 +60,30 @@ const CompressPDF = () => {
       // Factor de compresión basado en el nivel seleccionado
       const compressionFactor = calculateCompressionFactor(compressionLevel);
       
-      // Comprimir cada página reescalando las imágenes y reduciendo la calidad
+      // Comprimir cada página
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
         
-        // Mantener las proporciones pero reducir las dimensiones
+        // Obtener las dimensiones originales
         const { width, height } = page.getSize();
-        page.setSize(width * compressionFactor, height * compressionFactor);
+        
+        // Aplicar compresión más agresiva en modo alto
+        if (compressionLevel === 'high') {
+          // Reducir las dimensiones para compresión alta
+          page.setSize(width * compressionFactor, height * compressionFactor);
+          
+          // Eliminar algunos metadatos para reducir más el tamaño
+          const annotations = page.node.lookupMaybe(
+            "Annots",
+            PDFDocument.PDFArray
+          );
+          if (annotations) {
+            page.node.delete("Annots");
+          }
+        } else {
+          // Compresión normal para modos bajo y medio
+          page.setSize(width * compressionFactor, height * compressionFactor);
+        }
         
         // Actualizar progreso
         setProgress(30 + Math.floor(((i + 1) / pages.length) * 50));
@@ -73,10 +91,24 @@ const CompressPDF = () => {
       
       setProgress(80);
       
-      // Guardar el PDF comprimido
-      const compressedPdfBytes = await pdfDoc.save({
-        useObjectStreams: true, // Ayuda a reducir el tamaño
-      });
+      // Aplicar opciones de compresión según el nivel
+      const compressionOptions: any = {
+        useObjectStreams: true,
+      };
+      
+      // Añadir opciones adicionales para compresión media y alta
+      if (compressionLevel === 'medium' || compressionLevel === 'high') {
+        compressionOptions.addDefaultPage = false;
+        compressionOptions.objectsPerTick = 50;
+      }
+      
+      // Para alta compresión, añadir más opciones
+      if (compressionLevel === 'high') {
+        compressionOptions.updateFieldAppearances = false;
+      }
+      
+      // Guardar el PDF comprimido con las opciones correspondientes
+      const compressedPdfBytes = await pdfDoc.save(compressionOptions);
       
       setProgress(90);
       
@@ -177,7 +209,7 @@ const CompressPDF = () => {
                           : 'bg-secondary text-muted-foreground'
                       }`}
                     >
-                      Baja (10%)
+                      Baja (20%)
                     </button>
                     <button
                       onClick={() => setCompressionLevel('medium')}
@@ -187,7 +219,7 @@ const CompressPDF = () => {
                           : 'bg-secondary text-muted-foreground'
                       }`}
                     >
-                      Media (30%)
+                      Media (50%)
                     </button>
                     <button
                       onClick={() => setCompressionLevel('high')}
@@ -197,7 +229,7 @@ const CompressPDF = () => {
                           : 'bg-secondary text-muted-foreground'
                       }`}
                     >
-                      Alta (50%)
+                      Alta (70%)
                     </button>
                   </div>
 
@@ -212,7 +244,7 @@ const CompressPDF = () => {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Comprimiendo {progress}%
+                        Comprimiendo...
                       </>
                     ) : (
                       <>
@@ -221,6 +253,13 @@ const CompressPDF = () => {
                       </>
                     )}
                   </button>
+                  
+                  {isProcessing && (
+                    <div className="mt-4">
+                      <Progress value={progress} className="h-2" />
+                      <p className="text-xs text-center mt-1 text-muted-foreground">{progress}%</p>
+                    </div>
+                  )}
                 </div>
               )}
 
