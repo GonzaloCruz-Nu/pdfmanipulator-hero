@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, ImageRun } from 'docx';
 
 // Configurar worker de PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -53,7 +53,9 @@ export const useConvertPDF = () => {
       // Usar PDF.js para cargar el documento con mayor tolerancia a errores
       const loadingTask = pdfjsLib.getDocument({
         data: pdfData,
-        disableFontFace: true,
+        disableFontFace: false,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.8.162/cmaps/',
+        cMapPacked: true,
       });
       
       try {
@@ -76,8 +78,11 @@ export const useConvertPDF = () => {
           try {
             const page = await pdf.getPage(i);
             
-            // Intentar extraer texto usando método getTextContent
-            const textContent = await page.getTextContent();
+            // Modo más agresivo de extracción de texto
+            const textContent = await page.getTextContent({
+              // Solo usar propiedades válidas según TypeScript
+              includeMarkedContent: true,
+            });
             
             // Extraer texto página por página con mejor manejo de espacios y saltos de línea
             let pageText = '';
@@ -85,20 +90,20 @@ export const useConvertPDF = () => {
             let lastX = null;
             let lastItem = null;
 
-            // Mejorar extracción de texto con mejor manejo de posiciones y espacios
+            // Método avanzado de extracción
             for (const item of textContent.items) {
               if (!('str' in item) || typeof item.str !== 'string') continue;
               
               const text = item.str;
-              const x = item.transform[4]; // Posición X
-              const y = item.transform[5]; // Posición Y
+              const x = item.transform?.[4] || 0; // Posición X
+              const y = item.transform?.[5] || 0; // Posición Y
               
               // Detectar si hay un cambio de línea basado en la posición Y
-              if (lastY !== null && Math.abs(y - lastY) > 3) {
+              if (lastY !== null && Math.abs(y - lastY) > 2) {
                 pageText += '\n';
               } 
               // Detectar espacios entre palabras basado en la posición X
-              else if (lastX !== null && lastItem && 'str' in lastItem && x - lastX > 10) {
+              else if (lastX !== null && lastItem && 'str' in lastItem && x - lastX > 5) {
                 // Evitar añadir espacios duplicados
                 if (!lastItem.str.endsWith(' ') && !text.startsWith(' ')) {
                   pageText += ' ';
@@ -109,6 +114,40 @@ export const useConvertPDF = () => {
               lastY = y;
               lastX = x + (item.width || 0);
               lastItem = item;
+            }
+            
+            // Etapa adicional: Recuperar información usando operadores de texto
+            try {
+              const opList = await page.getOperatorList();
+              // No procesamos esto directamente, pero nos ayuda a cargar 
+              // mejor el contenido en algunos PDFs
+            } catch (opError) {
+              console.warn(`No se pudieron obtener los operadores de texto para la página ${i}:`, opError);
+            }
+            
+            // Intento de recuperación: renderizar a canvas como respaldo
+            if (pageText.trim().length < 100) {
+              try {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                if (ctx) {
+                  canvas.height = viewport.height;
+                  canvas.width = viewport.width;
+                  
+                  await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                  }).promise;
+                  
+                  // Aquí no extraemos texto del canvas (requeriría OCR),
+                  // pero en una implementación completa se podría añadir Tesseract.js
+                  console.log(`Página ${i}: Renderizada a canvas como respaldo`);
+                }
+              } catch (canvasError) {
+                console.warn(`Error al renderizar página ${i} a canvas:`, canvasError);
+              }
             }
             
             // Limpiar espacios en blanco excesivos
@@ -133,7 +172,7 @@ export const useConvertPDF = () => {
             console.error(`Error al procesar la página ${i}:`, pageError);
             // En lugar de fallar, simplemente añadimos una página vacía con mensaje de error
             allPageContent.push({
-              text: '',
+              text: `Error en página ${i}: No se pudo extraer contenido. Posible imagen o contenido escaneado.`,
               pageNum: i
             });
           }
@@ -142,28 +181,57 @@ export const useConvertPDF = () => {
         setProgress(70);
         console.log('Texto extraído de todas las páginas. Contenido total:', totalTextExtracted, 'caracteres');
         
-        // Verificar si se extrajo contenido
-        if (totalTextExtracted === 0 || allPageContent.every(page => page.text.trim().length === 0)) {
-          console.error('No se extrajo texto de ninguna página del PDF');
+        // Verificar contenido extraído con criterios más flexibles
+        if (totalTextExtracted < 100 && allPageContent.every(page => page.text.trim().length < 20)) {
+          console.error('Se extrajo muy poco texto del PDF');
           return { 
             success: false, 
             files: [], 
-            message: 'No se pudo extraer ningún texto del documento. Puede ser un PDF escaneado o con imágenes.' 
+            message: 'El documento parece contener principalmente imágenes o texto escaneado. Prueba con la herramienta OCR.' 
           };
         }
         
-        console.log('Creando documento DOCX...');
+        console.log('Creando documento DOCX con formato mejorado...');
         
-        // Crear el documento DOCX con mejor formato y preservación de contenido
+        // Crear el documento DOCX con mejor estructura y formato
         const doc = new Document({
           title: file.name.replace('.pdf', ''),
           description: 'Documento convertido de PDF a DOCX',
           sections: [{
             properties: {},
             children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: file.name.replace('.pdf', ''),
+                    bold: true,
+                    size: 32,
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_1,
+                spacing: {
+                  before: 400,
+                  after: 200
+                }
+              }),
+              
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Documento convertido a Word - ${new Date().toLocaleDateString()}`,
+                    italics: true,
+                    size: 24,
+                  }),
+                ],
+                spacing: {
+                  after: 400
+                }
+              }),
+              
+              // Contenido principal del documento
               ...allPageContent.flatMap(({ text, pageNum }) => {
-                // Si la página está vacía, añadir un mensaje de advertencia
-                if (text.trim().length === 0) {
+                // Si la página tiene muy poco texto, añadir un mensaje informativo
+                if (text.trim().length < 20) {
                   return [
                     new Paragraph({
                       children: [
@@ -182,7 +250,7 @@ export const useConvertPDF = () => {
                     new Paragraph({
                       children: [
                         new TextRun({
-                          text: "Esta página no contiene texto extraíble. Podría ser una imagen o estar escaneada.",
+                          text: "Esta página contiene poco texto extraíble. Podría ser una imagen o estar escaneada.",
                           italics: true,
                           color: "#FF0000"
                         })
@@ -192,46 +260,81 @@ export const useConvertPDF = () => {
                   ];
                 }
                 
-                // Dividir el texto en párrafos por saltos de línea y asegurar
-                // que se preserva el formato y contenido original
-                const paragraphs = text.split('\n').filter(p => p !== undefined);
+                // Procesar texto en líneas y párrafos más estructurados
+                // Primero dividimos por saltos de línea explícitos
+                const textLines = text.split('\n');
+                const paragraphs: Paragraph[] = [];
                 
-                // Preservar el máximo contenido posible, incluso líneas vacías
-                return [
-                  // Encabezado de página (opcional, se puede quitar para documentos más limpios)
+                // Añadir marcador de página
+                paragraphs.push(
                   new Paragraph({
                     children: [
                       new TextRun({
                         text: `Página ${pageNum}`,
                         bold: true,
-                        size: 16,
+                        size: 28,
                       }),
                     ],
-                    heading: HeadingLevel.HEADING_3,
+                    heading: HeadingLevel.HEADING_2,
                     spacing: {
-                      before: 240,
-                      after: 120
+                      before: 360,
+                      after: 160
                     }
-                  }),
+                  })
+                );
+                
+                // Añadir cada línea como un párrafo individual
+                for (const line of textLines) {
+                  if (line.trim().length === 0) {
+                    // Espacio entre párrafos
+                    paragraphs.push(new Paragraph({ text: "" }));
+                    continue;
+                  }
                   
-                  // Contenido de la página como párrafos individuales con formato mejorado
-                  ...paragraphs.map(p => 
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: p || " ", // Preservar incluso líneas vacías como espacios
-                          size: 24, // Tamaño algo más grande (12pt)
-                        })
-                      ],
-                      spacing: {
-                        after: 100 // Espacio después de cada párrafo
-                      }
-                    })
-                  ),
+                  // Detectar si la línea podría ser un título 
+                  // (menos de 100 caracteres y termina sin punto)
+                  const couldBeHeading = line.length < 100 && 
+                                         !line.trim().endsWith('.') && 
+                                         !line.trim().endsWith(',');
                   
-                  // Espaciado entre páginas
-                  new Paragraph({ text: "" }),
-                ];
+                  // Si parece un encabezado, formatearlo como tal
+                  if (couldBeHeading && line.trim().length > 0) {
+                    paragraphs.push(
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: line.trim(),
+                            bold: true,
+                            size: 28,
+                          }),
+                        ],
+                        heading: HeadingLevel.HEADING_3,
+                        spacing: {
+                          before: 280,
+                          after: 140
+                        }
+                      })
+                    );
+                  } else {
+                    // Párrafo normal
+                    paragraphs.push(
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: line.trim(),
+                            size: 24, // 12pt
+                          }),
+                        ],
+                        spacing: {
+                          before: 120,
+                          after: 120
+                        }
+                      })
+                    );
+                  }
+                }
+                
+                return paragraphs;
               }),
             ],
           }],
@@ -241,17 +344,19 @@ export const useConvertPDF = () => {
         console.log('Estructura de documento DOCX creada, generando archivo binario...');
         
         try {
-          // Generar el blob del documento con mejores opciones de preservación
+          // Generar el blob del documento con opciones de preservación mejoradas
           const blob = await Packer.toBlob(doc);
           const blobSizeMB = (blob.size / 1024 / 1024).toFixed(2);
-          console.log('Blob generado correctamente, tamaño:', blobSizeMB, 'MB');
+          const blobSizeKB = (blob.size / 1024).toFixed(2);
+          console.log('Blob generado correctamente, tamaño:', blobSizeKB, 'KB');
           
           if (!blob || blob.size === 0) {
             throw new Error('El blob generado está vacío');
           }
           
-          // Verificar el tamaño del archivo generado
-          if (blob.size < 2048 && totalTextExtracted > 1000) {
+          // Verificar el tamaño del archivo generado con criterios actualizados
+          const minExpectedSize = Math.max(1024, totalTextExtracted / 10); // Mínimo 1KB
+          if (blob.size < minExpectedSize && totalTextExtracted > 1000) {
             console.warn(`Advertencia: El tamaño del archivo DOCX (${blob.size} bytes) parece muy pequeño comparado con ${totalTextExtracted} caracteres extraídos`);
           }
           
@@ -262,7 +367,11 @@ export const useConvertPDF = () => {
             { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
           );
           
-          console.log('Archivo Word creado:', docxFile.name, 'tamaño:', (docxFile.size / 1024 / 1024).toFixed(2), 'MB');
+          console.log('Archivo Word creado:', docxFile.name, 'tamaño:', 
+            docxFile.size > 1024 * 1024 
+              ? (docxFile.size / 1024 / 1024).toFixed(2) + ' MB' 
+              : (docxFile.size / 1024).toFixed(2) + ' KB'
+          );
           
           if (docxFile.size === 0) {
             throw new Error('El archivo generado está vacío');

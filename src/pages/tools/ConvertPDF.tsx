@@ -50,11 +50,17 @@ const ConvertPDF = () => {
         const result = await convertPDF(file, 'docx');
         
         if (result.success) {
+          // Mostrar tamaño en KB para archivos pequeños
+          const fileSize = result.files[0].size;
+          const fileSizeFormatted = fileSize > 1024 * 1024 
+            ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
+            : (fileSize / 1024).toFixed(2) + ' KB';
+            
           // Actualizar el umbral para avisar al usuario de archivos pequeños
-          if (result.files[0].size < 20480 && file.size > 100000) { // si el Word es menor a 20KB y el PDF era mayor a 100KB
-            toast.warning('El documento Word generado es muy pequeño, es posible que el PDF sea principalmente imágenes');
+          if (fileSize < 100000 && file.size > 200000) { // si el Word es menor a 100KB y el PDF era mayor a 200KB
+            toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}), es posible que el PDF sea principalmente imágenes`);
           } else {
-            toast.success('PDF convertido exitosamente a Word');
+            toast.success(`PDF convertido exitosamente a Word (${fileSizeFormatted})`);
           }
           console.log('Conversión completada con éxito, resultado:', result);
         } else {
@@ -143,8 +149,9 @@ const ConvertPDF = () => {
                   </div>
                   <Progress value={progress} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {progress < 30 ? "Cargando PDF..." : 
-                     progress < 70 ? "Extrayendo texto..." : 
+                    {progress < 20 ? "Cargando PDF..." : 
+                     progress < 40 ? "Extrayendo texto..." : 
+                     progress < 70 ? "Analizando contenido..." : 
                      progress < 85 ? "Generando documento Word..." : 
                      "Completando conversión..."}
                   </p>
@@ -171,17 +178,25 @@ const ConvertPDF = () => {
               <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
                 <h2 className="text-xl font-semibold">Archivo convertido</h2>
                 <ul className="space-y-2">
-                  {convertedFiles.map((file, index) => (
-                    <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate max-w-[200px]">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024).toFixed(2)} KB)
-                        </span>
-                      </div>
-                    </li>
-                  ))}
+                  {convertedFiles.map((file, index) => {
+                    // Mostrar tamaño en KB para archivos pequeños
+                    const fileSize = file.size;
+                    const fileSizeFormatted = fileSize > 1024 * 1024 
+                      ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
+                      : (fileSize / 1024).toFixed(2) + ' KB';
+                    
+                    return (
+                      <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate max-w-[200px]">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({fileSizeFormatted})
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <Button 
                   onClick={downloadConvertedFiles} 
@@ -192,11 +207,12 @@ const ConvertPDF = () => {
                   Descargar documento Word
                 </Button>
                 
-                {convertedFiles[0]?.size < 20480 && file && file.size > 100000 && (
+                {convertedFiles[0]?.size < 100000 && file && file.size > 200000 && (
                   <Alert className="mt-2 bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription className="text-xs text-amber-800">
-                      El documento Word generado es muy pequeño ({(convertedFiles[0].size / 1024).toFixed(2)} KB). 
+                      El documento Word generado es muy pequeño ({(convertedFiles[0].size / 1024).toFixed(2)} KB
+                      ) mientras que el PDF original tiene {(file.size / (1024 * 1024)).toFixed(2)} MB. 
                       El PDF podría contener principalmente imágenes o texto no extraíble.
                       <div className="mt-2">
                         <Link to="/tools/ocr" className="text-primary flex items-center">
