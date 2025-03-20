@@ -1,5 +1,5 @@
 
-import { PDFDocument, rgb, degrees } from 'pdf-lib';
+import { PDFDocument, rgb, degrees, PDFName } from 'pdf-lib';
 
 // Constants for compression - ajustados para mejor compresión
 export const COMPRESSION_FACTORS = {
@@ -95,9 +95,9 @@ export const aggressiveCompression = async (
       currentPage.scale(1/scaleFactor, 1/scaleFactor);
       
       // Eliminar anotaciones (como enlaces) para reducir tamaño
-      // Fix for Line 98: Don't use string for PDFName
-      if (currentPage.node.has('Annots')) {
-        currentPage.node.delete('Annots');
+      // Fix: Use PDFName instead of string
+      if (currentPage.node.has(PDFName.of('Annots'))) {
+        currentPage.node.delete(PDFName.of('Annots'));
       }
     }
     
@@ -230,9 +230,9 @@ export const imageQualityCompression = async (
       });
       
       // Eliminar datos innecesarios
-      // Fix for Line 230: Don't use string for PDFName
-      if (newPage.node.has('Annots')) {
-        newPage.node.delete('Annots');
+      // Fix: Use PDFName instead of string
+      if (newPage.node.has(PDFName.of('Annots'))) {
+        newPage.node.delete(PDFName.of('Annots'));
       }
     }
     
@@ -307,7 +307,6 @@ export const ultimateCompression = async (
           color: rgb(1, 1, 1), // Blanco
         });
         
-        // Fix for Line 310: Remove color property and use opacity for grayscale effect
         // Dibujar contenido original en escala de grises
         newPage.drawPage(embeddedPage, {
           x: 0,
@@ -328,9 +327,9 @@ export const ultimateCompression = async (
       }
       
       // Eliminar anotaciones y metadatos adicionales
-      // Fix for Line 325: Don't use string for PDFName
-      if (newPage.node.has('Annots')) {
-        newPage.node.delete('Annots');
+      // Fix: Use PDFName instead of string
+      if (newPage.node.has(PDFName.of('Annots'))) {
+        newPage.node.delete(PDFName.of('Annots'));
       }
     }
     
