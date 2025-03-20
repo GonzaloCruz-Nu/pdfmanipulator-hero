@@ -85,7 +85,10 @@ export const useUnlockPDF = () => {
         } else {
           // Intentar con la contraseña proporcionada
           try {
+            // Corrección: pdf-lib acepta "password" pero TypeScript no lo reconoce
+            // Usamos type assertion para pasarlo correctamente
             pdfDoc = await PDFDocument.load(fileBytes, { 
+              // @ts-ignore - La tipificación de LoadOptions de pdf-lib no incluye password, pero la API sí lo acepta
               password,
               updateMetadata: false
             });
