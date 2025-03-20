@@ -50,7 +50,8 @@ const ConvertPDF = () => {
         const result = await convertPDF(file, 'docx');
         
         if (result.success) {
-          if (result.files[0].size < 1024 && file.size > 100000) { // si el Word es menor a 1KB y el PDF era mayor a 100KB
+          // Actualizar el umbral para avisar al usuario de archivos pequeños
+          if (result.files[0].size < 20480 && file.size > 100000) { // si el Word es menor a 20KB y el PDF era mayor a 100KB
             toast.warning('El documento Word generado es muy pequeño, es posible que el PDF sea principalmente imágenes');
           } else {
             toast.success('PDF convertido exitosamente a Word');
@@ -176,7 +177,7 @@ const ConvertPDF = () => {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="truncate max-w-[200px]">{file.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                          ({(file.size / 1024).toFixed(2)} KB)
                         </span>
                       </div>
                     </li>
@@ -191,11 +192,12 @@ const ConvertPDF = () => {
                   Descargar documento Word
                 </Button>
                 
-                {convertedFiles[0]?.size < 1024 && file && file.size > 100000 && (
+                {convertedFiles[0]?.size < 20480 && file && file.size > 100000 && (
                   <Alert className="mt-2 bg-amber-50 border-amber-200">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription className="text-xs text-amber-800">
-                      El documento Word generado es muy pequeño. El PDF podría contener principalmente imágenes o texto no extraíble.
+                      El documento Word generado es muy pequeño ({(convertedFiles[0].size / 1024).toFixed(2)} KB). 
+                      El PDF podría contener principalmente imágenes o texto no extraíble.
                       <div className="mt-2">
                         <Link to="/tools/ocr" className="text-primary flex items-center">
                           <Scan className="h-3 w-3 mr-1" /> Intenta nuestra herramienta OCR para documentos escaneados

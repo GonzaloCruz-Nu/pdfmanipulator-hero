@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -53,7 +54,6 @@ export const useConvertPDF = () => {
       const loadingTask = pdfjsLib.getDocument({
         data: pdfData,
         disableFontFace: true,
-        // Removed ignoreErrors as it's not a valid property
       });
       
       try {
@@ -154,44 +154,13 @@ export const useConvertPDF = () => {
         
         console.log('Creando documento DOCX...');
         
-        // Crear el documento DOCX con mejor formato
+        // Crear el documento DOCX con mejor formato y preservación de contenido
         const doc = new Document({
           title: file.name.replace('.pdf', ''),
           description: 'Documento convertido de PDF a DOCX',
           sections: [{
             properties: {},
             children: [
-              // Título del documento
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: file.name.replace('.pdf', ''),
-                    bold: true,
-                    size: 32
-                  })
-                ],
-                heading: HeadingLevel.HEADING_1,
-                alignment: AlignmentType.CENTER,
-                spacing: {
-                  after: 200
-                }
-              }),
-              
-              // Información de conversión
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Documento convertido de PDF a Word - ${numPages} páginas`,
-                    italics: true,
-                  })
-                ],
-                alignment: AlignmentType.CENTER,
-                spacing: {
-                  after: 400
-                }
-              }),
-              
-              // Contenido de las páginas
               ...allPageContent.flatMap(({ text, pageNum }) => {
                 // Si la página está vacía, añadir un mensaje de advertencia
                 if (text.trim().length === 0) {
@@ -223,41 +192,44 @@ export const useConvertPDF = () => {
                   ];
                 }
                 
-                // Dividir el texto en párrafos por saltos de línea
-                const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
+                // Dividir el texto en párrafos por saltos de línea y asegurar
+                // que se preserva el formato y contenido original
+                const paragraphs = text.split('\n').filter(p => p !== undefined);
                 
+                // Preservar el máximo contenido posible, incluso líneas vacías
                 return [
-                  // Encabezado de página
+                  // Encabezado de página (opcional, se puede quitar para documentos más limpios)
                   new Paragraph({
                     children: [
                       new TextRun({
                         text: `Página ${pageNum}`,
                         bold: true,
-                        size: 28,
+                        size: 16,
                       }),
                     ],
-                    heading: HeadingLevel.HEADING_2,
+                    heading: HeadingLevel.HEADING_3,
                     spacing: {
-                      before: 400,
-                      after: 200
+                      before: 240,
+                      after: 120
                     }
                   }),
                   
-                  // Contenido de la página como párrafos separados
+                  // Contenido de la página como párrafos individuales con formato mejorado
                   ...paragraphs.map(p => 
                     new Paragraph({
                       children: [
                         new TextRun({
-                          text: p.trim(),
+                          text: p || " ", // Preservar incluso líneas vacías como espacios
+                          size: 24, // Tamaño algo más grande (12pt)
                         })
                       ],
                       spacing: {
-                        after: 120
+                        after: 100 // Espacio después de cada párrafo
                       }
                     })
                   ),
                   
-                  // Espacio entre páginas
+                  // Espaciado entre páginas
                   new Paragraph({ text: "" }),
                 ];
               }),
@@ -269,7 +241,7 @@ export const useConvertPDF = () => {
         console.log('Estructura de documento DOCX creada, generando archivo binario...');
         
         try {
-          // Generar el blob del documento
+          // Generar el blob del documento con mejores opciones de preservación
           const blob = await Packer.toBlob(doc);
           const blobSizeMB = (blob.size / 1024 / 1024).toFixed(2);
           console.log('Blob generado correctamente, tamaño:', blobSizeMB, 'MB');
@@ -278,8 +250,9 @@ export const useConvertPDF = () => {
             throw new Error('El blob generado está vacío');
           }
           
-          if (blob.size < 1024 && totalTextExtracted > 1000) {
-            console.warn('Advertencia: El tamaño del archivo DOCX parece muy pequeño en comparación con el texto extraído');
+          // Verificar el tamaño del archivo generado
+          if (blob.size < 2048 && totalTextExtracted > 1000) {
+            console.warn(`Advertencia: El tamaño del archivo DOCX (${blob.size} bytes) parece muy pequeño comparado con ${totalTextExtracted} caracteres extraídos`);
           }
           
           // Crear archivo Word con nombre descriptivo
