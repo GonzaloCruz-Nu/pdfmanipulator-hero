@@ -11,6 +11,7 @@ import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
 import CompressPDF from "./pages/tools/CompressPDF";
 import UnlockPDF from "./pages/tools/UnlockPDF";
+import EditPDF from "./pages/tools/EditPDF";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 
@@ -54,6 +55,7 @@ const App = () => {
             <Route path="/tools/split" element={<SplitPDF />} />
             <Route path="/tools/compress" element={<CompressPDF />} />
             <Route path="/tools/unlock" element={<UnlockPDF />} />
+            <Route path="/tools/edit" element={<EditPDF />} />
             {/* Ruta catchall para páginas no encontradas */}
             <Route path="*" element={<NotFound />} />
           </Routes>
