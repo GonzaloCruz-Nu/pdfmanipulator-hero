@@ -7,10 +7,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 export interface PageContent {
   text: string;
   pageNum: number;
+  hasImages: boolean;
+  textItems: TextItem[];
+}
+
+export interface TextItem {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  fontFamily?: string;
+  isBold?: boolean;
+  isItalic?: boolean;
 }
 
 /**
- * Extraer contenido de texto de un archivo PDF
+ * Extraer contenido de texto de un archivo PDF con formato mejorado
  */
 export const extractTextFromPDF = async (
   pdfData: Uint8Array, 
@@ -18,7 +32,8 @@ export const extractTextFromPDF = async (
 ): Promise<{ 
   pageContents: PageContent[], 
   totalTextExtracted: number, 
-  numPages: number 
+  numPages: number,
+  documentTitle: string | null
 }> => {
   try {
     // Cargar el documento PDF con opciones de tolerancia a errores
@@ -36,6 +51,17 @@ export const extractTextFromPDF = async (
     onProgressUpdate(30);
     
     const numPages = pdf.numPages;
+    let documentTitle = null;
+    
+    // Intentar obtener metadatos del documento
+    try {
+      const metadata = await pdf.getMetadata();
+      if (metadata && metadata.info && metadata.info.Title) {
+        documentTitle = metadata.info.Title;
+      }
+    } catch (metadataError) {
+      console.warn("No se pudieron obtener los metadatos del PDF:", metadataError);
+    }
     
     // Estructura para almacenar todo el contenido del PDF
     const pageContents: PageContent[] = [];
@@ -51,7 +77,6 @@ export const extractTextFromPDF = async (
         
         // Modo de extracción de texto mejorado con opciones compatibles
         const textContent = await page.getTextContent({
-          // Solo usar propiedades válidas según la API de PDF.js
           includeMarkedContent: true,
         });
         
@@ -59,20 +84,55 @@ export const extractTextFromPDF = async (
         let pageText = '';
         let lastY = null;
         let lastX = null;
+        let hasImages = false;
+        const textItems: TextItem[] = [];
         
         if (textContent.items.length === 0) {
           console.log(`Página ${i}: Sin texto extraíble. Podría ser una imagen.`);
           pageText = `[Esta página parece contener solo imágenes o gráficos sin texto extraíble]`;
         } else {
+          // Procesar los items de texto con mejor detección de formato
           for (const item of textContent.items) {
             if (!('str' in item) || typeof item.str !== 'string') continue;
             
             const text = item.str;
             const x = item.transform?.[4] || 0; // Posición X
             const y = item.transform?.[5] || 0; // Posición Y
+            const width = item.width || 0;
+            const height = item.height || 10; // Altura aproximada si no está disponible
+            
+            // Detectar propiedades de fuente
+            let fontSize = 12; // Valor predeterminado
+            let fontFamily = 'default';
+            let isBold = false;
+            let isItalic = false;
+            
+            if ('fontName' in item) {
+              const fontName = item.fontName as string || '';
+              fontFamily = fontName.split('+').pop() || 'default';
+              isBold = fontName.toLowerCase().includes('bold');
+              isItalic = fontName.toLowerCase().includes('italic') || fontName.toLowerCase().includes('oblique');
+            }
+            
+            if ('fontSize' in item) {
+              fontSize = typeof item.fontSize === 'number' ? item.fontSize : 12;
+            }
+            
+            // Guardar información del item de texto para la generación del DOCX
+            textItems.push({
+              text,
+              x,
+              y,
+              width,
+              height,
+              fontSize,
+              fontFamily,
+              isBold,
+              isItalic
+            });
             
             // Detectar saltos de línea basados en la posición Y
-            if (lastY !== null && Math.abs(y - lastY) > 3) {
+            if (lastY !== null && Math.abs(y - lastY) > Math.max(3, fontSize * 0.3)) {
               // Es un cambio de línea significativo
               pageText += '\n';
             } 
@@ -86,15 +146,14 @@ export const extractTextFromPDF = async (
             
             pageText += text;
             lastY = y;
-            lastX = x + (item.width || 0);
+            lastX = x + width;
           }
         }
         
-        // Método avanzado para obtener operadores de contenido
+        // Detectar imágenes a través de operadores de contenido
         try {
           const opList = await page.getOperatorList();
-          // Análisis básico para detectar si hay contenido que no es texto
-          const hasImages = opList.fnArray.some(op => op === pdfjsLib.OPS.paintImageXObject);
+          hasImages = opList.fnArray.some(op => op === pdfjsLib.OPS.paintImageXObject);
           
           if (hasImages && pageText.trim().length < 100) {
             console.log(`Página ${i}: Contiene imágenes pero poco texto extraíble.`);
@@ -106,34 +165,6 @@ export const extractTextFromPDF = async (
           console.warn(`No se pudieron obtener operadores para la página ${i}:`, opError);
         }
         
-        // Mejora: Renderizar a canvas como respaldo para páginas sin texto
-        if (pageText.trim().length < 50) {
-          try {
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            if (ctx) {
-              canvas.height = viewport.height;
-              canvas.width = viewport.width;
-              
-              await page.render({
-                canvasContext: ctx,
-                viewport: viewport
-              }).promise;
-              
-              console.log(`Página ${i}: Renderizada en canvas como respaldo`);
-              
-              // Nota informativa en el texto
-              if (pageText.trim().length === 0) {
-                pageText = `[Página ${i}: Esta página parece contener principalmente imágenes o gráficos]`;
-              }
-            }
-          } catch (canvasError) {
-            console.warn(`Error al renderizar la página ${i} en canvas:`, canvasError);
-          }
-        }
-        
         // Limpiar espacios en blanco excesivos
         pageText = pageText
           .replace(/\s+/g, ' ')  // Convertir múltiples espacios en uno
@@ -141,19 +172,23 @@ export const extractTextFromPDF = async (
           .replace(/\s+\n/g, '\n')  // Eliminar espacios al final de las líneas
           .replace(/\n{3,}/g, '\n\n'); // Limitar múltiples saltos de línea a máximo 2
         
-        console.log(`Página ${i}: Extraídos aproximadamente ${pageText.length} caracteres`);
+        console.log(`Página ${i}: Extraídos aproximadamente ${pageText.length} caracteres. Contiene imágenes: ${hasImages}`);
         totalTextExtracted += pageText.length;
         
         pageContents.push({
           text: pageText,
-          pageNum: i
+          pageNum: i,
+          hasImages,
+          textItems
         });
       } catch (pageError) {
         console.error(`Error al procesar la página ${i}:`, pageError);
         // En lugar de fallar, agregamos una página con un mensaje de error
         pageContents.push({
           text: `[Error en la página ${i}: No se pudo extraer el contenido. Posible imagen o contenido escaneado.]`,
-          pageNum: i
+          pageNum: i,
+          hasImages: true,
+          textItems: []
         });
       }
     }
@@ -161,10 +196,36 @@ export const extractTextFromPDF = async (
     return {
       pageContents,
       totalTextExtracted,
-      numPages
+      numPages,
+      documentTitle
     };
   } catch (error) {
     console.error("Error al extraer texto del PDF:", error);
     throw error;
   }
+};
+
+/**
+ * Función auxiliar para detectar títulos y encabezados en el texto
+ */
+export const detectHeadings = (text: string): { isHeading: boolean; level: 1 | 2 | 3 | null } => {
+  // Texto muy corto sin puntuación al final suele ser un título
+  if (text.length < 100 && 
+      !text.trim().endsWith('.') && 
+      !text.trim().endsWith(',') &&
+      !text.trim().endsWith(':') &&
+      !text.trim().endsWith(';') &&
+      text.trim().length > 0) {
+    
+    // Detectar el nivel de encabezado
+    if (text.length < 30 && /^[A-Z0-9ÁÉÍÓÚÑ]/.test(text)) {
+      return { isHeading: true, level: 1 }; // Encabezado principal
+    } else if (text.length < 50) {
+      return { isHeading: true, level: 2 }; // Subencabezado
+    } else {
+      return { isHeading: true, level: 3 }; // Encabezado menor
+    }
+  }
+  
+  return { isHeading: false, level: null }; // Texto normal
 };

@@ -44,8 +44,15 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
         <Alert className="bg-[rgb(246,141,46)]/5 border-[rgb(246,141,46)]/20">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Esta herramienta extrae texto del PDF y genera un documento Word editable.
-            Los documentos escaneados o aquellos con imágenes pueden requerir OCR adicional.
+            <p>Esta herramienta extrae texto del PDF y genera un documento Word editable.</p>
+            <p className="mt-1">Proceso de conversión:</p>
+            <ol className="list-decimal ml-4 mt-1 space-y-1">
+              <li>Carga del PDF usando pdf.js</li>
+              <li>Extracción del texto página por página</li>
+              <li>Generación del documento Word con docx.js</li>
+              <li>Descarga automática del archivo final</li>
+            </ol>
+            <p className="mt-1">Los documentos escaneados o con imágenes pueden requerir OCR adicional.</p>
           </AlertDescription>
         </Alert>
         
@@ -55,13 +62,16 @@ const ConversionForm: React.FC<ConversionFormProps> = ({
               <span>Progreso de conversión</span>
               <span>{progress}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-2 bg-gray-100">
+              <div className="h-full bg-[rgb(246,141,46)] transition-all" 
+                   style={{ width: `${progress}%` }} />
+            </Progress>
             <p className="text-xs text-muted-foreground mt-1">
-              {progress < 20 ? "Cargando PDF..." : 
-               progress < 40 ? "Extrayendo texto..." : 
-               progress < 70 ? "Analizando contenido..." : 
-               progress < 85 ? "Generando documento Word..." : 
-               "Completando conversión..."}
+              {progress < 20 ? "Cargando PDF con pdf.js..." : 
+               progress < 40 ? "Extrayendo texto de cada página..." : 
+               progress < 70 ? "Analizando estructura del contenido..." : 
+               progress < 85 ? "Generando documento Word con docx.js..." : 
+               "Finalizando conversión..."}
             </p>
           </div>
         )}

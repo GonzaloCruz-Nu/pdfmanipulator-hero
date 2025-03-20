@@ -34,6 +34,10 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
               ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
               : (fileSize / 1024).toFixed(2) + ' KB';
             
+            const conversionRatio = originalFile 
+              ? ((convertedFile.size / originalFile.size) * 100).toFixed(1) + '%'
+              : 'N/A';
+            
             return (
               <li key={index} className="flex items-center justify-between rounded-md bg-gray-100 p-3 text-sm">
                 <div className="flex items-center space-x-2">
@@ -42,6 +46,11 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
                   <span className="text-xs text-muted-foreground">
                     ({fileSizeFormatted})
                   </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {originalFile && <span title="Tamaño relativo al PDF original">
+                    {conversionRatio}
+                  </span>}
                 </div>
               </li>
             );

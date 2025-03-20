@@ -32,7 +32,7 @@ const ConvertPDF = () => {
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       setFile(files[0]);
-      console.log('File selected:', files[0].name, 'size:', (files[0].size / 1024 / 1024).toFixed(2), 'MB');
+      console.log('Archivo seleccionado:', files[0].name, 'tamaño:', (files[0].size / 1024 / 1024).toFixed(2), 'MB');
     } else {
       setFile(null);
     }
@@ -43,19 +43,19 @@ const ConvertPDF = () => {
       try {
         setConversionStarted(true);
         setErrorMessage(null);
-        console.log('Starting conversion for:', file.name);
+        console.log('Iniciando conversión para:', file.name);
         const result = await convertPDF(file, 'docx');
         
         if (result.success) {
-          // Show size in KB for small files
+          // Mostrar tamaño en KB para archivos pequeños
           const fileSize = result.files[0].size;
           const fileSizeFormatted = fileSize > 1024 * 1024 
             ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
             : (fileSize / 1024).toFixed(2) + ' KB';
             
-          // Updated thresholds for warnings:
-          // - If Word is less than 20KB and PDF is greater than 200KB = strong warning
-          // - If Word is less than 50KB and PDF is greater than 500KB = mild warning
+          // Umbrales actualizados para advertencias:
+          // - Si Word < 20KB y PDF > 200KB = advertencia fuerte
+          // - Si Word < 50KB y PDF > 500KB = advertencia leve
           if (fileSize < 20000 && file.size > 200000) {
             toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}). El PDF probablemente contiene principalmente imágenes o texto no extraíble.`);
           } else if (fileSize < 50000 && file.size > 500000) {
@@ -63,14 +63,14 @@ const ConvertPDF = () => {
           } else {
             toast.success(`PDF convertido exitosamente a Word (${fileSizeFormatted})`);
           }
-          console.log('Conversion completed successfully, result:', result);
+          console.log('Conversión completada correctamente, resultado:', result);
         } else {
           setErrorMessage(result.message);
           toast.error(result.message || 'Error al convertir PDF');
-          console.error('Conversion error:', result.message);
+          console.error('Error de conversión:', result.message);
         }
       } catch (error) {
-        console.error('Conversion error:', error);
+        console.error('Error de conversión:', error);
         setErrorMessage(error instanceof Error ? error.message : 'Error desconocido durante la conversión');
         toast.error('Error al convertir PDF a Word');
       }

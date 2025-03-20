@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { extractTextFromPDF } from '@/utils/pdf/pdfTextExtractor';
 import { createDocxFromPdfContent } from '@/utils/pdf/docxCreator';
-import { createWordFile, downloadFile } from '@/utils/pdf/fileOperations';
+import { createWordFile, downloadFile, verificarContenidoExtraible } from '@/utils/pdf/fileOperations';
 
 interface ConvertResult {
   success: boolean;
@@ -43,8 +43,8 @@ export const useConvertPDF = () => {
       setProgress(20);
       console.log('PDF cargado en memoria, iniciando procesamiento...');
 
-      // Extraer texto del PDF usando la utilidad
-      const { pageContents, totalTextExtracted, numPages } = await extractTextFromPDF(
+      // Extraer texto del PDF usando la utilidad mejorada
+      const { pageContents, totalTextExtracted, numPages, documentTitle } = await extractTextFromPDF(
         pdfData,
         (newProgress) => setProgress(Math.min(newProgress, 70)) // Limitar progreso a 70 máximo
       );
@@ -53,7 +53,15 @@ export const useConvertPDF = () => {
       console.log('Texto extraído de todas las páginas. Contenido total:', totalTextExtracted, 'caracteres');
       
       // Verificar contenido extraído con criterios flexibles
-      if (totalTextExtracted < 100 && numPages > 1) {
+      const verificacion = verificarContenidoExtraible(file.size, totalTextExtracted);
+      
+      if (!verificacion.extraible) {
+        console.warn('Advertencia de contenido:', verificacion.mensaje);
+        // No fallar inmediatamente, pero mostrar una advertencia al usuario
+        toast.warning(verificacion.mensaje || 'El documento puede contener principalmente imágenes');
+      }
+      
+      if (totalTextExtracted < 50 && numPages > 1) {
         console.error('Muy poco texto extraído del PDF, posiblemente un documento escaneado o con imágenes');
         return { 
           success: false, 
@@ -62,12 +70,13 @@ export const useConvertPDF = () => {
         };
       }
       
-      // Crear documento DOCX a partir del contenido extraído
+      // Crear documento DOCX a partir del contenido extraído con título original si está disponible
       const docxBlob = await createDocxFromPdfContent(
         file.name,
         file.size,
         pageContents,
-        numPages
+        numPages,
+        documentTitle
       );
       
       setProgress(85);
@@ -77,7 +86,7 @@ export const useConvertPDF = () => {
       }
       
       // Verificar el tamaño del archivo generado
-      if (docxBlob.size < 20000 && totalTextExtracted > 1000) { // 20KB mínimo para documentos con texto
+      if (docxBlob.size < 20000 && totalTextExtracted > 1000) { 
         console.warn(`Advertencia: El tamaño del archivo DOCX (${docxBlob.size / 1024} KB) parece pequeño para ${totalTextExtracted} caracteres`);
       }
       
