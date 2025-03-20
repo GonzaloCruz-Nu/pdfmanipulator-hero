@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
+import { COMPRESSION_FACTORS, MIN_SIZE_REDUCTION } from '@/utils/pdf/compression-constants';
 
 // Configurar PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -15,13 +16,6 @@ interface CompressionInfo {
   compressedSize: number;
   savedPercentage: number;
 }
-
-// Configuración de compresión por nivel - calidad mejorada para niveles bajo y medio
-const COMPRESSION_SETTINGS = {
-  low: { jpegQuality: 0.95, scaleFactor: 0.98 },     // Calidad muy alta, compresión mínima pero detectable
-  medium: { jpegQuality: 0.88, scaleFactor: 0.95 },  // Mejor calidad que antes, menos compresión
-  high: { jpegQuality: 0.65, scaleFactor: 0.85 }     // Se mantiene igual la compresión alta
-};
 
 export const useCompressPDF = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,7 +56,7 @@ export const useCompressPDF = () => {
   ): Promise<File | null> {
     try {
       // Obtener configuración según nivel
-      const { jpegQuality, scaleFactor } = COMPRESSION_SETTINGS[level];
+      const { imageQuality, scaleFactor } = COMPRESSION_FACTORS[level];
       
       // Cargar el documento con PDF.js
       const fileArrayBuffer = await file.arrayBuffer();
@@ -109,7 +103,7 @@ export const useCompressPDF = () => {
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
         // Convertir a JPEG con calidad ajustada según nivel (valores más altos = mejor calidad)
-        const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
         
         // Extraer la base64
         const base64 = jpegDataUrl.split(',')[1];
@@ -165,7 +159,6 @@ export const useCompressPDF = () => {
   // Función para calcular el porcentaje de compresión correctamente
   const calculateCompression = (originalSize: number, compressedSize: number) => {
     // El porcentaje reducido es (tamaño original - tamaño comprimido) / tamaño original * 100
-    // Usar un umbral más bajo (0.5%) para detectar compresión en modo "low"
     const savedPercentage = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 1000) / 10);
     return {
       originalSize,
@@ -202,8 +195,10 @@ export const useCompressPDF = () => {
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
         
-        // Verificar si se logró comprimir - umbral reducido a 0.1% para nivel bajo
-        if (compressionResult.savedPercentage > 0.1) {
+        // Verificar si se logró comprimir - reducir umbral para nivel bajo
+        const minReduction = compressionLevel === 'low' ? MIN_SIZE_REDUCTION : 0.5; // 0.05% para baja, 0.5% para el resto
+        
+        if (compressionResult.savedPercentage > minReduction) {
           setCompressedFile(compressedFile);
           setCompressionInfo(compressionResult);
           toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);

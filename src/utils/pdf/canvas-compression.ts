@@ -1,6 +1,7 @@
 
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import { COMPRESSION_FACTORS } from './compression-constants';
 
 // Asegurar que el worker de PDF.js esté configurado
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -55,10 +56,8 @@ export const canvasBasedCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // Configuración extremadamente agresiva, similar a GhostScript
-    // Valores mucho más bajos para mayor compresión
-    const jpegQuality = level === 'high' ? 0.05 : level === 'medium' ? 0.1 : 0.2;
-    const scaleFactor = level === 'high' ? 0.3 : level === 'medium' ? 0.4 : 0.6;
+    // Usar los factores de compresión definidos en las constantes
+    const { imageQuality, scaleFactor } = COMPRESSION_FACTORS[level];
     
     // Usar otra copia para pdf.js
     const pdfJsBuffer = new Uint8Array(fileBuffer.slice(0));
@@ -85,8 +84,8 @@ export const canvasBasedCompression = async (
       // Renderizar la página en el canvas con el factor de escala aplicado
       await renderPageToCanvas(pdfPage, canvas, scaleFactor);
       
-      // Aplicar compresión JPEG muy agresiva (similar a GhostScript DCTEncode)
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+      // Aplicar compresión JPEG según el nivel configurado
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
       
       // Extraer la parte de datos base64 de la URL de datos
       const base64 = jpegDataUrl.split(',')[1];
