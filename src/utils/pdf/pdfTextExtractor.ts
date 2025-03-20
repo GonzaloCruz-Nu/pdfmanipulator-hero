@@ -57,9 +57,10 @@ export const extractTextFromPDF = async (
     try {
       const metadata = await pdf.getMetadata();
       if (metadata && metadata.info) {
-        // Comprobamos si existe la propiedad 'Title' usando el operador in
-        if (metadata.info && typeof metadata.info === 'object' && 'Title' in metadata.info) {
-          documentTitle = metadata.info['Title'] as string;
+        // Acceder a la propiedad Title de manera segura
+        const info = metadata.info as Record<string, unknown>;
+        if (info && 'Title' in info && typeof info['Title'] === 'string') {
+          documentTitle = info['Title'];
         }
       }
     } catch (metadataError) {
@@ -96,13 +97,18 @@ export const extractTextFromPDF = async (
         } else {
           // Procesar los items de texto con mejor detección de formato
           for (const item of textContent.items) {
+            // Verificar si el ítem tiene la propiedad 'str' (texto)
             if (!('str' in item) || typeof item.str !== 'string') continue;
             
             const text = item.str;
-            const x = item.transform?.[4] || 0; // Posición X
-            const y = item.transform?.[5] || 0; // Posición Y
-            const width = item.width || 0;
-            const height = item.height || 10; // Altura aproximada si no está disponible
+            
+            // Acceder a las propiedades transform de manera más segura
+            const transform = 'transform' in item ? item.transform : null;
+            const x = transform && transform.length >= 5 ? transform[4] : 0;
+            const y = transform && transform.length >= 6 ? transform[5] : 0;
+            
+            const width = 'width' in item ? (typeof item.width === 'number' ? item.width : 0) : 0;
+            const height = 'height' in item ? (typeof item.height === 'number' ? item.height : 10) : 10;
             
             // Detectar propiedades de fuente
             let fontSize = 12; // Valor predeterminado
@@ -110,8 +116,8 @@ export const extractTextFromPDF = async (
             let isBold = false;
             let isItalic = false;
             
-            if ('fontName' in item) {
-              const fontName = item.fontName as string || '';
+            if ('fontName' in item && typeof item.fontName === 'string') {
+              const fontName = item.fontName || '';
               fontFamily = fontName.split('+').pop() || 'default';
               isBold = fontName.toLowerCase().includes('bold');
               isItalic = fontName.toLowerCase().includes('italic') || fontName.toLowerCase().includes('oblique');
@@ -156,12 +162,24 @@ export const extractTextFromPDF = async (
         // Detectar imágenes a través de operadores de contenido
         try {
           const opList = await page.getOperatorList();
-          hasImages = opList.fnArray.some(op => op === pdfjsLib.OPS.paintImageXObject);
-          
-          if (hasImages && pageText.trim().length < 100) {
-            console.log(`Página ${i}: Contiene imágenes pero poco texto extraíble.`);
-            if (pageText.trim().length === 0) {
-              pageText = `[Esta página contiene imágenes sin texto extraíble]`;
+          // Verificar si el objeto opList tiene la propiedad fnArray
+          if (opList && 'fnArray' in opList && Array.isArray(opList.fnArray)) {
+            // Verificar si existe OPS en pdfjsLib
+            const OPS = 'OPS' in pdfjsLib ? pdfjsLib.OPS : null;
+            
+            if (OPS && 'paintImageXObject' in OPS) {
+              hasImages = opList.fnArray.some(op => op === OPS.paintImageXObject);
+            } else {
+              // Si no podemos acceder directamente a OPS, asumimos que hay imágenes
+              // si hay operadores de tipo pintar (típicamente tienen valores > 90)
+              hasImages = opList.fnArray.some(op => op > 90);
+            }
+            
+            if (hasImages && pageText.trim().length < 100) {
+              console.log(`Página ${i}: Contiene imágenes pero poco texto extraíble.`);
+              if (pageText.trim().length === 0) {
+                pageText = `[Esta página contiene imágenes sin texto extraíble]`;
+              }
             }
           }
         } catch (opError) {
@@ -232,3 +250,4 @@ export const detectHeadings = (text: string): { isHeading: boolean; level: 1 | 2
   
   return { isHeading: false, level: null }; // Texto normal
 };
+
