@@ -129,7 +129,7 @@ const ConvertPDF = () => {
               
               {file && (
                 <div className="text-sm text-muted-foreground mt-2">
-                  Archivo: {file.name} ({(file.size / 1024 / 1024)).toFixed(2)} MB)
+                  Archivo: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                 </div>
               )}
             </div>
@@ -182,21 +182,21 @@ const ConvertPDF = () => {
               <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
                 <h2 className="text-xl font-semibold">Archivo convertido</h2>
                 <ul className="space-y-2">
-                  {convertedFiles.map((file, index) => {
+                  {convertedFiles.map((convertedFile, index) => {
                     // Mostrar tamaño siempre en KB para archivos pequeños
-                    const fileSize = file.size;
+                    const fileSize = convertedFile.size;
                     const fileSizeFormatted = fileSize > 1024 * 1024 
                       ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
                       : (fileSize / 1024).toFixed(2) + ' KB';
                     
                     // Mostrar tamaño como porcentaje del original
-                    const sizePercentage = this.file ? ((file.size / this.file.size) * 100).toFixed(1) + '%' : '';
+                    const sizePercentage = file ? ((convertedFile.size / file.size) * 100).toFixed(1) + '%' : '';
                     
                     return (
                       <li key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3 text-sm">
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="truncate max-w-[200px]">{file.name}</span>
+                          <span className="truncate max-w-[200px]">{convertedFile.name}</span>
                           <span className="text-xs text-muted-foreground">
                             ({fileSizeFormatted})
                           </span>
