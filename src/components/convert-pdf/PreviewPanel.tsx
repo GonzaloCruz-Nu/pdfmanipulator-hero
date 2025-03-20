@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import PdfPreview from '@/components/PdfPreview';
@@ -116,7 +117,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
         });
       } catch (err) {
         console.error('Error analyzing PDF:', err);
-        setError('Error analyzing PDF. The file may be corrupted or password-protected.');
+        setError('Error al analizar el PDF. El archivo puede estar dañado o protegido con contraseña.');
       } finally {
         setIsAnalyzing(false);
       }
@@ -133,41 +134,41 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
     if (isEncrypted) {
       return {
         level: 'high',
-        message: 'This PDF is encrypted or password-protected. Conversion may be limited or not possible.'
+        message: 'Este PDF está cifrado o protegido con contraseña. La conversión puede estar limitada o no ser posible.'
       };
     }
     
     if (!hasText && hasImages) {
       return {
         level: 'high',
-        message: 'This PDF appears to be scanned or image-based without extractable text. OCR may be required.'
+        message: 'Este PDF parece ser escaneado o basado en imágenes sin texto extraíble. Puede requerir OCR.'
       };
     }
     
     if (textCharacters < 100 && numPages > 1) {
       return {
         level: 'high',
-        message: 'This PDF contains very little extractable text. It may be mostly images or graphics.'
+        message: 'Este PDF contiene muy poco texto extraíble. Puede ser principalmente imágenes o gráficos.'
       };
     }
     
     if (textCharacters / numPages < 200 && hasImages) {
       return {
         level: 'medium',
-        message: 'This PDF contains mixed content with images and some text. Conversion may be incomplete.'
+        message: 'Este PDF contiene contenido mixto con imágenes y algo de texto. La conversión puede estar incompleta.'
       };
     }
     
     if (numPages > 50) {
       return {
         level: 'medium',
-        message: 'This is a large PDF. The conversion process may take longer.'
+        message: 'Este es un PDF grande. El proceso de conversión puede tardar más.'
       };
     }
     
     return {
       level: 'low',
-      message: 'This PDF appears to contain mostly text. Conversion should work well.'
+      message: 'Este PDF parece contener principalmente texto. La conversión debería funcionar bien.'
     };
   };
 
@@ -193,15 +194,15 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
       transition={{ duration: 0.5, delay: 0.2 }}
       className="bg-white rounded-xl shadow-subtle p-6"
     >
-      <h2 className="text-xl font-semibold mb-4">Preview</h2>
+      <h2 className="text-xl font-semibold mb-4">Vista previa</h2>
       {file ? (
         <>
           <PdfPreview file={file} />
           
           {isAnalyzing && (
             <div className="mt-4 text-sm text-muted-foreground flex items-center">
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              Analyzing PDF structure...
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-naranja border-t-transparent"></div>
+              Analizando estructura del PDF...
             </div>
           )}
           
@@ -216,23 +217,23 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
             <div className="mt-4 space-y-3">
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="px-2 py-1 rounded-full bg-secondary/50 text-muted-foreground">
-                  {pdfDetails.numPages} {pdfDetails.numPages === 1 ? 'page' : 'pages'}
+                  {pdfDetails.numPages} {pdfDetails.numPages === 1 ? 'página' : 'páginas'}
                 </span>
                 
                 {pdfDetails.isEncrypted && (
                   <span className="px-2 py-1 rounded-full bg-red-50 text-red-500">
-                    Encrypted
+                    Cifrado
                   </span>
                 )}
                 
                 {pdfDetails.hasImages && (
                   <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-500">
-                    Contains images
+                    Contiene imágenes
                   </span>
                 )}
                 
                 <span className="px-2 py-1 rounded-full bg-secondary/50 text-muted-foreground">
-                  ~{pdfDetails.textCharacters.toLocaleString()} characters
+                  ~{pdfDetails.textCharacters.toLocaleString()} caracteres
                 </span>
                 
                 <TooltipProvider>
@@ -243,7 +244,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
                       </span>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>These details help estimate how well the PDF will convert to Word format.</p>
+                      <p>Estos detalles ayudan a estimar qué tan bien se convertirá el PDF a formato Word.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -261,7 +262,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ file }) => {
       ) : (
         <div className="flex items-center justify-center h-80 bg-secondary/30 rounded-lg">
           <p className="text-muted-foreground">
-            Select a PDF to see the preview
+            Selecciona un PDF para ver la vista previa
           </p>
         </div>
       )}

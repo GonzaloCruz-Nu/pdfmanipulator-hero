@@ -38,12 +38,12 @@ const Index = () => {
           animate="visible"
           variants={fadeInUp}
         >
-          <div className="inline-block rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
+          <div className="inline-block rounded-full bg-naranja/10 px-3 py-1 text-sm text-naranja mb-4">
             100% Local, 100% Privado
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
             Manipula PDFs con facilidad<br />
-            <span className="text-primary">sin salir de tu navegador</span>
+            <span className="text-naranja">sin salir de tu navegador</span>
           </h1>
           <p className="max-w-2xl mx-auto text-muted-foreground text-lg">
             Herramientas potentes para unir, dividir, comprimir y convertir PDFs a Word.
@@ -120,7 +120,7 @@ const Index = () => {
         transition={{ delay: 0.8, duration: 0.6 }}
       >
         <div className="mx-auto max-w-2xl">
-          <FileText className="h-12 w-12 text-primary mx-auto mb-6" />
+          <FileText className="h-12 w-12 text-naranja mx-auto mb-6" />
           <h2 className="text-2xl font-bold mb-4">Privacidad por diseño</h2>
           <p className="text-muted-foreground mb-6">
             Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 

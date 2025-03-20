@@ -20,13 +20,13 @@ const ConversionHeader: React.FC = () => {
       animate="visible"
       variants={fadeInUp}
     >
-      <div className="rounded-full bg-primary/10 p-3 inline-flex mb-4">
-        <FileType className="h-6 w-6 text-primary" />
+      <div className="rounded-full bg-naranja/10 p-3 inline-flex mb-4">
+        <FileType className="h-6 w-6 text-naranja" />
       </div>
-      <h1 className="text-3xl font-bold mb-4">Convert PDF to Word</h1>
+      <h1 className="text-3xl font-bold mb-4">Convertir PDF a Word</h1>
       <p className="text-muted-foreground max-w-2xl mx-auto">
-        Convert your PDF documents to Word (DOCX) format to easily edit them.
-        All processing happens in your browser to keep your documents private.
+        Convierte tus documentos PDF a formato Word (DOCX) para editarlos fácilmente.
+        Todo el procesamiento ocurre en tu navegador para mantener tus documentos privados.
       </p>
     </motion.div>
   );

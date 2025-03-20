@@ -32,6 +32,8 @@ export default {
         ],
       },
       colors: {
+        naranja: "rgb(246,141,46)",
+        azul: "rgb(31,42,68)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

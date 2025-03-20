@@ -17,7 +17,7 @@ const About = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Acerca de PDF Local Studio</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Acerca de PDFmanager</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Una aplicación web local para manipular archivos PDF sin necesidad de servicios externos.
           </p>
@@ -30,8 +30,8 @@ const About = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.6 }}
           >
-            <div className="rounded-full bg-primary/10 p-3 inline-block mb-4">
-              <Shield className="h-6 w-6 text-primary" />
+            <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
+              <Shield className="h-6 w-6 text-naranja" />
             </div>
             <h2 className="text-xl font-bold mb-3">Privacidad Total</h2>
             <p className="text-muted-foreground">
@@ -46,8 +46,8 @@ const About = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
-            <div className="rounded-full bg-primary/10 p-3 inline-block mb-4">
-              <Cpu className="h-6 w-6 text-primary" />
+            <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
+              <Cpu className="h-6 w-6 text-naranja" />
             </div>
             <h2 className="text-xl font-bold mb-3">Tecnología Avanzada</h2>
             <p className="text-muted-foreground">
@@ -62,8 +62,8 @@ const About = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            <div className="rounded-full bg-primary/10 p-3 inline-block mb-4">
-              <Zap className="h-6 w-6 text-primary" />
+            <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
+              <Zap className="h-6 w-6 text-naranja" />
             </div>
             <h2 className="text-xl font-bold mb-3">Rápido y Eficiente</h2>
             <p className="text-muted-foreground">

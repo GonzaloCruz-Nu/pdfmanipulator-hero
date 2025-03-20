@@ -36,7 +36,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('low')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'low' 
-              ? 'bg-blue-500 text-white' 
+              ? 'bg-naranja text-white' 
               : 'bg-gray-100 text-gray-700'
           }`}
         >
@@ -47,7 +47,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('medium')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'medium' 
-              ? 'bg-blue-500 text-white' 
+              ? 'bg-naranja text-white' 
               : 'bg-gray-100 text-gray-700'
           }`}
         >
@@ -58,7 +58,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('high')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'high' 
-              ? 'bg-blue-500 text-white' 
+              ? 'bg-naranja text-white' 
               : 'bg-gray-100 text-gray-700'
           }`}
         >
@@ -75,7 +75,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
         onClick={onCompress}
         disabled={isProcessing || !file}
         variant="default"
-        className="w-full bg-blue-500 hover:bg-blue-600 py-6 text-base flex items-center justify-center"
+        className="w-full bg-naranja hover:bg-naranja/90 text-white py-6 text-base flex items-center justify-center"
       >
         {isProcessing ? (
           <>

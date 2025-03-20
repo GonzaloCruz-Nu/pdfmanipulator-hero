@@ -8,8 +8,8 @@ const Header: React.FC = () => {
     <header className="py-6">
       <div className="container flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2 text-foreground">
-          <FileText className="h-8 w-8 text-primary" />
-          <span className="text-xl font-medium">PDF Local Studio</span>
+          <FileText className="h-8 w-8 text-naranja" />
+          <span className="text-xl font-medium">PDFmanager</span>
         </Link>
         <nav className="hidden md:block">
           <ul className="flex space-x-8">

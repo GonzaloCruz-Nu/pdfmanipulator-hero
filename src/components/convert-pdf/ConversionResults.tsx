@@ -25,7 +25,7 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
   if (convertedFiles.length > 0) {
     return (
       <div className="space-y-4 bg-white rounded-xl p-6 shadow-subtle">
-        <h2 className="text-xl font-semibold">Converted file</h2>
+        <h2 className="text-xl font-semibold">Archivo convertido</h2>
         <ul className="space-y-2">
           {convertedFiles.map((convertedFile, index) => {
             // Always show size in KB for small files
@@ -50,10 +50,10 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
         <Button 
           onClick={onDownload} 
           variant="secondary"
-          className="w-full"
+          className="w-full bg-azul hover:bg-azul/90 text-white"
         >
           <Download className="mr-2 h-4 w-4" /> 
-          Download Word document
+          Descargar documento Word
         </Button>
         
         {/* Improved warning for very small files */}
@@ -61,18 +61,18 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
           <Alert className="mt-2 bg-amber-50 border-amber-200">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-xs text-amber-800">
-              <p className="font-semibold">Very small Word document detected:</p>
+              <p className="font-semibold">Documento Word muy pequeño detectado:</p>
               <ul className="list-disc pl-4 mt-1 space-y-1">
-                <li>Original PDF: {(originalFile.size / (1024 * 1024)).toFixed(2)} MB</li>
-                <li>Generated Word: {(convertedFiles[0].size / 1024).toFixed(2)} KB</li>
-                <li>Percentage of original size: {((convertedFiles[0].size / originalFile.size) * 100).toFixed(2)}%</li>
+                <li>PDF original: {(originalFile.size / (1024 * 1024)).toFixed(2)} MB</li>
+                <li>Word generado: {(convertedFiles[0].size / 1024).toFixed(2)} KB</li>
+                <li>Porcentaje del tamaño original: {((convertedFiles[0].size / originalFile.size) * 100).toFixed(2)}%</li>
               </ul>
               <p className="mt-2">
-                The PDF may contain mainly images, graphics, or non-extractable text.
+                El PDF puede contener principalmente imágenes, gráficos o texto no extraíble.
               </p>
               <div className="mt-2">
-                <Link to="/tools/ocr" className="text-primary flex items-center">
-                  <Scan className="h-3 w-3 mr-1" /> Try our OCR tool for scanned documents
+                <Link to="/tools/ocr" className="text-naranja flex items-center">
+                  <Scan className="h-3 w-3 mr-1" /> Prueba nuestra herramienta OCR para documentos escaneados
                 </Link>
               </div>
             </AlertDescription>
@@ -87,10 +87,10 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
       <Alert variant="destructive" className="mt-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          {errorMessage || 'Could not generate Word document. PDF file may be protected or contain only images.'}
+          {errorMessage || 'No se pudo generar el documento Word. El archivo PDF puede estar protegido o contener sólo imágenes.'}
           <div className="mt-2">
             <Link to="/tools/ocr" className="text-white/90 hover:text-white flex items-center">
-              <Scan className="h-3 w-3 mr-1" /> Try with the OCR tool for scanned documents
+              <Scan className="h-3 w-3 mr-1" /> Prueba con la herramienta OCR para documentos escaneados
             </Link>
           </div>
         </AlertDescription>

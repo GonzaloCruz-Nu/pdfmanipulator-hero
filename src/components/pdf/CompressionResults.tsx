@@ -61,7 +61,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
           <Button
             onClick={onDownload}
             variant="outline"
-            className="w-full py-5 border-gray-300 hover:bg-gray-50 flex items-center justify-center"
+            className="w-full py-5 border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
           >
             <Download className="h-5 w-5 mr-2" />
             Descargar PDF comprimido
