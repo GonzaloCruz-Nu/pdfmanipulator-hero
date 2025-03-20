@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, Maximize, Minimize, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { cn } from '@/lib/utils';
 
