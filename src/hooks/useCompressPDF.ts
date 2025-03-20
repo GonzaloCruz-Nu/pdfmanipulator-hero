@@ -34,32 +34,38 @@ export const useCompressPDF = () => {
     try {
       setIsProcessing(true);
       setCompressionError(null);
+      setCompressedFile(null);
+      setCompressionInfo(null);
       setProgress(10);
 
       // Get original file bytes
       const fileBuffer = await file.arrayBuffer();
       const fileSize = file.size;
 
-      // First strategy: standard compression
+      // Primera estrategia: compresión estándar
       setProgress(20);
+      console.log("Intentando compresión estándar...");
       let result = await standardCompression(fileBuffer, compressionLevel, file.name);
       let compression = calculateCompression(fileSize, result?.size || fileSize);
       
-      // If we don't achieve good compression, try another strategy
+      // Si no logramos buena compresión, probamos otra estrategia
       if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
         setProgress(40);
+        console.log("Intentando compresión agresiva...");
         result = await aggressiveCompression(fileBuffer, compressionLevel, file.name);
         compression = calculateCompression(fileSize, result?.size || fileSize);
         
-        // If still not good, try a final strategy
+        // Si aún no es buena, probamos otra estrategia
         if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
           setProgress(60);
+          console.log("Intentando compresión extrema...");
           result = await extremeCompression(fileBuffer, compressionLevel, file.name);
           compression = calculateCompression(fileSize, result?.size || fileSize);
           
-          // If it still doesn't work, try image quality compression
+          // Si todavía no funciona, probamos compresión de calidad de imagen
           if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
             setProgress(80);
+            console.log("Intentando compresión de calidad de imagen...");
             result = await imageQualityCompression(fileBuffer, compressionLevel, file.name);
             compression = calculateCompression(fileSize, result?.size || fileSize);
           }
@@ -68,14 +74,21 @@ export const useCompressPDF = () => {
 
       setProgress(90);
 
-      // Verify final results
-      if (!result || compression.savedPercentage < MIN_SIZE_REDUCTION * 100) {
-        setCompressionError('No se pudo comprimir más el PDF. El archivo ya está optimizado.');
+      // Verificar resultados finales con un umbral más bajo
+      if (!result) {
+        setCompressionError('No se pudo comprimir el PDF. Intenta con otro archivo.');
         setCompressedFile(null);
         setCompressionInfo(null);
-        toast.error('No se pudo reducir el tamaño del archivo. Puede que ya esté optimizado.');
-      } else {
-        // If we managed to compress, save the result
+        toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
+      } 
+      else if (compression.savedPercentage < 0.5) { // Si ahorra menos del 0.5%, consideramos que no vale la pena
+        setCompressionError('No se pudo reducir significativamente el tamaño del archivo. Puede que ya esté optimizado.');
+        setCompressedFile(null);
+        setCompressionInfo(null);
+        toast.error('No se pudo reducir significativamente el tamaño del archivo.');
+      } 
+      else {
+        // Si logramos comprimir, guardamos el resultado
         setCompressedFile(result);
         setCompressionInfo(compression);
         toast.success(`PDF comprimido con éxito. Ahorro: ${compression.savedPercentage.toFixed(1)}%`);

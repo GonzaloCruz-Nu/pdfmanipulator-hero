@@ -3,13 +3,14 @@ import { PDFDocument, degrees } from 'pdf-lib';
 
 // Constants for compression
 export const COMPRESSION_FACTORS = {
-  low: { imageQuality: 0.7, scaleFactor: 0.95 },
-  medium: { imageQuality: 0.4, scaleFactor: 0.85 },
-  high: { imageQuality: 0.1, scaleFactor: 0.75 }
+  low: { imageQuality: 0.8, scaleFactor: 0.95 },
+  medium: { imageQuality: 0.5, scaleFactor: 0.85 },
+  high: { imageQuality: 0.2, scaleFactor: 0.75 }
 };
 
 // Minimum size reduction required to consider compression effective
-export const MIN_SIZE_REDUCTION = 0.05; // 5% of reduction minimum
+// Reducimos el umbral para considerar que la compresión fue efectiva
+export const MIN_SIZE_REDUCTION = 0.01; // 1% de reducción mínima
 
 // Method for calculating compression percentage
 export const calculateCompression = (originalSize: number, compressedSize: number) => {
@@ -40,7 +41,7 @@ export const standardCompression = async (
     // Reduce image quality if possible
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-      // Using degrees() to create a valid Rotation object
+      // Usando degrees() para crear un objeto Rotation válido
       const currentAngle = page.getRotation().angle;
       page.setRotation(degrees(currentAngle));
     }
@@ -114,6 +115,7 @@ export const extremeCompression = async (
   fileName: string
 ): Promise<File | null> => {
   try {
+    // Ajustamos los factores de compresión para ser más agresivos
     const qualityFactor = level === 'high' ? 0.05 : 
                           level === 'medium' ? 0.1 : 0.2;
     

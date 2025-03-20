@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Download, AlertCircle } from 'lucide-react';
+import { Check, Download, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -61,7 +61,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
 
       {!file && (
         <div className="flex items-center p-4 bg-yellow-50 text-yellow-800 rounded-lg border border-yellow-200">
-          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <Info className="h-5 w-5 mr-2 flex-shrink-0" />
           <p className="text-sm">
             Selecciona un archivo PDF para comenzar a comprimirlo.
           </p>

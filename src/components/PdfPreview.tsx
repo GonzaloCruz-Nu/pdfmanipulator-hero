@@ -35,7 +35,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
   return (
     <div
       className={cn(
-        "relative bg-white rounded-xl shadow-glass-lg transition-all duration-300",
+        "relative bg-white rounded-xl shadow-glass-lg transition-all duration-300 flex flex-col",
         isFullscreen ? "fixed inset-4 z-50" : "h-[400px]",
         className
       )}
@@ -52,8 +52,8 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, onClose, className }) => 
         fileName={file.name}
       />
 
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
+      <div className="flex-1 overflow-hidden relative">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
           <PdfViewerContent
             pageUrl={pageUrl}
             isLoading={isLoading}
