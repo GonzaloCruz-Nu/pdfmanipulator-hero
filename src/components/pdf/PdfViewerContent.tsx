@@ -42,7 +42,12 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
           src={pageUrl}
           alt={`Página ${currentPage} de ${fileName}`}
           className="max-w-full max-h-full object-contain"
-          style={{ maxHeight: 'calc(100% - 20px)' }} /* Ensure image doesn't overflow */
+          style={{ 
+            maxHeight: 'calc(100% - 20px)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            padding: '4px'
+          }}
         />
       </div>
     );
