@@ -43,18 +43,19 @@ export const useCompressPDF = () => {
       
       setProgress(10);
       
-      // Intentar primero con la compresión basada en canvas (mejor resultado)
-      console.log("Intentando compresión basada en canvas (método principal)...");
+      console.log("Iniciando compresión GhostScript-like con canvas...");
       setProgress(30);
+      
+      // Intentar la compresión agresiva basada en canvas (GhostScript-like)
       const canvasResult = await canvasBasedCompression(fileBuffer, compressionLevel, file.name);
       
-      // Si el canvas funcionó, usar ese resultado
+      // Si el método canvas funcionó
       if (canvasResult) {
         const canvasCompression = calculateCompression(fileSize, canvasResult.size);
-        console.log("Compresión canvas completada:", canvasCompression.savedPercentage.toFixed(2) + "%");
+        console.log("Compresión GhostScript-like completada:", canvasCompression.savedPercentage.toFixed(2) + "%");
         
-        // Si la compresión basada en canvas fue efectiva
-        if (canvasCompression.savedPercentage > 1) { // Reducido a 1% para ser más permisivo
+        // Aceptar cualquier reducción de tamaño, sin importar cuán pequeña sea
+        if (canvasCompression.savedPercentage > 0) {
           setProgress(90);
           setCompressedFile(canvasResult);
           setCompressionInfo({
@@ -67,20 +68,22 @@ export const useCompressPDF = () => {
           setTimeout(() => setProgress(0), 500);
           setIsProcessing(false);
           return canvasResult;
+        } else {
+          console.log("La compresión GhostScript-like no redujo el tamaño, intentando método estándar...");
         }
       }
       
-      // Si el canvas no funcionó bien, intentar con compresión estándar
-      console.log("Intentando compresión estándar...");
+      // Si el canvas no funcionó, intentar con método estándar
       setProgress(60);
+      console.log("Intentando compresión estándar...");
       const standardResult = await standardCompression(fileBuffer, compressionLevel, file.name);
       
       if (standardResult) {
         const standardCompression = calculateCompression(fileSize, standardResult.size);
         console.log("Compresión estándar completada:", standardCompression.savedPercentage.toFixed(2) + "%");
         
-        // Si compresión estándar fue efectiva
-        if (standardCompression.savedPercentage > 0.1) { // Reducido a 0.1% para ser más permisivo
+        // Aceptar cualquier reducción de tamaño
+        if (standardCompression.savedPercentage > 0) {
           setProgress(90);
           setCompressedFile(standardResult);
           setCompressionInfo({
@@ -96,17 +99,17 @@ export const useCompressPDF = () => {
         }
       }
       
-      // Si llegamos aquí, ningún método logró una compresión suficiente
-      setCompressionError('No se pudo comprimir significativamente el PDF. Es posible que ya esté optimizado.');
+      // Si ningún método logró comprimir el archivo
+      setCompressionError('No se pudo comprimir el PDF. El archivo ya está altamente optimizado o contiene elementos que no pueden comprimirse más.');
       setCompressedFile(null);
       setCompressionInfo(null);
-      toast.error('No se pudo comprimir significativamente el PDF. Es posible que ya esté optimizado.');
+      toast.error('No se pudo comprimir el PDF. El archivo ya está altamente optimizado.');
       
       setProgress(100);
       setTimeout(() => setProgress(0), 500);
     } catch (error) {
       console.error('Error al comprimir PDF:', error);
-      setCompressionError('Error al procesar el PDF. Intenta con otro archivo.');
+      setCompressionError('Error al procesar el PDF. Intenta con otro archivo o nivel de compresión.');
       toast.error('Error al comprimir el PDF. Intenta con otro archivo.');
     } finally {
       setIsProcessing(false);

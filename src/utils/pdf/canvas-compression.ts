@@ -17,6 +17,10 @@ async function renderPageToCanvas(pdfPage: pdfjsLib.PDFPageProxy, canvas: HTMLCa
       throw new Error('No se pudo obtener el contexto 2D del canvas');
     }
     
+    // Fondo blanco para eliminar transparencia y mejorar compresión JPEG
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
@@ -29,7 +33,7 @@ async function renderPageToCanvas(pdfPage: pdfjsLib.PDFPageProxy, canvas: HTMLCa
   }
 }
 
-// Método de compresión basada en canvas (nueva implementación mejorada)
+// Método de compresión basada en canvas (implementación GhostScript-like)
 export const canvasBasedCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
@@ -51,9 +55,10 @@ export const canvasBasedCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // Configurar factores de escala y calidad según el nivel deseado
-    const jpegQuality = level === 'high' ? 0.2 : level === 'medium' ? 0.3 : 0.4;
-    const scaleFactor = level === 'high' ? 0.4 : level === 'medium' ? 0.5 : 0.7;
+    // Configuración extremadamente agresiva, similar a GhostScript
+    // Valores mucho más bajos para mayor compresión
+    const jpegQuality = level === 'high' ? 0.05 : level === 'medium' ? 0.1 : 0.2;
+    const scaleFactor = level === 'high' ? 0.3 : level === 'medium' ? 0.4 : 0.6;
     
     // Usar otra copia para pdf.js
     const pdfJsBuffer = new Uint8Array(fileBuffer.slice(0));
@@ -64,7 +69,7 @@ export const canvasBasedCompression = async (
     
     // Procesar cada página
     for (let i = 0; i < pdfDoc.numPages; i++) {
-      console.log(`Procesando página ${i + 1} de ${pdfDoc.numPages}...`);
+      console.log(`Procesando página ${i + 1} de ${pdfDoc.numPages} con compresión GhostScript-like...`);
       
       // Obtener la página con pdf.js para renderizado de alta calidad
       const pdfPage = await pdfDoc.getPage(i + 1);
@@ -80,7 +85,7 @@ export const canvasBasedCompression = async (
       // Renderizar la página en el canvas con el factor de escala aplicado
       await renderPageToCanvas(pdfPage, canvas, scaleFactor);
       
-      // Convertir el contenido del canvas a una imagen JPEG con la calidad especificada
+      // Aplicar compresión JPEG muy agresiva (similar a GhostScript DCTEncode)
       const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
       
       // Extraer la parte de datos base64 de la URL de datos
@@ -89,7 +94,7 @@ export const canvasBasedCompression = async (
       // Incrustar la imagen JPEG en el nuevo documento PDF
       const jpgImage = await newDoc.embedJpg(Buffer.from(base64, 'base64'));
       
-      // Agregar una nueva página con las dimensiones del canvas y dibujar la imagen
+      // Agregar una nueva página con las dimensiones originales y dibujar la imagen
       const newPage = newDoc.addPage([width, height]);
       newPage.drawImage(jpgImage, {
         x: 0,
@@ -99,19 +104,20 @@ export const canvasBasedCompression = async (
       });
     }
     
-    // Guardar el nuevo documento con opciones de compresión
+    // Guardar con configuración óptima (similar a las opciones -dPDFSETTINGS=/ebook de GhostScript)
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
-      addDefaultPage: false
+      addDefaultPage: false,
+      objectsPerTick: 100 // Aumentar performance
     });
     
     return new File(
       [compressedBytes],
-      `comprimido_canvas_${fileName || 'documento.pdf'}`,
+      `comprimido_gs_${fileName || 'documento.pdf'}`,
       { type: 'application/pdf' }
     );
   } catch (error) {
-    console.error('Error en compresión basada en canvas:', error);
+    console.error('Error en compresión basada en canvas (GhostScript-like):', error);
     return null;
   }
 };

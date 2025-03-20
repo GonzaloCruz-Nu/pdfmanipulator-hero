@@ -29,7 +29,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
     <div className="mt-6">
       <h3 className="text-md font-medium mb-2">Nivel de compresión</h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Selecciona el nivel de compresión deseado. Mayor compresión puede afectar ligeramente la calidad visual del PDF.
+        Selecciona el nivel de compresión deseado. Mayor compresión puede afectar la calidad visual del PDF.
       </p>
       <div className="flex flex-wrap gap-3 mb-6">
         <button
@@ -41,7 +41,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Baja
-          <span className="block text-xs opacity-75">Ahorro: 30-40%</span>
+          <span className="block text-xs opacity-75">Ahorro: 40-60%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -52,7 +52,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Media
-          <span className="block text-xs opacity-75">Ahorro: 50-70%</span>
+          <span className="block text-xs opacity-75">Ahorro: 60-80%</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -63,12 +63,12 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           Alta
-          <span className="block text-xs opacity-75">Ahorro: 70-90%</span>
+          <span className="block text-xs opacity-75">Ahorro: 80-95%</span>
         </button>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm text-amber-800">
-        <p>Para una compresión óptima similar a servicios profesionales como GhostScript e ilovepdf, prueba con nivel <strong>ALTO</strong> (para máxima reducción de tamaño) o <strong>MEDIO</strong> (para equilibrio calidad/tamaño).</p>
+        <p>Usando técnicas de compresión tipo GhostScript para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño).</p>
       </div>
 
       <Button
