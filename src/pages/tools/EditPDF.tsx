@@ -42,6 +42,9 @@ interface ToolButtonProps {
   onClick?: () => void;
 }
 
+// Update the type for activeTool to include all possible values
+type ActiveToolType = "select" | "addText" | "editText" | "pen" | "rectangle" | "circle" | "addImage" | "erase";
+
 const ToolButton: React.FC<ToolButtonProps> = ({ icon: Icon, label, active = false, onClick }) => (
   <Button
     variant={active ? "secondary" : "ghost"}
@@ -59,7 +62,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({ icon: Icon, label, active = fal
 
 const EditPDF = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [activeTool, setActiveTool] = useState<string>("select");
+  const [activeTool, setActiveTool] = useState<ActiveToolType>("select");
   const [showSidebar, setShowSidebar] = useState(true);
   
   // Estado para las propiedades de las herramientas
@@ -350,7 +353,7 @@ const EditPDF = () => {
               </div>
               
               {/* Right side tool properties panel - collapsed by default, can be expanded on specific tool selection */}
-              {(activeTool === "addText" || activeTool === "pen" || activeTool === "rectangle" || activeTool === "circle") && (
+              {(activeTool === "addText" || activeTool === "editText" || activeTool === "pen" || activeTool === "rectangle" || activeTool === "circle") && (
                 <div className="w-[230px] border-l p-3 shrink-0 bg-secondary/5">
                   <h3 className="text-sm font-medium mb-3">Propiedades</h3>
                   

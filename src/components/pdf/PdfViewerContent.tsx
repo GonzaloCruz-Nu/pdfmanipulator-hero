@@ -10,7 +10,7 @@ interface PdfViewerContentProps {
   error: string | null;
   fileName: string;
   currentPage: number;
-  activeTool: string;
+  activeTool: "select" | "addText" | "editText" | "pen" | "rectangle" | "circle" | "addImage" | "erase";
   textOptions?: {
     fontSize: number;
     color: string;
