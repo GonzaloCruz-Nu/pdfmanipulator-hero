@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Merge, Scissors, FileText, FileType, Zap } from 'lucide-react';
@@ -8,6 +8,24 @@ import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
 
 const Index = () => {
+  useEffect(() => {
+    console.log('Index page mounted');
+    
+    // Check for any CSS or rendering issues
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      console.log('Root element dimensions:', {
+        width: rootElement.clientWidth,
+        height: rootElement.clientHeight,
+        isVisible: rootElement.clientWidth > 0 && rootElement.clientHeight > 0
+      });
+    }
+    
+    return () => {
+      console.log('Index page unmounted');
+    };
+  }, []);
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -26,6 +44,8 @@ const Index = () => {
       }
     }
   };
+
+  console.log('Rendering Index page');
 
   return (
     <Layout>
