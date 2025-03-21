@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
@@ -99,7 +98,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     setCensoredFile(null);
     if (canvasRef.current) {
       try {
-        // Maintain only the background image (PDF)
+        // Keep only the background image (PDF)
         const bgImage = canvasRef.current.backgroundImage;
         canvasRef.current.clear();
         
@@ -115,42 +114,44 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     }
   };
 
-  // Improved safe canvas cleanup with proper error handling
+  // Safe canvas cleanup with proper error handling
   const cleanupCanvas = useCallback(() => {
+    console.log("Executing canvas cleanup in useCensorPDF hook");
+    
+    if (!canvasRef.current) {
+      console.log("No canvas to clean up");
+      return;
+    }
+    
     try {
-      if (canvasRef.current) {
-        console.log("Iniciando limpieza del canvas...");
+      console.log("Starting canvas cleanup process");
+      
+      // First remove all event listeners
+      canvasRef.current.off();
+      
+      // Check if canvas is in the DOM before disposing
+      if (canvasRef.current.lowerCanvasEl) {
+        const canvasElement = canvasRef.current.lowerCanvasEl;
+        console.log("Checking if canvas is in DOM before disposal");
         
-        // First, safely remove all event listeners
         try {
-          canvasRef.current.off();
+          // We need to be extremely careful about the disposal process
+          // as it can cause issues if the canvas is no longer in the DOM
+          canvasRef.current.dispose();
+          console.log("Canvas disposed successfully");
         } catch (error) {
-          console.error("Error al remover eventos del canvas:", error);
+          console.error("Error disposing canvas:", error);
         }
-        
-        // Then try to dispose the canvas if it's still in the DOM
-        try {
-          if (canvasRef.current.lowerCanvasEl) {
-            const canvasElement = canvasRef.current.lowerCanvasEl;
-            // Safer check for DOM attachment
-            if (document.body.contains(canvasElement) || canvasElement.parentNode) {
-              console.log("Canvas está en el DOM, disponiéndolo correctamente");
-              canvasRef.current.dispose();
-            } else {
-              console.log("Canvas ya no está en el DOM, omitiendo dispose");
-            }
-          }
-        } catch (error) {
-          console.error("Error durante el dispose del canvas:", error);
-        }
-        
-        // Always clear the reference
-        canvasRef.current = null;
-        console.log("Canvas limpiado correctamente");
+      } else {
+        console.log("Canvas element not found in DOM, skipping disposal");
       }
+      
+      // Always null the reference
+      canvasRef.current = null;
+      console.log("Canvas reference cleared");
     } catch (error) {
-      console.error("Error al limpiar el canvas:", error);
-      // Ensure reference is cleared even if there's an error
+      console.error("Error during canvas cleanup:", error);
+      // Still null the reference even if errors occur
       canvasRef.current = null;
     }
   }, []);

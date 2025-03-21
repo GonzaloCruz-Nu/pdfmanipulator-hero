@@ -24,13 +24,13 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   const colorRef = useRef(color);
   const sizeRef = useRef(size);
   const onToolChangeRef = useRef(onToolChange);
-  const mouseDownHandlerRef = useRef<((e: fabric.IEvent) => void) | null>(null);
+  const isDrawingRef = useRef(false);
   
   // Update refs when props change
   useEffect(() => {
     toolRef.current = activeTool;
     colorRef.current = color;
-    sizeRef.current = size;
+    sizeRef.useRef = size;
     onToolChangeRef.current = onToolChange;
   }, [activeTool, color, size, onToolChange]);
 
@@ -38,7 +38,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     if (!canvas) return;
 
-    console.log("Actualizando herramienta de censura:", activeTool, "con color:", color);
+    console.log("Applying censor tool settings:", activeTool, "with color:", color);
 
     // Clear any existing drawing mode
     canvas.isDrawingMode = false;
@@ -65,21 +65,27 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     
     canvas.renderAll();
 
+    return () => {
+      // Cleanup on tool change
+      if (canvas && canvas.lowerCanvasEl) {
+        try {
+          console.log("Cleaning up tool:", activeTool);
+          isDrawingRef.current = false;
+        } catch (error) {
+          console.error("Error cleaning up tool:", error);
+        }
+      }
+    };
   }, [activeTool, color, size, canvas]);
 
-  // Create a single handleCanvasMouseDown handler that captures the current canvas and tool
-  const handleCanvasMouseDown = useCallback((e: fabric.IEvent) => {
-    const currentCanvas = canvas;
-    const currentTool = toolRef.current;
-    const currentColor = colorRef.current;
-    const currentSize = sizeRef.current;
-    const currentOnToolChange = onToolChangeRef.current;
+  // Single function for rectangle drawing
+  const handleRectangleDrawing = useCallback((e: fabric.IEvent) => {
+    if (!canvas || toolRef.current !== 'rectangle' || isDrawingRef.current) return;
     
-    if (!currentCanvas || currentTool !== 'rectangle') return;
+    console.log("Starting rectangle drawing");
+    isDrawingRef.current = true;
     
-    console.log("Dibujando rectángulo de censura");
-    
-    const pointer = currentCanvas.getPointer(e.e);
+    const pointer = canvas.getPointer(e.e);
     const startX = pointer.x;
     const startY = pointer.y;
 
@@ -89,17 +95,18 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       top: startY,
       width: 0,
       height: 0,
-      fill: currentColor,
+      fill: colorRef.current,
       stroke: 'transparent',
       strokeWidth: 0,
       opacity: 1,
     });
     
-    currentCanvas.add(rect);
+    canvas.add(rect);
     
     const handleMouseMove = (moveEvent: fabric.IEvent) => {
-      if (!currentCanvas) return;
-      const movePointer = currentCanvas.getPointer(moveEvent.e);
+      if (!canvas) return;
+      
+      const movePointer = canvas.getPointer(moveEvent.e);
       
       const width = Math.abs(movePointer.x - startX);
       const height = Math.abs(movePointer.y - startY);
@@ -112,63 +119,56 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       });
       
       rect.setCoords();
-      currentCanvas.renderAll();
+      canvas.renderAll();
     };
     
     const handleMouseUp = () => {
-      if (!currentCanvas) return;
+      console.log("Finishing rectangle drawing");
+      isDrawingRef.current = false;
       
-      // Important: Remove the event handlers
-      currentCanvas.off('mouse:move', handleMouseMove);
-      currentCanvas.off('mouse:up', handleMouseUp);
+      if (!canvas) return;
+      
+      // Remove the event handlers
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
       
       // If the rectangle is too small, remove it
       if (rect.width! < 5 || rect.height! < 5) {
-        currentCanvas.remove(rect);
+        canvas.remove(rect);
+        console.log("Rectangle too small, removed");
       } else {
         // Switch to selection tool after drawing
-        currentOnToolChange('select');
-        currentCanvas.setActiveObject(rect);
+        onToolChangeRef.current('select');
+        canvas.setActiveObject(rect);
+        console.log("Rectangle completed, switched to select tool");
       }
       
-      currentCanvas.renderAll();
+      canvas.renderAll();
     };
     
-    currentCanvas.on('mouse:move', handleMouseMove);
-    currentCanvas.on('mouse:up', handleMouseUp);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
   }, [canvas]);
 
   // Set up and clean up event handlers
   useEffect(() => {
     if (!canvas) return;
     
-    console.log("Configurando eventos del canvas para herramienta", activeTool);
+    console.log("Setting up canvas events for tool:", activeTool);
     
-    // Remove previous handler if it exists
-    if (mouseDownHandlerRef.current) {
-      canvas.off('mouse:down', mouseDownHandlerRef.current);
-      mouseDownHandlerRef.current = null;
+    // Add mouse down event listener for rectangle drawing
+    if (activeTool === 'rectangle') {
+      canvas.on('mouse:down', handleRectangleDrawing);
     }
     
-    // Store the new handler reference
-    mouseDownHandlerRef.current = handleCanvasMouseDown;
-    
-    // Add mouse down event listener
-    canvas.on('mouse:down', handleCanvasMouseDown);
-    
-    // Return cleanup function that properly removes the specific handler
+    // Return cleanup function
     return () => {
-      if (canvas && mouseDownHandlerRef.current) {
-        try {
-          canvas.off('mouse:down', mouseDownHandlerRef.current);
-          mouseDownHandlerRef.current = null;
-          console.log("Eventos del canvas limpiados correctamente");
-        } catch (error) {
-          console.error("Error al limpiar eventos del canvas:", error);
-        }
-      }
+      if (!canvas) return;
+      
+      console.log("Removing canvas events for tool:", activeTool);
+      canvas.off('mouse:down', handleRectangleDrawing);
     };
-  }, [canvas, handleCanvasMouseDown]);
+  }, [canvas, activeTool, handleRectangleDrawing]);
 
   return null;
 };
