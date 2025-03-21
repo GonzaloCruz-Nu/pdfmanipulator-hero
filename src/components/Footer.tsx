@@ -28,7 +28,7 @@ const Footer: React.FC = () => {
               </Link>
             </li>
             <li>
-              <Link to="/tools" className="text-secondary hover:text-naranja transition-colors">
+              <Link to="/" className="text-secondary hover:text-naranja transition-colors">
                 Herramientas
               </Link>
             </li>
