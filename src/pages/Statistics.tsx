@@ -14,9 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCardGrid from '@/components/statistics/StatsCardGrid';
 import ToolsBarChart from '@/components/statistics/ToolsBarChart';
-import ToolsPieChart from '@/components/statistics/ToolsPieChart';
 import DailyUsageChart from '@/components/statistics/DailyUsageChart';
-import CategoryPieChart from '@/components/statistics/CategoryPieChart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Legend } from 'recharts';
 import { Loader2 } from 'lucide-react';
@@ -98,11 +96,7 @@ const Statistics = () => {
               <TabsContent value="charts">
                 <div className="grid grid-cols-1 gap-10">
                   <DailyUsageChart data={statistics.dailyUsage} title={`Uso diario - ${statistics.month}`} />
-                  <ToolsBarChart data={statistics.toolUsage} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <ToolsPieChart data={statistics.toolUsage} />
-                    <CategoryPieChart data={statistics.categoryUsage} />
-                  </div>
+                  <ToolsBarChart data={statistics.toolUsage} className="h-[600px]" />
                 </div>
               </TabsContent>
               
