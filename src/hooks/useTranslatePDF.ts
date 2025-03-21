@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -91,6 +92,7 @@ export const useTranslatePDF = () => {
     const retryDelay = 1000; // 1 second delay between retries
     
     try {
+      console.log(`Enviando solicitud de traducción (${text.length} caracteres)`);
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -116,10 +118,12 @@ export const useTranslatePDF = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Error respuesta API OpenAI:", errorData);
         throw new Error(`Error de API: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
+      console.log("Traducción recibida correctamente");
       return data.choices[0].message.content.trim();
     } catch (error) {
       console.error(`Error en traducción con OpenAI (intento ${retryCount + 1}/${maxRetries + 1}):`, error);
@@ -162,6 +166,7 @@ export const useTranslatePDF = () => {
       setProgress(20);
 
       // Extraer texto del PDF manteniendo la información de posición
+      console.log("Extrayendo texto del PDF...");
       const { pageContents, totalTextExtracted, numPages } = await extractTextFromPDF(
         pdfData,
         (newProgress) => setProgress(Math.min(20 + Math.floor(newProgress * 0.3), 50))
@@ -223,6 +228,7 @@ export const useTranslatePDF = () => {
       
       // ---- IMPROVED PDF GENERATION APPROACH ----
       try {
+        console.log("Generando nuevo PDF con traducción...");
         // Use pdf-lib to load the original PDF
         const pdfDoc = await PDFDocument.load(pdfData);
         
@@ -230,20 +236,32 @@ export const useTranslatePDF = () => {
         const newPdfDoc = await PDFDocument.create();
         
         // Copy all pages from the original PDF to maintain all elements
-        const copiedPages = await newPdfDoc.copyPages(pdfDoc, [...Array(pdfDoc.getPageCount())].map((_, i) => i));
-        copiedPages.forEach(page => newPdfDoc.addPage(page));
+        const pageIndices = [...Array(pdfDoc.getPageCount())].map((_, i) => i);
+        console.log(`Copiando ${pageIndices.length} páginas del PDF original...`);
+        
+        const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
+        console.log(`Páginas copiadas correctamente: ${copiedPages.length}`);
+        
+        // Add copied pages to the new document
+        copiedPages.forEach(page => {
+          newPdfDoc.addPage(page);
+          console.log("Página agregada al nuevo documento");
+        });
         
         // Load font for adding translated text
+        console.log("Cargando fuente para el texto traducido...");
         const helveticaFont = await newPdfDoc.embedFont('Helvetica');
         
-        // Get text positions from original PDF for proper text placement
-        for (let i = 0; i < translatedTextsByPage.length && i < newPdfDoc.getPageCount(); i++) {
+        // Add translated text to each page
+        console.log(`Agregando texto traducido a ${translatedTextsByPage.length} páginas...`);
+        for (let i = 0; i < Math.min(translatedTextsByPage.length, newPdfDoc.getPageCount()); i++) {
           const translatedText = translatedTextsByPage[i];
           if (!translatedText.trim()) continue;
           
           try {
             // Get current page from new document
             const page = newPdfDoc.getPage(i);
+            console.log(`Procesando página ${i+1} para agregar traducción...`);
             
             // Add text overlay with translation in a semi-transparent white box
             // First draw a semi-transparent white background for better readability
@@ -252,7 +270,7 @@ export const useTranslatePDF = () => {
               y: 50,
               width: page.getWidth() - 100,
               height: page.getHeight() - 100,
-              color: rgb(1, 1, 1),  // White with correct parameters (r, g, b values between 0-1)
+              color: rgb(1, 1, 1),  // White with r, g, b values between 0-1
               opacity: 0.4,
               borderColor: rgb(0, 0, 0),
               borderWidth: 0,
@@ -264,11 +282,13 @@ export const useTranslatePDF = () => {
               y: page.getHeight() - 60,
               size: 10,
               font: helveticaFont,
-              color: rgb(0, 0, 0),  // Fixed: Black text with correct parameters
+              color: rgb(0, 0, 0),  // Black text
               opacity: 1,
               lineHeight: 14,
               maxWidth: page.getWidth() - 120,
             });
+            
+            console.log(`Texto traducido agregado a la página ${i+1}`);
           } catch (pageError) {
             console.error(`Error al procesar la página ${i} para traducción:`, pageError);
             // Continue with other pages if one fails
@@ -276,12 +296,17 @@ export const useTranslatePDF = () => {
         }
         
         // Save the new PDF document
+        console.log("Guardando PDF final...");
         const pdfBytes = await newPdfDoc.save();
+        console.log(`PDF generado: ${pdfBytes.length} bytes`);
+        
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+        console.log("PDF Blob creado correctamente");
         
         // Create file for download
         const translatedFileName = file.name.replace(/.pdf$/i, '_translated.pdf');
         const translatedFile = new File([pdfBlob], translatedFileName, { type: 'application/pdf' });
+        console.log(`Archivo traducido creado: ${translatedFileName}`);
         
         setTranslatedFile(translatedFile);
         setProgress(100);

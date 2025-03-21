@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Languages } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,6 +18,7 @@ const OPENAI_API_KEY = "sk-proj-OMf4daHUQZc1xGPFYMAnQxYE4U_ZFSE5Jh03Yi0rA6QQgioV
 const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
+  const [translationStarted, setTranslationStarted] = useState(false);
   const { 
     translatePDF, 
     isProcessing, 
@@ -24,6 +26,15 @@ const TranslatePDF = () => {
     translatedFile,
     downloadTranslatedFile
   } = useTranslatePDF();
+
+  // Effect to auto-switch to results tab when translation is complete
+  useEffect(() => {
+    if (translationStarted && !isProcessing && translatedFile) {
+      setActiveTab("result");
+      setTranslationStarted(false);
+      toast.success('Traducción completada con éxito');
+    }
+  }, [translationStarted, isProcessing, translatedFile]);
 
   const handleFileSelected = (files: File[]) => {
     const file = files[0] || null;
@@ -54,17 +65,23 @@ const TranslatePDF = () => {
     }
 
     try {
+      setTranslationStarted(true);
+      console.log("Iniciando proceso de traducción...");
       const result = await translatePDF(pdfFile, OPENAI_API_KEY);
       
       if (result.success && result.file) {
+        console.log("Traducción completada exitosamente");
         setActiveTab("result");
         toast.success('Traducción completada con éxito');
       } else {
+        console.error("Error en traducción:", result.message);
         toast.error(result.message || 'Error durante la traducción');
+        setTranslationStarted(false);
       }
     } catch (error) {
       console.error('Error en la traducción:', error);
       toast.error('Error al traducir el PDF. Por favor intente con un archivo más pequeño o contacte a soporte.');
+      setTranslationStarted(false);
     }
   };
 
@@ -120,7 +137,7 @@ const TranslatePDF = () => {
             </TabsContent>
             
             <TabsContent value="result" className="pt-4">
-              {translatedFile && (
+              {translatedFile ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{translatedFile.name}</p>
@@ -131,6 +148,10 @@ const TranslatePDF = () => {
                   <div className="border rounded-lg overflow-hidden h-[500px]">
                     <PdfPreview file={translatedFile} />
                   </div>
+                </div>
+              ) : (
+                <div className="text-center p-10 text-muted-foreground">
+                  No hay resultados disponibles. Por favor traduzca un PDF primero.
                 </div>
               )}
             </TabsContent>
@@ -143,6 +164,9 @@ const TranslatePDF = () => {
                 <span className="text-sm">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                Este proceso puede tardar varios minutos dependiendo del tamaño del documento.
+              </p>
             </div>
           ) : (
             <div className="mt-6">
