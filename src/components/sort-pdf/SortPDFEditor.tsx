@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowUp, ArrowDown, RotateCcw, MoveVertical, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -31,13 +31,29 @@ const SortPDFEditor: React.FC<SortPDFEditorProps> = ({
   onSort,
   isProcessing,
 }) => {
+  const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   // Drag-and-drop functionality
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/plain', index.toString());
+    setDraggedItem(index);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    if (draggedItem === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedItem === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
   };
 
   const handleDrop = (e: React.DragEvent, targetIndex: number) => {
@@ -51,6 +67,18 @@ const SortPDFEditor: React.FC<SortPDFEditorProps> = ({
     newOrder.splice(targetIndex, 0, movedItem);
     
     setPageOrder(newOrder);
+    setDraggedItem(null);
+    setDragOverIndex(null);
+    
+    // Notificar al usuario sobre el cambio
+    const pageNumber = pageOrder[sourceIndex];
+    const fromPosition = sourceIndex + 1;
+    const toPosition = targetIndex + 1;
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverIndex(null);
   };
 
   return (
@@ -59,6 +87,9 @@ const SortPDFEditor: React.FC<SortPDFEditorProps> = ({
         <h2 className="text-xl font-bold mb-2">Reordenar páginas</h2>
         <p className="text-muted-foreground">
           Ordenando: <span className="font-medium text-foreground">{file.name}</span> ({totalPages} páginas)
+        </p>
+        <p className="text-muted-foreground text-sm mt-1">
+          <MoveVertical className="h-4 w-4 inline mr-1" /> Arrastra y suelta las miniaturas para reorganizar
         </p>
       </div>
 
@@ -76,9 +107,18 @@ const SortPDFEditor: React.FC<SortPDFEditorProps> = ({
                 key={index}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={handleDragOver}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnter={(e) => handleDragEnter(e, index)}
+                onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, index)}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col cursor-move relative"
+                onDragEnd={handleDragEnd}
+                className={`bg-gray-50 border rounded-lg p-2 flex flex-col cursor-move relative transition-all duration-200 ${
+                  draggedItem === index 
+                    ? 'opacity-50 border-dashed border-gray-400' 
+                    : dragOverIndex === index 
+                      ? 'border-primary border-2' 
+                      : 'border-gray-200'
+                }`}
               >
                 <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
                   <span className="font-medium">Página {pageNum}</span>
