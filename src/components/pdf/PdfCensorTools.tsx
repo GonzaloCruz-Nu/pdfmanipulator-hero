@@ -2,6 +2,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { CensorToolType } from './PdfCensorToolbar';
+import { toast } from 'sonner';
 
 interface PdfCensorToolsProps {
   canvas: fabric.Canvas | null;
@@ -24,6 +25,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
 
     console.log("Actualizando herramienta de censura:", activeTool, "con color:", color);
 
+    // Clear any existing drawing mode
     canvas.isDrawingMode = false;
 
     // Reset canvas selection options based on active tool
@@ -47,6 +49,11 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     }
     
     canvas.renderAll();
+    
+    // Return a cleanup function
+    return () => {
+      // No specific cleanup needed for tool change
+    };
   }, [activeTool, color, size, canvas]);
 
   // Handle canvas mouse events for drawing shapes
@@ -115,15 +122,24 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     if (!canvas) return;
     
+    console.log("Configurando eventos del canvas para herramienta", activeTool);
+    
     // Clean up previous event listeners to prevent duplicates
     canvas.off('mouse:down', handleCanvasMouseDown);
     
     // Add new event listener
     canvas.on('mouse:down', handleCanvasMouseDown);
     
+    // Return cleanup function
     return () => {
       if (canvas) {
-        canvas.off('mouse:down', handleCanvasMouseDown);
+        // Make sure we remove all event listeners when component unmounts
+        try {
+          canvas.off('mouse:down', handleCanvasMouseDown);
+          console.log("Eventos del canvas limpiados correctamente");
+        } catch (error) {
+          console.error("Error al limpiar eventos del canvas:", error);
+        }
       }
     };
   }, [canvas, handleCanvasMouseDown]);

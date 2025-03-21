@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -64,7 +65,7 @@ const CensorPDF = () => {
     return () => {
       cleanupCanvas();
     };
-  }, [selectedFile, cleanupCanvas]);
+  }, [cleanupCanvas]);
 
   // Initialize Fabric canvas when the canvas reference is available
   useEffect(() => {
@@ -74,8 +75,18 @@ const CensorPDF = () => {
     
     // Clean up previous canvas if it exists
     if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.dispose();
-      fabricCanvasRef.current = null;
+      try {
+        // Remove event listeners first to prevent memory leaks
+        fabricCanvasRef.current.off();
+        
+        if (fabricCanvasRef.current.lowerCanvasEl && 
+            fabricCanvasRef.current.lowerCanvasEl.parentNode) {
+          fabricCanvasRef.current.dispose();
+        }
+        fabricCanvasRef.current = null;
+      } catch (error) {
+        console.error("Error al limpiar canvas previo:", error);
+      }
     }
 
     try {
@@ -86,17 +97,32 @@ const CensorPDF = () => {
       fabricCanvasRef.current = fabricCanvas;
 
       // Handle selection changes
+      const handleSelectionChange = () => {
+        setHasSelection(!!fabricCanvas.getActiveObject());
+      };
+
       fabricCanvas.on('selection:created', handleSelectionChange);
       fabricCanvas.on('selection:updated', handleSelectionChange);
       fabricCanvas.on('selection:cleared', handleSelectionChange);
       
       // Clean up when unmounting
       return () => {
-        fabricCanvas.off('selection:created', handleSelectionChange);
-        fabricCanvas.off('selection:updated', handleSelectionChange);
-        fabricCanvas.off('selection:cleared', handleSelectionChange);
-        fabricCanvas.dispose();
-        fabricCanvasRef.current = null;
+        if (fabricCanvas) {
+          try {
+            fabricCanvas.off('selection:created', handleSelectionChange);
+            fabricCanvas.off('selection:updated', handleSelectionChange);
+            fabricCanvas.off('selection:cleared', handleSelectionChange);
+            
+            // Check if the canvas element is still in the DOM before disposing
+            if (fabricCanvas.lowerCanvasEl && fabricCanvas.lowerCanvasEl.parentNode) {
+              fabricCanvas.dispose();
+            }
+            
+            fabricCanvasRef.current = null;
+          } catch (error) {
+            console.error("Error al desmontar canvas:", error);
+          }
+        }
       };
     } catch (error) {
       console.error("Error al inicializar canvas de fabric:", error);
@@ -228,19 +254,31 @@ const CensorPDF = () => {
   const handlePageSelect = (pageNum: number) => {
     if (isChangingPage || isLoading) return;
     
+    if (pageNum === currentPage) {
+      // Don't reload the same page
+      console.log(`Ya estás en la página ${pageNum}`);
+      return;
+    }
+    
     if (pdfDocument && pageNum >= 1 && pageNum <= totalPages) {
       // Set loading state
       setIsChangingPage(true);
       
-      // Clean up canvas objects (keep the canvas instance)
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.clear();
-      }
-      
       console.log(`Cambiando a la página ${pageNum}`);
       
+      // Clean up canvas properly before changing page
       try {
+        // Only clear content, not dispose the canvas
+        if (fabricCanvasRef.current) {
+          fabricCanvasRef.current.clear();
+          fabricCanvasRef.current.renderAll();
+        }
+        
+        // Render the new page
         renderPage(pdfDocument, pageNum);
+        
+        // Inform the user
+        toast.success(`Página ${pageNum} cargada`);
       } catch (error) {
         console.error("Error al cambiar de página:", error);
         toast.error("Error al cambiar de página. Intente de nuevo.");

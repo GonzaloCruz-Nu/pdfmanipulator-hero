@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
@@ -111,14 +111,29 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     toast.info('Censuras eliminadas');
   };
 
-  // Clean up canvas when changing files or unmounting
-  const cleanupCanvas = () => {
-    if (canvasRef.current) {
-      canvasRef.current.dispose();
-      canvasRef.current = null;
-      console.log("Canvas limpiado completamente");
+  // Improved safe canvas cleanup
+  const cleanupCanvas = useCallback(() => {
+    try {
+      if (canvasRef.current) {
+        // Remove all event listeners first
+        canvasRef.current.off();
+        
+        // Check if the canvas has a lower canvas element before disposing
+        // This prevents the "Cannot read properties of undefined (reading 'removeChild')" error
+        if (canvasRef.current.lowerCanvasEl && canvasRef.current.lowerCanvasEl.parentNode) {
+          canvasRef.current.dispose();
+        } else {
+          // If the canvas element is already detached, just clean up our reference
+          console.log("Canvas element already detached, skipping dispose call");
+        }
+        
+        canvasRef.current = null;
+        console.log("Canvas limpiado correctamente");
+      }
+    } catch (error) {
+      console.error("Error al limpiar el canvas:", error);
     }
-  };
+  }, []);
 
   return {
     isProcessing,
