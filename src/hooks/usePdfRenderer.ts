@@ -13,6 +13,7 @@ interface UsePdfRendererReturn {
   isLoading: boolean;
   error: string | null;
   renderPage: (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation?: number) => Promise<void>;
+  renderThumbnail: (pageNum: number, rotation?: number) => Promise<string | null>;
   nextPage: () => void;
   prevPage: () => void;
   reloadCurrentPage: (rotation?: number) => void;
@@ -124,6 +125,46 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     }
   };
 
+  // Nueva función para renderizar miniaturas de páginas
+  const renderThumbnail = async (pageNum: number, rotation = 0): Promise<string | null> => {
+    try {
+      if (!pdfDocument) return null;
+      
+      // Get the page
+      const page = await pdfDocument.getPage(pageNum);
+      const scale = 0.2; // Smaller scale for thumbnails
+      
+      // Apply rotation to viewport
+      const viewport = page.getViewport({ scale, rotation });
+
+      // Create a canvas
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        throw new Error('Could not get 2D context from canvas');
+      }
+
+      // Set dimensions
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      // Render PDF page
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+      };
+
+      await page.render(renderContext).promise;
+      
+      // Return the thumbnail as data URL
+      return canvas.toDataURL('image/jpeg', 0.7);
+    } catch (error) {
+      console.error('Error rendering thumbnail:', error);
+      return null;
+    }
+  };
+
   const nextPage = () => {
     if (currentPage < totalPages && pdfDocument) {
       renderPage(pdfDocument, currentPage + 1, currentRotation);
@@ -150,6 +191,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     isLoading,
     error,
     renderPage,
+    renderThumbnail,
     nextPage,
     prevPage,
     reloadCurrentPage
