@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -155,7 +154,8 @@ const ToolsGrid = () => {
       description: "Añade contraseñas a tus PDFs",
       icon: FileLock,
       to: "/tools/protect",
-      category: "seguridad"
+      category: "seguridad",
+      maintenance: true
     }
   ];
 
