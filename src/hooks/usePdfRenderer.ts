@@ -12,9 +12,10 @@ interface UsePdfRendererReturn {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
   isLoading: boolean;
   error: string | null;
-  renderPage: (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => Promise<void>;
+  renderPage: (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation?: number) => Promise<void>;
   nextPage: () => void;
   prevPage: () => void;
+  reloadCurrentPage: (rotation?: number) => void;
 }
 
 export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
@@ -24,6 +25,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
   const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentRotation, setCurrentRotation] = useState<number>(0);
 
   useEffect(() => {
     if (!file) {
@@ -75,15 +77,18 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     };
   }, [file]);
 
-  const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => {
+  const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation = 0) => {
     try {
-      console.log("Rendering page", pageNum);
+      console.log("Rendering page", pageNum, "with rotation", rotation);
       setIsLoading(true);
+      setCurrentRotation(rotation);
       
       // Get the page
       const page = await pdf.getPage(pageNum);
       const scale = 1.5;
-      const viewport = page.getViewport({ scale });
+      
+      // Apply rotation to viewport
+      const viewport = page.getViewport({ scale, rotation });
 
       // Create a canvas
       const canvas = document.createElement('canvas');
@@ -110,7 +115,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       setPageUrl(newPageUrl);
       setCurrentPage(pageNum);
       
-      console.log("Page", pageNum, "rendered successfully");
+      console.log("Page", pageNum, "rendered successfully with rotation", rotation);
     } catch (error) {
       console.error('Error rendering page:', error);
       setError('Could not render the PDF page.');
@@ -121,13 +126,19 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
 
   const nextPage = () => {
     if (currentPage < totalPages && pdfDocument) {
-      renderPage(pdfDocument, currentPage + 1);
+      renderPage(pdfDocument, currentPage + 1, currentRotation);
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1 && pdfDocument) {
-      renderPage(pdfDocument, currentPage - 1);
+      renderPage(pdfDocument, currentPage - 1, currentRotation);
+    }
+  };
+  
+  const reloadCurrentPage = (rotation = 0) => {
+    if (pdfDocument) {
+      renderPage(pdfDocument, currentPage, rotation);
     }
   };
 
@@ -140,6 +151,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     error,
     renderPage,
     nextPage,
-    prevPage
+    prevPage,
+    reloadCurrentPage
   };
 };
