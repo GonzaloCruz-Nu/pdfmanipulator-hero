@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
@@ -29,8 +28,16 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // Get the current canvas with redaction areas
       const canvas = canvasRef.current;
       
+      // Make sure all redaction objects are visible and rendered
+      canvas.forEachObject(obj => {
+        obj.visible = true;
+      });
+      
       // Ensure all objects are rendered properly before capturing
       canvas.renderAll();
+      
+      // Small delay to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Create an image of the page with applied redactions
       const censoredPageDataUrl = canvas.toDataURL({
@@ -101,9 +108,14 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       return;
     }
     
-    const fileName = file.name.replace('.pdf', '_censurado.pdf');
-    saveAs(censoredFile, fileName);
-    toast.success('PDF censurado descargado');
+    try {
+      const fileName = file.name.replace('.pdf', '_censurado.pdf');
+      saveAs(censoredFile, fileName);
+      toast.success('PDF censurado descargado');
+    } catch (error) {
+      console.error('Error al descargar el PDF censurado:', error);
+      toast.error('Error al descargar el PDF censurado');
+    }
   };
   
   const resetCensor = () => {
@@ -141,32 +153,10 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // First remove all event listeners
       canvasRef.current.off();
       
-      // Check if canvas is in the DOM before disposing
-      if (canvasRef.current.lowerCanvasEl && canvasRef.current.lowerCanvasEl.parentNode) {
-        const canvasElement = canvasRef.current.lowerCanvasEl;
-        console.log("Canvas is in DOM, proceeding with disposal");
-        
-        try {
-          // We need to be extremely careful about the disposal process
-          canvasRef.current.dispose();
-          console.log("Canvas disposed successfully");
-        } catch (error) {
-          console.error("Error disposing canvas:", error);
-          // Try to manually remove it from DOM if dispose fails
-          try {
-            if (canvasElement.parentNode) {
-              canvasElement.parentNode.removeChild(canvasElement);
-              console.log("Canvas element manually removed from DOM");
-            }
-          } catch (removeError) {
-            console.error("Error manually removing canvas from DOM:", removeError);
-          }
-        }
-      } else {
-        console.log("Canvas element not found in DOM or already detached, skipping disposal");
-      }
+      // Clear any objects from the canvas
+      canvasRef.current.clear();
       
-      // Always null the reference
+      // Null out the reference
       canvasRef.current = null;
       console.log("Canvas reference cleared");
     } catch (error) {

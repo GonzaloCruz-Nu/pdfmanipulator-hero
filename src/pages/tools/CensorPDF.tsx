@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -91,6 +90,8 @@ const CensorPDF = () => {
     fabricCanvasRef.current = canvas;
     censorCanvasRef.current = canvas;
     setCanvasInitialized(true);
+    
+    setActiveTool('rectangle');
   }, []);
 
   useEffect(() => {
@@ -166,15 +167,17 @@ const CensorPDF = () => {
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
       
+      // Go to the requested page
       await gotoPage(pageNum);
       
       // Reset tool to rectangle after page change
       setActiveTool('rectangle');
       setHasSelection(false);
       
+      // Delay ending the page change to allow for rendering
       setTimeout(() => {
         setCurrentlyChangingPage(false);
-      }, 200);
+      }, 300);
       
     } catch (error) {
       console.error("Error changing page:", error);
@@ -395,7 +398,6 @@ const CensorPDF = () => {
               </div>
             </div>
             
-            {/* Add a prominent download button at the bottom */}
             {censoredFile && (
               <div className="flex justify-center mt-4">
                 <Button 
