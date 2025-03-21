@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { 
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCcw, Languages, 
-  Stamp, MoveVertical, EyeOff
+  Stamp, MoveVertical, EyeOff, FolderCog, 
+  FileEdit, FileOutput, FileLockIcon
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ToolsGrid = () => {
   const fadeInUp = {
@@ -28,6 +30,135 @@ const ToolsGrid = () => {
     }
   };
 
+  // Definición de categorías y herramientas
+  const categories = [
+    {
+      id: "todas",
+      label: "Todas",
+    },
+    {
+      id: "basicas",
+      label: "Básicas",
+    },
+    {
+      id: "edicion",
+      label: "Edición",
+    },
+    {
+      id: "seguridad",
+      label: "Seguridad",
+    },
+    {
+      id: "avanzadas",
+      label: "Avanzadas",
+    }
+  ];
+
+  // Herramientas categorizadas
+  const basicTools = [
+    {
+      title: "Unir PDFs",
+      description: "Combina múltiples documentos PDF en uno",
+      icon: Merge,
+      to: "/tools/merge",
+      category: "basicas"
+    },
+    {
+      title: "Dividir PDF",
+      description: "Divide un documento PDF en varios archivos",
+      icon: Scissors,
+      to: "/tools/split",
+      category: "basicas"
+    },
+    {
+      title: "Comprimir PDF",
+      description: "Reduce el tamaño sin perder calidad",
+      icon: Zap,
+      to: "/tools/compress",
+      category: "basicas"
+    },
+    {
+      title: "Rotar PDF",
+      description: "Cambia la orientación de las páginas",
+      icon: RotateCcw,
+      to: "/tools/rotate",
+      category: "basicas"
+    }
+  ];
+
+  const editTools = [
+    {
+      title: "Editar PDF",
+      description: "Edita el contenido de tus documentos",
+      icon: FileCog,
+      to: "/tools/edit",
+      category: "edicion"
+    },
+    {
+      title: "OCR PDF",
+      description: "Extrae texto de imágenes y escaneados",
+      icon: FileSearch,
+      to: "/tools/ocr",
+      category: "edicion"
+    },
+    {
+      title: "Ordenar PDF",
+      description: "Reordena las páginas de tus documentos",
+      icon: MoveVertical,
+      to: "/tools/sort",
+      category: "edicion"
+    },
+    {
+      title: "Marca de Agua",
+      description: "Añade texto como marca de agua a tu PDF",
+      icon: Stamp,
+      to: "/tools/watermark",
+      category: "edicion"
+    },
+    {
+      title: "Censurar PDF",
+      description: "Oculta información sensible en tus documentos",
+      icon: EyeOff,
+      to: "/tools/censor",
+      maintenance: false,
+      category: "edicion"
+    }
+  ];
+
+  const securityTools = [
+    {
+      title: "Desbloquear PDF",
+      description: "Elimina contraseñas de PDFs protegidos",
+      icon: Unlock,
+      to: "/tools/unlock",
+      category: "seguridad"
+    },
+    {
+      title: "Proteger PDF",
+      description: "Añade contraseñas a tus PDFs",
+      icon: FileLock,
+      to: "/tools/protect",
+      maintenance: false,
+      isNew: true,
+      category: "seguridad"
+    }
+  ];
+
+  const advancedTools = [
+    {
+      title: "Traducir PDF",
+      description: "Traduce PDF de español a inglés con IA",
+      icon: Languages,
+      to: "/tools/translate",
+      maintenance: false,
+      isNew: true,
+      category: "avanzadas"
+    }
+  ];
+
+  // Combinar todas las herramientas
+  const allTools = [...basicTools, ...editTools, ...securityTools, ...advancedTools];
+
   return (
     <>
       <motion.h2 
@@ -39,137 +170,70 @@ const ToolsGrid = () => {
         Nuestras herramientas
       </motion.h2>
 
-      <motion.div 
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Unir PDFs"
-            description="Combina múltiples documentos PDF en uno"
-            icon={Merge}
-            to="/tools/merge"
-            className="h-full"
-          />
-        </motion.div>
+      <Tabs defaultValue="todas" className="mb-8">
+        <TabsList className="grid grid-cols-5 mb-6">
+          {categories.map((category) => (
+            <TabsTrigger 
+              key={category.id} 
+              value={category.id}
+              className="text-sm"
+            >
+              {category.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
         
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Dividir PDF"
-            description="Divide un documento PDF en varios archivos"
-            icon={Scissors}
-            to="/tools/split"
-            className="h-full"
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Comprimir PDF"
-            description="Reduce el tamaño sin perder calidad"
-            icon={Zap}
-            to="/tools/compress"
-            className="h-full"
-          />
-        </motion.div>
+        <TabsContent value="todas">
+          <motion.div 
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {allTools.map((tool, index) => (
+              <motion.div key={index} variants={fadeInUp}>
+                <ToolCard
+                  title={tool.title}
+                  description={tool.description}
+                  icon={tool.icon}
+                  to={tool.to}
+                  className="h-full"
+                  maintenance={tool.maintenance}
+                  isNew={tool.isNew}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </TabsContent>
 
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Desbloquear PDF"
-            description="Elimina contraseñas de PDFs protegidos"
-            icon={Unlock}
-            to="/tools/unlock"
-            className="h-full"
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Rotar PDF"
-            description="Cambia la orientación de las páginas"
-            icon={RotateCcw}
-            to="/tools/rotate"
-            className="h-full"
-          />
-        </motion.div>
-
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Editar PDF"
-            description="Edita el contenido de tus documentos"
-            icon={FileCog}
-            to="/tools/edit"
-            className="h-full"
-          />
-        </motion.div>
-
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="OCR PDF"
-            description="Extrae texto de imágenes y escaneados"
-            icon={FileSearch}
-            to="/tools/ocr"
-            className="h-full"
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Ordenar PDF"
-            description="Reordena las páginas de tus documentos"
-            icon={MoveVertical}
-            to="/tools/sort"
-            className="h-full"
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Marca de Agua"
-            description="Añade texto como marca de agua a tu PDF"
-            icon={Stamp}
-            to="/tools/watermark"
-            className="h-full"
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Censurar PDF"
-            description="Oculta información sensible en tus documentos"
-            icon={EyeOff}
-            to="/tools/censor"
-            className="h-full"
-            maintenance={false}
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Traducir PDF"
-            description="Traduce PDF de español a inglés con IA"
-            icon={Languages}
-            to="/tools/translate"
-            className="h-full"
-            maintenance={false}
-            isNew={true}
-          />
-        </motion.div>
-        
-        <motion.div variants={fadeInUp}>
-          <ToolCard
-            title="Proteger PDF"
-            description="Añade contraseñas a tus PDFs"
-            icon={FileLock}
-            to="/tools/protect"
-            className="h-full"
-            maintenance={false}
-            isNew={true}
-          />
-        </motion.div>
-      </motion.div>
+        {categories.slice(1).map((category) => (
+          <TabsContent key={category.id} value={category.id}>
+            <motion.div 
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {allTools
+                .filter(tool => tool.category === category.id)
+                .map((tool, index) => (
+                  <motion.div key={index} variants={fadeInUp}>
+                    <ToolCard
+                      title={tool.title}
+                      description={tool.description}
+                      icon={tool.icon}
+                      to={tool.to}
+                      className="h-full"
+                      maintenance={tool.maintenance}
+                      isNew={tool.isNew}
+                    />
+                  </motion.div>
+                ))
+              }
+            </motion.div>
+          </TabsContent>
+        ))}
+      </Tabs>
     </>
   );
 };
