@@ -56,19 +56,18 @@ export const useProtectPDF = () => {
       
       // Apply password protection - using the correct method for pdf-lib
       if (options.userPassword) {
-        // Using the correct signature for PDF encryption in pdf-lib
-        pdfDoc.setPassword(
-          options.userPassword, 
-          options.ownerPassword || options.userPassword,
-          permissions
-        );
+        // Using the correct encrypt method for PDF encryption in pdf-lib
+        await pdfDoc.encrypt({
+          userPassword: options.userPassword,
+          ownerPassword: options.ownerPassword || options.userPassword,
+          permissions,
+        });
       } else if (options.ownerPassword) {
         // Owner password only
-        pdfDoc.setPassword(
-          undefined,
-          options.ownerPassword,
-          permissions
-        );
+        await pdfDoc.encrypt({
+          ownerPassword: options.ownerPassword,
+          permissions,
+        });
       }
       
       setProgress(70);
