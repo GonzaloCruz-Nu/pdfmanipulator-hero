@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { toast } from 'sonner';
 
 // Configurar el worker de PDF.js si no está configurado globalmente
@@ -197,7 +196,7 @@ export const useSimpleConvertPDF = () => {
                 }),
               ],
               spacing: { before: 400 },
-              alignment: 1 // Centrado
+              alignment: AlignmentType.CENTER
             })
           ]
         }]
