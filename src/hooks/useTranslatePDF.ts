@@ -252,7 +252,7 @@ export const useTranslatePDF = () => {
               y: 50,
               width: page.getWidth() - 100,
               height: page.getHeight() - 100,
-              color: rgb(1, 1, 1, 0.4),  // White with 40% opacity
+              color: rgb(1, 1, 1),  // White with correct parameters (r, g, b values between 0-1)
               opacity: 0.4,
               borderColor: rgb(0, 0, 0),
               borderWidth: 0,
@@ -264,7 +264,7 @@ export const useTranslatePDF = () => {
               y: page.getHeight() - 60,
               size: 10,
               font: helveticaFont,
-              color: rgb(0, 0, 0),  // Black text
+              color: rgb(0, 0, 0),  // Fixed: Black text with correct parameters
               opacity: 1,
               lineHeight: 14,
               maxWidth: page.getWidth() - 120,
