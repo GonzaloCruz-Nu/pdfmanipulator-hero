@@ -18,7 +18,6 @@ import CompressPDFGuide from "./pages/wiki/CompressPDFGuide";
 import MergePDFGuide from "./pages/wiki/MergePDFGuide";
 import SplitPDFGuide from "./pages/wiki/SplitPDFGuide";
 import UnlockPDFGuide from "./pages/wiki/UnlockPDFGuide";
-import ConvertPDFGuide from "./pages/wiki/ConvertPDFGuide";
 import { useEffect } from "react";
 
 // Create a new QueryClient instance with retry settings to avoid infinite error loops
@@ -60,7 +59,6 @@ const App = () => {
             <Route path="/wiki/merge" element={<MergePDFGuide />} />
             <Route path="/wiki/split" element={<SplitPDFGuide />} />
             <Route path="/wiki/unlock" element={<UnlockPDFGuide />} />
-            <Route path="/wiki/convert" element={<ConvertPDFGuide />} />
             <Route path="/about" element={<About />} />
             <Route path="/tools/merge" element={<MergePDF />} />
             <Route path="/tools/split" element={<SplitPDF />} />
