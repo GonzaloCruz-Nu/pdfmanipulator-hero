@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePdfCanvas } from '@/hooks/usePdfCanvas';
 import PdfCanvasControls from './PdfCanvasControls';
 import PdfPanningIndicator from './PdfPanningIndicator';
@@ -34,7 +34,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   });
 
   // Set external reference if provided
-  React.useEffect(() => {
+  useEffect(() => {
     if (canvas && fabricRef) {
       fabricRef.current = canvas;
     }

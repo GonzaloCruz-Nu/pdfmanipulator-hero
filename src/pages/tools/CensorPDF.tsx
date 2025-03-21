@@ -80,6 +80,7 @@ const CensorPDF = () => {
   }, [cleanupCanvas, selectedFile]);
 
   const handleCanvasInitialized = (canvas: fabric.Canvas) => {
+    console.log("Canvas initialized in CensorPDF component");
     fabricCanvasRef.current = canvas;
     censorCanvasRef.current = canvas;
   };
@@ -331,14 +332,9 @@ const CensorPDF = () => {
                       <p>{error}</p>
                     </div>
                   ) : (
-                    <div
-                      ref={canvasContainerRef}
-                      className="w-full h-full flex justify-center items-center bg-gray-100 relative"
-                    >
+                    <div className="w-full h-full relative">
                       {pageUrl && (
                         <>
-                          <canvas ref={canvasRef} className="absolute inset-0" />
-                          
                           <PdfCanvas 
                             pageUrl={pageUrl}
                             onSelectionChange={setHasSelection}
@@ -355,51 +351,45 @@ const CensorPDF = () => {
                               onToolChange={setActiveTool}
                             />
                           )}
+                          
+                          <div className="absolute bottom-16 right-4 flex gap-2 z-10">
+                            <Button 
+                              variant={isPanning ? "default" : "secondary"} 
+                              size="sm" 
+                              onClick={togglePanMode} 
+                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                              title={isPanning ? "Desactivar modo movimiento" : "Activar modo movimiento"}
+                            >
+                              <Move className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              onClick={handleZoomIn} 
+                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                              title="Acercar"
+                            >
+                              <ZoomIn className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              onClick={handleZoomOut} 
+                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                              title="Alejar"
+                            >
+                              <ZoomOut className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <PdfNavigation
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onNextPage={nextPage}
+                            onPrevPage={prevPage}
+                          />
                         </>
                       )}
-                      
-                      <div className="absolute bottom-16 right-4 flex gap-2 z-10">
-                        <Button 
-                          variant={isPanning ? "default" : "secondary"} 
-                          size="sm" 
-                          onClick={togglePanMode} 
-                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                          title={isPanning ? "Desactivar modo movimiento" : "Activar modo movimiento"}
-                        >
-                          <Move className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          onClick={handleZoomIn} 
-                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                          title="Acercar"
-                        >
-                          <ZoomIn className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          onClick={handleZoomOut} 
-                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                          title="Alejar"
-                        >
-                          <ZoomOut className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {isPanning && (
-                        <div className="absolute top-4 left-4 bg-primary/80 text-white px-3 py-1.5 rounded-md text-xs font-medium">
-                          Modo movimiento: haz clic y arrastra para mover
-                        </div>
-                      )}
-                      
-                      <PdfNavigation
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onNextPage={nextPage}
-                        onPrevPage={prevPage}
-                      />
                     </div>
                   )}
                 </div>

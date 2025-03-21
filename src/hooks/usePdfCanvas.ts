@@ -67,7 +67,7 @@ export const usePdfCanvas = ({
       
       setCanvas(null);
     };
-  }, [onSelectionChange, onCanvasInitialized, canvasRef.current]);
+  }, [onSelectionChange, onCanvasInitialized]);
 
   // Update canvas size on window resize
   useEffect(() => {
