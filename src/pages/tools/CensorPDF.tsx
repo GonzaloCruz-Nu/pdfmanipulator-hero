@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -45,18 +45,34 @@ const CensorPDF = () => {
     applyRedactions,
     downloadCensoredPDF,
     canvasRef: censorCanvasRef,
+    setActivePage
   } = useCensorPDF({ file: selectedFile });
 
   // Pass the fabricCanvas reference to the useCensorPDF hook
-  React.useEffect(() => {
+  useEffect(() => {
     censorCanvasRef.current = fabricCanvasRef.current;
   }, [fabricCanvasRef.current]);
 
-  // Inicializar Fabric canvas cuando la referencia del canvas está disponible
-  React.useEffect(() => {
+  // Update active page in useCensorPDF when current page changes
+  useEffect(() => {
+    setActivePage(currentPage);
+  }, [currentPage, setActivePage]);
+
+  // Cleanup and initialize canvas when the component unmounts or the file changes
+  useEffect(() => {
+    return () => {
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
+      }
+    };
+  }, [selectedFile]);
+
+  // Initialize Fabric canvas when the canvas reference is available
+  useEffect(() => {
     if (!canvasRef.current) return;
 
-    // Dispose existing canvas if it exists
+    // Clean up previous canvas if it exists
     if (fabricCanvasRef.current) {
       fabricCanvasRef.current.dispose();
       fabricCanvasRef.current = null;
@@ -68,20 +84,23 @@ const CensorPDF = () => {
 
     fabricCanvasRef.current = fabricCanvas;
 
-    // Manejar cambios de selección
+    // Handle selection changes
     fabricCanvas.on('selection:created', handleSelectionChange);
     fabricCanvas.on('selection:updated', handleSelectionChange);
     fabricCanvas.on('selection:cleared', handleSelectionChange);
     
-    // Limpiar al desmontar
+    // Clean up when unmounting
     return () => {
+      fabricCanvas.off('selection:created', handleSelectionChange);
+      fabricCanvas.off('selection:updated', handleSelectionChange);
+      fabricCanvas.off('selection:cleared', handleSelectionChange);
       fabricCanvas.dispose();
       fabricCanvasRef.current = null;
     };
   }, [canvasRef.current]);
 
-  // Actualizar tamaño del canvas en resize
-  React.useEffect(() => {
+  // Update canvas size on resize
+  useEffect(() => {
     const updateCanvasSize = () => {
       if (fabricCanvasRef.current && canvasContainerRef.current) {
         const containerWidth = canvasContainerRef.current.clientWidth;
@@ -101,40 +120,40 @@ const CensorPDF = () => {
     };
   }, [fabricCanvasRef.current]);
 
-  // Cargar PDF en el canvas cuando cambia la URL de la página
-  React.useEffect(() => {
+  // Load PDF in the canvas when the page URL changes
+  useEffect(() => {
     if (!fabricCanvasRef.current || !pageUrl) return;
     
-    // Limpiar contenido existente
+    // Clear existing content
     fabricCanvasRef.current.clear();
     
-    // Cargar imagen del PDF como fondo
+    // Load PDF image as background
     fabric.Image.fromURL(pageUrl, (img) => {
       if (!canvasContainerRef.current || !fabricCanvasRef.current) return;
       
       const containerWidth = canvasContainerRef.current.clientWidth;
       const containerHeight = canvasContainerRef.current.clientHeight;
       
-      // Establecer dimensiones del canvas
+      // Set canvas dimensions
       fabricCanvasRef.current.setDimensions({
         width: containerWidth,
         height: containerHeight
       });
       
-      // Calcular escala para que el PDF quepa en el canvas
+      // Calculate scale to fit PDF in the canvas
       const scale = Math.min(
         (containerWidth * 0.85) / img.width!,
         (containerHeight * 0.85) / img.height!
       );
       
-      // Aplicar escala
+      // Apply scale
       img.scale(scale);
       
-      // Centrar la imagen en el canvas
+      // Center the image in the canvas
       const leftPos = (containerWidth - img.getScaledWidth()) / 2;
       const topPos = (containerHeight - img.getScaledHeight()) / 2;
       
-      // Configurar como imagen de fondo
+      // Set as background image
       fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
         originX: 'left',
         originY: 'top',
@@ -146,8 +165,8 @@ const CensorPDF = () => {
     }, { crossOrigin: 'anonymous' });
   }, [pageUrl]);
 
-  // Cargar miniaturas de todas las páginas cuando se carga el PDF
-  React.useEffect(() => {
+  // Load thumbnails of all pages when PDF is loaded
+  useEffect(() => {
     const loadAllPageThumbnails = async () => {
       if (!pdfDocument || totalPages === 0) return;
       
@@ -194,6 +213,12 @@ const CensorPDF = () => {
 
   const handlePageSelect = (pageNum: number) => {
     if (pdfDocument && pageNum >= 1 && pageNum <= totalPages) {
+      // Clean up and prepare for page change
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.clear();
+      }
+      
+      console.log(`Cambiando a la página ${pageNum}`);
       renderPage(pdfDocument, pageNum);
     }
   };
@@ -230,7 +255,7 @@ const CensorPDF = () => {
   };
 
   const handleApplyCensors = () => {
-    // Pasamos la referencia al canvas a la función de aplicar censuras
+    // Pass the canvas reference to the apply redactions function
     if (fabricCanvasRef.current) {
       applyRedactions();
     } else {

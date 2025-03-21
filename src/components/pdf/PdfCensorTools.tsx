@@ -37,7 +37,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
         break;
       case 'eraser':
         canvas.isDrawingMode = true;
-        // Configurar el borrador
+        // Configure eraser
         if (canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush.color = 'white';
           canvas.freeDrawingBrush.width = size * 2;
@@ -58,7 +58,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     const startX = pointer.x;
     const startY = pointer.y;
 
-    // Crear rectángulo de censura
+    // Create redaction rectangle
     const rect = new fabric.Rect({
       left: startX,
       top: startY,
@@ -95,11 +95,11 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
       
-      // Si el rectángulo es demasiado pequeño, eliminarlo
+      // If the rectangle is too small, remove it
       if (rect.width! < 5 || rect.height! < 5) {
         canvas.remove(rect);
       } else {
-        // Cambiar a herramienta de selección después de dibujar
+        // Switch to selection tool after drawing
         onToolChange('select');
         canvas.setActiveObject(rect);
       }

@@ -15,7 +15,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   const [activePage, setActivePage] = useState(1);
   const canvasRef = useRef<fabric.Canvas | null>(null);
   
-  // Función para aplicar censura al PDF
+  // Function to apply redactions to the PDF
   const applyRedactions = async () => {
     if (!file || !canvasRef.current) {
       toast.error('No hay documentos para censurar');
@@ -24,23 +24,24 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
 
     try {
       setIsProcessing(true);
+      toast.info('Aplicando censuras al PDF...');
 
-      // Obtenemos el canvas actual con las áreas de censura
+      // Get the current canvas with redaction areas
       const canvas = canvasRef.current;
       
-      // Crear una imagen de la página con las censuras aplicadas
+      // Create an image of the page with applied redactions
       const censoredPageDataUrl = canvas.toDataURL({
         format: 'jpeg',
         quality: 0.95
       });
       
-      // Cargar el archivo original como ArrayBuffer
+      // Load the original file as ArrayBuffer
       const originalPdfBytes = await file.arrayBuffer();
       
-      // Cargar el PDF con pdf-lib
+      // Load the PDF with pdf-lib
       const pdfDoc = await PDFDocument.load(originalPdfBytes);
       
-      // Obtener la página actual
+      // Get the current page
       const pages = pdfDoc.getPages();
       const pageIndex = activePage - 1;
       
@@ -50,17 +51,17 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       
       const page = pages[pageIndex];
       
-      // Extraer la parte base64 del data URL
+      // Extract the base64 part from the data URL
       const imgData = censoredPageDataUrl.split(',')[1];
       const imgBytes = Uint8Array.from(atob(imgData), c => c.charCodeAt(0));
       
-      // Incorporar la imagen censurada en el documento
+      // Embed the censored image in the document
       const img = await pdfDoc.embedJpg(imgBytes);
       
-      // Obtener dimensiones de la página
+      // Get page dimensions
       const { width, height } = page.getSize();
       
-      // Sobrescribir la página original con la imagen censurada
+      // Overwrite the original page with the censored image
       page.drawImage(img, {
         x: 0,
         y: 0,
@@ -68,13 +69,13 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
         height: height,
       });
       
-      // Serializar el PDF modificado
+      // Serialize the modified PDF
       const pdfBytes = await pdfDoc.save();
       
-      // Crear Blob con los bytes del PDF
+      // Create Blob with the PDF bytes
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       
-      // Guardar el PDF censurado
+      // Save the censored PDF
       setCensoredFile(blob);
       
       toast.success('PDF censurado correctamente');
