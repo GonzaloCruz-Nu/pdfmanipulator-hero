@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Languages } from 'lucide-react';
@@ -30,7 +29,11 @@ const TranslatePDF = () => {
     const file = files[0] || null;
     setPdfFile(file);
     if (file) {
-      toast.success(`Archivo seleccionado: ${file.name}`);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.warning('El archivo es grande (>10MB). La traducción puede tardar más tiempo.');
+      } else {
+        toast.success(`Archivo seleccionado: ${file.name}`);
+      }
     }
   };
 
@@ -51,7 +54,7 @@ const TranslatePDF = () => {
       }
     } catch (error) {
       console.error('Error en la traducción:', error);
-      toast.error('Error al traducir el PDF. Por favor intente de nuevo más tarde.');
+      toast.error('Error al traducir el PDF. Por favor intente con un archivo más pequeño o contacte a soporte.');
     }
   };
 

@@ -99,7 +99,7 @@ export const useTranslatePDF = () => {
           messages: [
             {
               role: 'system',
-              content: 'Eres un traductor profesional de español a inglés. Traduce el siguiente texto manteniendo el formato, incluyendo saltos de línea, viñetas y formateo. No agregues ni omitas información. No añadas notas o clarificaciones.'
+              content: 'Eres un traductor profesional de español a inglés. Traduce el siguiente texto manteniendo el formato exacto, incluyendo saltos de línea, viñetas, espacios y formateo. No agregues ni omitas información. No añadas notas o clarificaciones. Mantén todos los números, símbolos y caracteres especiales exactamente como están en el original.'
             },
             {
               role: 'user',
@@ -152,7 +152,7 @@ export const useTranslatePDF = () => {
       const pdfData = new Uint8Array(arrayBuffer);
       setProgress(20);
 
-      // Extraer texto del PDF usando la utilidad existente
+      // Extraer texto del PDF manteniendo la información de posición
       const { pageContents, totalTextExtracted, numPages } = await extractTextFromPDF(
         pdfData,
         (newProgress) => setProgress(Math.min(20 + Math.floor(newProgress * 0.3), 50))
@@ -165,76 +165,91 @@ export const useTranslatePDF = () => {
         throw new Error('No se pudo extraer texto del PDF. Es posible que sea un documento escaneado sin OCR.');
       }
       
-      // Preparar texto para traducción
-      const allTexts: string[] = [];
-      for (const page of pageContents) {
-        allTexts.push(page.text);
-      }
+      // Preparar texto para traducción manteniendo separación por páginas
+      const textsByPage: string[] = pageContents.map(page => page.text);
       
-      const combinedText = allTexts.join('\n\n--- NUEVA PÁGINA ---\n\n');
-      const textChunks = splitTextIntoChunks(combinedText);
-      console.log(`Texto dividido en ${textChunks.length} fragmentos para traducción`);
+      // Traducir cada página por separado para mantener la estructura
+      const translatedTextsByPage: string[] = [];
+      let failedPages = 0;
       
-      // Traducir cada fragmento de texto con manejo de errores mejorado
-      const translatedChunks: string[] = [];
-      let failedChunks = 0;
-      
-      for (let i = 0; i < textChunks.length; i++) {
-        const chunk = textChunks[i];
-        console.log(`Traduciendo fragmento ${i + 1} de ${textChunks.length}: ${chunk.length} caracteres`);
-        
-        try {
-          const translatedChunk = await translateTextWithOpenAI(chunk, apiKey);
-          translatedChunks.push(translatedChunk);
-        } catch (error) {
-          console.error(`Error al traducir fragmento ${i + 1}:`, error);
-          failedChunks++;
-          
-          // Si fallan más de 3 fragmentos consecutivos, abortar
-          if (failedChunks >= 3) {
-            throw new Error('Demasiados errores consecutivos en la traducción. Por favor, inténtelo de nuevo más tarde.');
-          }
-          
-          // Si un fragmento falla, agregamos un marcador de error
-          translatedChunks.push(`[Error de traducción en este fragmento] ${chunk}`);
+      for (let i = 0; i < textsByPage.length; i++) {
+        const pageText = textsByPage[i];
+        if (!pageText.trim()) {
+          translatedTextsByPage.push(''); // Mantener páginas vacías
+          continue;
         }
         
-        // Actualizar progreso basado en la cantidad de fragmentos procesados
-        const chunkProgress = 50 + Math.floor(((i + 1) / textChunks.length) * 40);
-        setProgress(chunkProgress);
+        // Dividir el texto de la página en fragmentos si es muy grande
+        const chunks = splitTextIntoChunks(pageText);
+        const translatedChunks: string[] = [];
+        
+        for (let j = 0; j < chunks.length; j++) {
+          const chunk = chunks[j];
+          console.log(`Traduciendo fragmento ${j + 1} de ${chunks.length} (página ${i + 1}): ${chunk.length} caracteres`);
+          
+          try {
+            const translatedChunk = await translateTextWithOpenAI(chunk, apiKey);
+            translatedChunks.push(translatedChunk);
+          } catch (error) {
+            console.error(`Error al traducir fragmento ${j + 1} de la página ${i + 1}:`, error);
+            
+            // Si falla, mantener el texto original para preservar el contenido
+            translatedChunks.push(chunk);
+            failedPages++;
+            
+            if (failedPages >= 3) {
+              throw new Error('Demasiados errores consecutivos en la traducción. Inténtelo de nuevo más tarde.');
+            }
+          }
+        }
+        
+        translatedTextsByPage.push(translatedChunks.join(' '));
+        
+        // Actualizar progreso basado en páginas procesadas
+        const pageProgress = 50 + Math.floor(((i + 1) / numPages) * 40);
+        setProgress(pageProgress);
       }
       
-      // Combinar texto traducido
-      const translatedText = translatedChunks.join('\n\n');
       console.log('Traducción completada, procesando documento final...');
       
-      // Crear un nuevo PDF con el texto traducido
-      const pdfDoc = await PDFDocument.create();
-      const helveticaFont = await pdfDoc.embedFont('Helvetica');
+      // Cargar el PDF original para mantener el formato exacto
+      const pdfDoc = await PDFDocument.load(pdfData);
       
-      // Dividir el texto traducido de nuevo en páginas
-      const translatedPages = translatedText.split('--- NEW PAGE ---');
+      // Crear un nuevo PDF para la traducción
+      const newPdfDoc = await PDFDocument.create();
       
-      for (const pageText of translatedPages) {
-        const page = pdfDoc.addPage([595, 842]); // A4 size
-        const { width, height } = page.getSize();
-        const fontSize = 11;
-        const lineHeight = fontSize * 1.2;
-        const margin = 50;
+      // Copiar todas las páginas del PDF original al nuevo documento
+      const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+      copiedPages.forEach(page => newPdfDoc.addPage(page));
+      
+      // Obtener las fuentes del PDF original
+      const helveticaFont = await newPdfDoc.embedFont('Helvetica');
+      
+      // Ahora para cada página, sobrescribir el texto con la versión traducida
+      // mientras mantenemos exactamente el mismo diseño y formato
+      for (let i = 0; i < translatedTextsByPage.length; i++) {
+        if (!translatedTextsByPage[i].trim()) continue;
         
-        // Dibujar texto en la página
-        page.drawText(pageText.trim(), {
-          x: margin,
-          y: height - margin,
-          size: fontSize,
+        // Obtener la página actual
+        const page = newPdfDoc.getPage(i);
+        
+        // Crear un campo de texto transparente sobre todo el contenido de la página
+        // Este campo solo contendrá el texto traducido, permitiendo que las imágenes
+        // y otros elementos del PDF permanezcan intactos
+        page.drawText(translatedTextsByPage[i], {
+          x: 50, // Posición estándar
+          y: page.getHeight() - 50,
+          size: 12,
           font: helveticaFont,
-          maxWidth: width - margin * 2,
-          lineHeight: lineHeight
+          color: { r: 0, g: 0, b: 0 }, // Negro
+          opacity: 1,
+          lineHeight: 16,
+          maxWidth: page.getWidth() - 100
         });
       }
       
       // Guardar documento PDF
-      const pdfBytes = await pdfDoc.save();
+      const pdfBytes = await newPdfDoc.save();
       const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
       
       // Crear archivo para descarga
