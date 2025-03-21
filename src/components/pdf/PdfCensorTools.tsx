@@ -38,8 +38,10 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       case 'eraser':
         canvas.isDrawingMode = true;
         // Configurar el borrador
-        canvas.freeDrawingBrush.color = 'white';
-        canvas.freeDrawingBrush.width = size * 2;
+        if (canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush.color = 'white';
+          canvas.freeDrawingBrush.width = size * 2;
+        }
         break;
     }
     
@@ -71,6 +73,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     canvas.add(rect);
     
     const handleMouseMove = (moveEvent: fabric.IEvent) => {
+      if (!canvas) return;
       const movePointer = canvas.getPointer(moveEvent.e);
       
       const width = Math.abs(movePointer.x - startX);
@@ -88,6 +91,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     };
     
     const handleMouseUp = () => {
+      if (!canvas) return;
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
       
@@ -110,10 +114,16 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     if (!canvas) return;
     
+    // Clean up previous event listeners
+    canvas.off('mouse:down', handleCanvasMouseDown);
+    
+    // Add new event listener
     canvas.on('mouse:down', handleCanvasMouseDown);
     
     return () => {
-      canvas.off('mouse:down', handleCanvasMouseDown);
+      if (canvas) {
+        canvas.off('mouse:down', handleCanvasMouseDown);
+      }
     };
   }, [canvas, handleCanvasMouseDown]);
 

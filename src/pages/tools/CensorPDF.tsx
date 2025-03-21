@@ -44,11 +44,23 @@ const CensorPDF = () => {
     censoredFile,
     applyRedactions,
     downloadCensoredPDF,
+    canvasRef: censorCanvasRef,
   } = useCensorPDF({ file: selectedFile });
+
+  // Pass the fabricCanvas reference to the useCensorPDF hook
+  React.useEffect(() => {
+    censorCanvasRef.current = fabricCanvasRef.current;
+  }, [fabricCanvasRef.current]);
 
   // Inicializar Fabric canvas cuando la referencia del canvas está disponible
   React.useEffect(() => {
-    if (!canvasRef.current || fabricCanvasRef.current) return;
+    if (!canvasRef.current) return;
+
+    // Dispose existing canvas if it exists
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose();
+      fabricCanvasRef.current = null;
+    }
 
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
       selection: true,
@@ -98,13 +110,13 @@ const CensorPDF = () => {
     
     // Cargar imagen del PDF como fondo
     fabric.Image.fromURL(pageUrl, (img) => {
-      if (!canvasContainerRef.current) return;
+      if (!canvasContainerRef.current || !fabricCanvasRef.current) return;
       
       const containerWidth = canvasContainerRef.current.clientWidth;
       const containerHeight = canvasContainerRef.current.clientHeight;
       
       // Establecer dimensiones del canvas
-      fabricCanvasRef.current!.setDimensions({
+      fabricCanvasRef.current.setDimensions({
         width: containerWidth,
         height: containerHeight
       });
@@ -123,14 +135,14 @@ const CensorPDF = () => {
       const topPos = (containerHeight - img.getScaledHeight()) / 2;
       
       // Configurar como imagen de fondo
-      fabricCanvasRef.current!.setBackgroundImage(img, fabricCanvasRef.current!.renderAll.bind(fabricCanvasRef.current), {
+      fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
         originX: 'left',
         originY: 'top',
         left: leftPos,
         top: topPos
       });
       
-      fabricCanvasRef.current!.renderAll();
+      fabricCanvasRef.current.renderAll();
     }, { crossOrigin: 'anonymous' });
   }, [pageUrl]);
 
