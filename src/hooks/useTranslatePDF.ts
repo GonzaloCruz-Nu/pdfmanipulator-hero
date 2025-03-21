@@ -212,59 +212,63 @@ export const useTranslatePDF = () => {
       
       console.log('Traducción completada, procesando documento final...');
       
-      // Cargar el PDF original para mantener el formato exacto
-      const pdfDoc = await PDFDocument.load(pdfData);
-      
-      // Crear un nuevo PDF para la traducción
-      const newPdfDoc = await PDFDocument.create();
-      
-      // Copiar todas las páginas del PDF original al nuevo documento
-      const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
-      copiedPages.forEach(page => newPdfDoc.addPage(page));
-      
-      // Obtener las fuentes del PDF original
-      const helveticaFont = await newPdfDoc.embedFont('Helvetica');
-      
-      // Ahora para cada página, sobrescribir el texto con la versión traducida
-      // mientras mantenemos exactamente el mismo diseño y formato
-      for (let i = 0; i < translatedTextsByPage.length; i++) {
-        if (!translatedTextsByPage[i].trim()) continue;
+      try {
+        // Cargar el PDF original para mantener el formato exacto
+        const pdfDoc = await PDFDocument.load(pdfData);
         
-        // Obtener la página actual
-        const page = newPdfDoc.getPage(i);
+        // Crear un nuevo PDF para la traducción
+        const newPdfDoc = await PDFDocument.create();
         
-        // Crear un campo de texto transparente sobre todo el contenido de la página
-        // Este campo solo contendrá el texto traducido, permitiendo que las imágenes
-        // y otros elementos del PDF permanezcan intactos
-        page.drawText(translatedTextsByPage[i], {
-          x: 50, // Posición estándar
-          y: page.getHeight() - 50,
-          size: 12,
-          font: helveticaFont,
-          color: rgb(0, 0, 0), // Usamos la función rgb del pdf-lib para crear el color correctamente
-          opacity: 1,
-          lineHeight: 16,
-          maxWidth: page.getWidth() - 100
-        });
+        // Copiar todas las páginas del PDF original al nuevo documento
+        const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+        for (const page of copiedPages) {
+          newPdfDoc.addPage(page);
+        }
+        
+        // Obtener las fuentes del PDF original
+        const helveticaFont = await newPdfDoc.embedFont('Helvetica');
+        
+        // Agregar texto traducido a cada página
+        for (let i = 0; i < translatedTextsByPage.length; i++) {
+          if (!translatedTextsByPage[i].trim()) continue;
+          
+          // Obtener la página actual
+          const page = newPdfDoc.getPage(i);
+          
+          // Agregar el texto traducido manteniendo el formato
+          page.drawText(translatedTextsByPage[i], {
+            x: 50,
+            y: page.getHeight() - 50,
+            size: 12,
+            font: helveticaFont,
+            color: rgb(0, 0, 0), // Usamos la función rgb del pdf-lib para crear el color correctamente
+            opacity: 1,
+            lineHeight: 16,
+            maxWidth: page.getWidth() - 100
+          });
+        }
+        
+        // Guardar documento PDF
+        const pdfBytes = await newPdfDoc.save();
+        const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+        
+        // Crear archivo para descarga
+        const translatedFileName = file.name.replace('.pdf', '_translated.pdf');
+        const translatedFile = new File([pdfBlob], translatedFileName, { type: 'application/pdf' });
+        
+        setTranslatedFile(translatedFile);
+        setProgress(100);
+        toast.success('PDF traducido correctamente');
+        
+        return {
+          success: true,
+          file: translatedFile,
+          message: 'PDF traducido correctamente'
+        };
+      } catch (pdfError) {
+        console.error('Error al procesar el PDF final:', pdfError);
+        throw new Error(`Error al generar el PDF final: ${pdfError instanceof Error ? pdfError.message : 'Error desconocido'}`);
       }
-      
-      // Guardar documento PDF
-      const pdfBytes = await newPdfDoc.save();
-      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-      
-      // Crear archivo para descarga
-      const translatedFileName = file.name.replace('.pdf', '_translated.pdf');
-      const translatedFile = new File([pdfBlob], translatedFileName, { type: 'application/pdf' });
-      
-      setTranslatedFile(translatedFile);
-      setProgress(100);
-      toast.success('PDF traducido correctamente');
-      
-      return {
-        success: true,
-        file: translatedFile,
-        message: 'PDF traducido correctamente'
-      };
     } catch (error) {
       console.error('Error al traducir PDF:', error);
       toast.error('Error al traducir PDF: ' + (error instanceof Error ? error.message : 'Error desconocido'));

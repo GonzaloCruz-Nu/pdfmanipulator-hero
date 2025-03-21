@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Languages } from 'lucide-react';
@@ -29,11 +30,21 @@ const TranslatePDF = () => {
     const file = files[0] || null;
     setPdfFile(file);
     if (file) {
+      // Verificar que el archivo sea realmente un PDF
+      if (!file.type.includes('pdf')) {
+        toast.error('Por favor selecciona un archivo PDF válido');
+        setPdfFile(null);
+        return;
+      }
+      
       if (file.size > 10 * 1024 * 1024) {
         toast.warning('El archivo es grande (>10MB). La traducción puede tardar más tiempo.');
       } else {
         toast.success(`Archivo seleccionado: ${file.name}`);
       }
+      
+      // Cambiar a la pestaña de vista previa
+      setActiveTab("preview");
     }
   };
 
