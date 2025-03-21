@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCardGrid from '@/components/statistics/StatsCardGrid';
-import ToolsBarChart from '@/components/statistics/ToolsBarChart';
 import DailyUsageChart from '@/components/statistics/DailyUsageChart';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Legend } from 'recharts';
@@ -95,8 +94,7 @@ const Statistics = () => {
               
               <TabsContent value="charts">
                 <div className="grid grid-cols-1 gap-10">
-                  <DailyUsageChart data={statistics.dailyUsage} title={`Uso diario - ${statistics.month}`} />
-                  <ToolsBarChart data={statistics.toolUsage} className="h-[600px]" />
+                  <DailyUsageChart data={statistics.dailyUsage} title={`Uso diario - ${statistics.month}`} className="h-[650px]" />
                 </div>
               </TabsContent>
               
