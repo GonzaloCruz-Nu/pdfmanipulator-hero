@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { fabric } from 'fabric';
 import { CensorToolType } from './PdfCensorToolbar';
 import { toast } from 'sonner';
@@ -19,6 +19,20 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   size,
   onToolChange,
 }) => {
+  // Use ref to track the current props for event handlers
+  const toolRef = useRef(activeTool);
+  const colorRef = useRef(color);
+  const sizeRef = useRef(size);
+  const onToolChangeRef = useRef(onToolChange);
+  
+  // Update refs when props change
+  useEffect(() => {
+    toolRef.current = activeTool;
+    colorRef.current = color;
+    sizeRef.current = size;
+    onToolChangeRef.current = onToolChange;
+  }, [activeTool, color, size, onToolChange]);
+
   // Handle tool changes
   useEffect(() => {
     if (!canvas) return;
@@ -49,20 +63,22 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     }
     
     canvas.renderAll();
-    
-    // Return a cleanup function
-    return () => {
-      // No specific cleanup needed for tool change
-    };
+
   }, [activeTool, color, size, canvas]);
 
-  // Handle canvas mouse events for drawing shapes
+  // Create a single handleCanvasMouseDown handler that captures the current canvas and tool
   const handleCanvasMouseDown = useCallback((e: fabric.IEvent) => {
-    if (!canvas || activeTool !== 'rectangle') return;
+    const currentCanvas = canvas;
+    const currentTool = toolRef.current;
+    const currentColor = colorRef.current;
+    const currentSize = sizeRef.current;
+    const currentOnToolChange = onToolChangeRef.current;
+    
+    if (!currentCanvas || currentTool !== 'rectangle') return;
     
     console.log("Dibujando rectángulo de censura");
     
-    const pointer = canvas.getPointer(e.e);
+    const pointer = currentCanvas.getPointer(e.e);
     const startX = pointer.x;
     const startY = pointer.y;
 
@@ -72,17 +88,17 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       top: startY,
       width: 0,
       height: 0,
-      fill: color,
+      fill: currentColor,
       stroke: 'transparent',
       strokeWidth: 0,
       opacity: 1,
     });
     
-    canvas.add(rect);
+    currentCanvas.add(rect);
     
     const handleMouseMove = (moveEvent: fabric.IEvent) => {
-      if (!canvas) return;
-      const movePointer = canvas.getPointer(moveEvent.e);
+      if (!currentCanvas) return;
+      const movePointer = currentCanvas.getPointer(moveEvent.e);
       
       const width = Math.abs(movePointer.x - startX);
       const height = Math.abs(movePointer.y - startY);
@@ -95,46 +111,46 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       });
       
       rect.setCoords();
-      canvas.renderAll();
+      currentCanvas.renderAll();
     };
     
     const handleMouseUp = () => {
-      if (!canvas) return;
-      canvas.off('mouse:move', handleMouseMove);
-      canvas.off('mouse:up', handleMouseUp);
+      if (!currentCanvas) return;
+      
+      // Important: Remove the event handlers
+      currentCanvas.off('mouse:move', handleMouseMove);
+      currentCanvas.off('mouse:up', handleMouseUp);
       
       // If the rectangle is too small, remove it
       if (rect.width! < 5 || rect.height! < 5) {
-        canvas.remove(rect);
+        currentCanvas.remove(rect);
       } else {
         // Switch to selection tool after drawing
-        onToolChange('select');
-        canvas.setActiveObject(rect);
+        currentOnToolChange('select');
+        currentCanvas.setActiveObject(rect);
       }
       
-      canvas.renderAll();
+      currentCanvas.renderAll();
     };
     
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
-  }, [canvas, activeTool, color, size, onToolChange]);
+    currentCanvas.on('mouse:move', handleMouseMove);
+    currentCanvas.on('mouse:up', handleMouseUp);
+  }, [canvas]);
 
+  // Set up and clean up event handlers - this is the key part that needs fixing
   useEffect(() => {
     if (!canvas) return;
     
     console.log("Configurando eventos del canvas para herramienta", activeTool);
     
-    // Clean up previous event listeners to prevent duplicates
-    canvas.off('mouse:down', handleCanvasMouseDown);
-    
-    // Add new event listener
+    // Add mouse down event listener
     canvas.on('mouse:down', handleCanvasMouseDown);
     
-    // Return cleanup function
+    // Return cleanup function that properly removes the specific handler
     return () => {
       if (canvas) {
-        // Make sure we remove all event listeners when component unmounts
         try {
+          // Remove our specific handler
           canvas.off('mouse:down', handleCanvasMouseDown);
           console.log("Eventos del canvas limpiados correctamente");
         } catch (error) {

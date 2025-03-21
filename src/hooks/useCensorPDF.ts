@@ -98,40 +98,56 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   const resetCensor = () => {
     setCensoredFile(null);
     if (canvasRef.current) {
-      // Mantener solo la imagen de fondo (PDF)
-      const bgImage = canvasRef.current.backgroundImage;
-      canvasRef.current.clear();
-      
-      if (bgImage) {
-        canvasRef.current.setBackgroundImage(bgImage, canvasRef.current.renderAll.bind(canvasRef.current));
+      try {
+        // Maintain only the background image (PDF)
+        const bgImage = canvasRef.current.backgroundImage;
+        canvasRef.current.clear();
+        
+        if (bgImage) {
+          canvasRef.current.setBackgroundImage(bgImage, canvasRef.current.renderAll.bind(canvasRef.current));
+        }
+        
+        canvasRef.current.renderAll();
+        toast.info('Censuras eliminadas');
+      } catch (error) {
+        console.error('Error al resetear censuras:', error);
       }
-      
-      canvasRef.current.renderAll();
     }
-    toast.info('Censuras eliminadas');
   };
 
-  // Improved safe canvas cleanup
+  // Improved safe canvas cleanup with proper error handling
   const cleanupCanvas = useCallback(() => {
     try {
       if (canvasRef.current) {
-        // Remove all event listeners first
+        console.log("Iniciando limpieza del canvas...");
+        
+        // First, remove all event listeners to prevent memory leaks
         canvasRef.current.off();
         
-        // Check if the canvas has a lower canvas element before disposing
-        // This prevents the "Cannot read properties of undefined (reading 'removeChild')" error
-        if (canvasRef.current.lowerCanvasEl && canvasRef.current.lowerCanvasEl.parentNode) {
-          canvasRef.current.dispose();
+        // Check if the canvas elements still exist in the DOM before trying to dispose
+        if (canvasRef.current.lowerCanvasEl) {
+          // Check if the canvas element is still in the DOM
+          const canvasIsInDOM = document.body.contains(canvasRef.current.lowerCanvasEl);
+          
+          if (canvasIsInDOM) {
+            console.log("Canvas está en el DOM, disponiéndolo normalmente");
+            canvasRef.current.dispose();
+          } else {
+            console.log("Canvas ya no está en el DOM, omitiendo dispose");
+            // Just nullify the reference without trying to dispose
+          }
         } else {
-          // If the canvas element is already detached, just clean up our reference
-          console.log("Canvas element already detached, skipping dispose call");
+          console.log("El elemento lowerCanvasEl no existe, omitiendo dispose");
         }
         
+        // Clear the reference regardless
         canvasRef.current = null;
         console.log("Canvas limpiado correctamente");
       }
     } catch (error) {
       console.error("Error al limpiar el canvas:", error);
+      // Ensure reference is cleared even if there's an error
+      canvasRef.current = null;
     }
   }, []);
 

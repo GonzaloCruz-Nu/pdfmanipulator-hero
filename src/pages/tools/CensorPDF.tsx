@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -27,6 +26,7 @@ const CensorPDF = () => {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
 
   const {
     currentPage,
@@ -52,7 +52,9 @@ const CensorPDF = () => {
 
   // Pass the fabricCanvas reference to the useCensorPDF hook
   useEffect(() => {
-    censorCanvasRef.current = fabricCanvasRef.current;
+    if (fabricCanvasRef.current) {
+      censorCanvasRef.current = fabricCanvasRef.current;
+    }
   }, [fabricCanvasRef.current]);
 
   // Update active page in useCensorPDF when current page changes
@@ -60,41 +62,60 @@ const CensorPDF = () => {
     setActivePage(currentPage);
   }, [currentPage, setActivePage]);
 
-  // Cleanup and initialize canvas when the component unmounts or the file changes
+  // Cleanup canvas when component unmounts or file changes
   useEffect(() => {
     return () => {
+      // Clean up the canvas
+      if (fabricCanvasRef.current) {
+        try {
+          // Remove all event listeners first
+          fabricCanvasRef.current.off();
+          
+          // Dispose only if the canvas is still in the DOM
+          if (fabricCanvasRef.current.lowerCanvasEl && 
+              document.body.contains(fabricCanvasRef.current.lowerCanvasEl)) {
+            fabricCanvasRef.current.dispose();
+          }
+          
+          fabricCanvasRef.current = null;
+          setCanvasInitialized(false);
+        } catch (error) {
+          console.error("Error during canvas cleanup:", error);
+        }
+      }
+      
+      // Also call the cleanup from the hook
       cleanupCanvas();
     };
-  }, [cleanupCanvas]);
+  }, [cleanupCanvas, selectedFile]);
 
   // Initialize Fabric canvas when the canvas reference is available
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    console.log("Inicializando canvas de fabric");
-    
-    // Clean up previous canvas if it exists
-    if (fabricCanvasRef.current) {
-      try {
-        // Remove event listeners first to prevent memory leaks
-        fabricCanvasRef.current.off();
-        
-        if (fabricCanvasRef.current.lowerCanvasEl && 
-            fabricCanvasRef.current.lowerCanvasEl.parentNode) {
-          fabricCanvasRef.current.dispose();
-        }
-        fabricCanvasRef.current = null;
-      } catch (error) {
-        console.error("Error al limpiar canvas previo:", error);
-      }
-    }
+    if (!canvasRef.current || canvasInitialized) return;
 
     try {
+      console.log("Inicializando canvas de fabric");
+      
+      // Clean up previous canvas if it exists
+      if (fabricCanvasRef.current) {
+        try {
+          fabricCanvasRef.current.off();
+          if (fabricCanvasRef.current.lowerCanvasEl && 
+              document.body.contains(fabricCanvasRef.current.lowerCanvasEl)) {
+            fabricCanvasRef.current.dispose();
+          }
+          fabricCanvasRef.current = null;
+        } catch (error) {
+          console.error("Error al limpiar canvas previo:", error);
+        }
+      }
+
       const fabricCanvas = new fabric.Canvas(canvasRef.current, {
         selection: true,
       });
 
       fabricCanvasRef.current = fabricCanvas;
+      setCanvasInitialized(true);
 
       // Handle selection changes
       const handleSelectionChange = () => {
@@ -105,33 +126,17 @@ const CensorPDF = () => {
       fabricCanvas.on('selection:updated', handleSelectionChange);
       fabricCanvas.on('selection:cleared', handleSelectionChange);
       
-      // Clean up when unmounting
-      return () => {
-        if (fabricCanvas) {
-          try {
-            fabricCanvas.off('selection:created', handleSelectionChange);
-            fabricCanvas.off('selection:updated', handleSelectionChange);
-            fabricCanvas.off('selection:cleared', handleSelectionChange);
-            
-            // Check if the canvas element is still in the DOM before disposing
-            if (fabricCanvas.lowerCanvasEl && fabricCanvas.lowerCanvasEl.parentNode) {
-              fabricCanvas.dispose();
-            }
-            
-            fabricCanvasRef.current = null;
-          } catch (error) {
-            console.error("Error al desmontar canvas:", error);
-          }
-        }
-      };
+      console.log("Canvas de fabric inicializado correctamente");
     } catch (error) {
       console.error("Error al inicializar canvas de fabric:", error);
       toast.error("Error al preparar el editor. Intente de nuevo.");
     }
-  }, [canvasRef.current]);
+  }, [canvasRef.current, canvasInitialized]);
 
   // Update canvas size on resize
   useEffect(() => {
+    if (!fabricCanvasRef.current || !canvasContainerRef.current) return;
+    
     const updateCanvasSize = () => {
       if (fabricCanvasRef.current && canvasContainerRef.current) {
         const containerWidth = canvasContainerRef.current.clientWidth;
@@ -143,13 +148,17 @@ const CensorPDF = () => {
       }
     };
 
-    window.addEventListener('resize', updateCanvasSize);
+    // Initial size update
     updateCanvasSize();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateCanvasSize);
 
+    // Cleanup
     return () => {
       window.removeEventListener('resize', updateCanvasSize);
     };
-  }, [fabricCanvasRef.current]);
+  }, [fabricCanvasRef.current, canvasContainerRef.current]);
 
   // Load PDF in the canvas when the page URL changes
   useEffect(() => {
@@ -157,50 +166,54 @@ const CensorPDF = () => {
     
     console.log("Cargando imagen del PDF en el canvas, página:", currentPage);
     
-    // Clear existing content but save the canvas object
-    fabricCanvasRef.current.clear();
-    setIsChangingPage(false);
-    
-    // Load PDF image as background
-    fabric.Image.fromURL(pageUrl, (img) => {
-      if (!canvasContainerRef.current || !fabricCanvasRef.current) {
-        console.error("Referencias perdidas al cargar la imagen del PDF");
-        return;
-      }
+    // Clear existing content safely
+    try {
+      fabricCanvasRef.current.clear();
+      setIsChangingPage(false);
       
-      const containerWidth = canvasContainerRef.current.clientWidth;
-      const containerHeight = canvasContainerRef.current.clientHeight;
-      
-      // Set canvas dimensions
-      fabricCanvasRef.current.setDimensions({
-        width: containerWidth,
-        height: containerHeight
-      });
-      
-      // Calculate scale to fit PDF in the canvas
-      const scale = Math.min(
-        (containerWidth * 0.85) / img.width!,
-        (containerHeight * 0.85) / img.height!
-      );
-      
-      // Apply scale
-      img.scale(scale);
-      
-      // Center the image in the canvas
-      const leftPos = (containerWidth - img.getScaledWidth()) / 2;
-      const topPos = (containerHeight - img.getScaledHeight()) / 2;
-      
-      // Set as background image
-      fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
-        originX: 'left',
-        originY: 'top',
-        left: leftPos,
-        top: topPos
-      });
-      
-      fabricCanvasRef.current.renderAll();
-      console.log("Imagen del PDF cargada correctamente en el canvas");
-    }, { crossOrigin: 'anonymous' });
+      // Load PDF image as background
+      fabric.Image.fromURL(pageUrl, (img) => {
+        if (!canvasContainerRef.current || !fabricCanvasRef.current) {
+          console.error("Referencias perdidas al cargar la imagen del PDF");
+          return;
+        }
+        
+        const containerWidth = canvasContainerRef.current.clientWidth;
+        const containerHeight = canvasContainerRef.current.clientHeight;
+        
+        // Set canvas dimensions
+        fabricCanvasRef.current.setDimensions({
+          width: containerWidth,
+          height: containerHeight
+        });
+        
+        // Calculate scale to fit PDF in the canvas
+        const scale = Math.min(
+          (containerWidth * 0.85) / img.width!,
+          (containerHeight * 0.85) / img.height!
+        );
+        
+        // Apply scale
+        img.scale(scale);
+        
+        // Center the image in the canvas
+        const leftPos = (containerWidth - img.getScaledWidth()) / 2;
+        const topPos = (containerHeight - img.getScaledHeight()) / 2;
+        
+        // Set as background image
+        fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
+          originX: 'left',
+          originY: 'top',
+          left: leftPos,
+          top: topPos
+        });
+        
+        fabricCanvasRef.current.renderAll();
+        console.log("Imagen del PDF cargada correctamente en el canvas");
+      }, { crossOrigin: 'anonymous' });
+    } catch (error) {
+      console.error("Error al cargar la imagen del PDF:", error);
+    }
   }, [pageUrl, currentPage]);
 
   // Load thumbnails of all pages when PDF is loaded
@@ -244,31 +257,46 @@ const CensorPDF = () => {
     loadAllPageThumbnails();
   }, [pdfDocument, totalPages]);
 
+  // Handle file selection
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
+      // Clean up the existing canvas before loading a new file
+      if (fabricCanvasRef.current) {
+        try {
+          fabricCanvasRef.current.off();
+          fabricCanvasRef.current.clear();
+          fabricCanvasRef.current = null;
+          setCanvasInitialized(false);
+        } catch (error) {
+          console.error("Error cleaning up canvas when selecting new file:", error);
+        }
+      }
+      
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
+  // Handle page selection
   const handlePageSelect = (pageNum: number) => {
-    if (isChangingPage || isLoading) return;
+    if (isChangingPage || isLoading) {
+      console.log("No se puede cambiar de página porque ya hay una carga en progreso");
+      return;
+    }
     
     if (pageNum === currentPage) {
-      // Don't reload the same page
       console.log(`Ya estás en la página ${pageNum}`);
       return;
     }
     
     if (pdfDocument && pageNum >= 1 && pageNum <= totalPages) {
-      // Set loading state
-      setIsChangingPage(true);
-      
-      console.log(`Cambiando a la página ${pageNum}`);
-      
-      // Clean up canvas properly before changing page
       try {
-        // Only clear content, not dispose the canvas
+        // Set loading state first
+        setIsChangingPage(true);
+        
+        console.log(`Cambiando a la página ${pageNum}`);
+        
+        // Safely clear the canvas before loading the new page
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.clear();
           fabricCanvasRef.current.renderAll();
@@ -276,8 +304,6 @@ const CensorPDF = () => {
         
         // Render the new page
         renderPage(pdfDocument, pageNum);
-        
-        // Inform the user
         toast.success(`Página ${pageNum} cargada`);
       } catch (error) {
         console.error("Error al cambiar de página:", error);
@@ -287,39 +313,46 @@ const CensorPDF = () => {
     }
   };
 
-  const handleSelectionChange = () => {
-    if (!fabricCanvasRef.current) return;
-    setHasSelection(!!fabricCanvasRef.current.getActiveObject());
-  };
-
+  // Handle clear all objects
   const handleClearAll = () => {
     if (!fabricCanvasRef.current) return;
     
-    // Mantener solo la imagen de fondo (PDF)
-    const bgImage = fabricCanvasRef.current.backgroundImage;
-    fabricCanvasRef.current.clear();
-    
-    if (bgImage) {
-      fabricCanvasRef.current.setBackgroundImage(bgImage, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current));
+    try {
+      // Keep only the background image (PDF)
+      const bgImage = fabricCanvasRef.current.backgroundImage;
+      fabricCanvasRef.current.clear();
+      
+      if (bgImage) {
+        fabricCanvasRef.current.setBackgroundImage(bgImage, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current));
+      }
+      
+      fabricCanvasRef.current.renderAll();
+      toast.info('Todas las censuras han sido eliminadas');
+    } catch (error) {
+      console.error("Error al limpiar todas las censuras:", error);
+      toast.error("Error al limpiar las censuras. Intente de nuevo.");
     }
-    
-    fabricCanvasRef.current.renderAll();
-    toast.info('Todas las censuras han sido eliminadas');
   };
 
+  // Handle delete selected object
   const handleDeleteSelected = () => {
     if (!fabricCanvasRef.current) return;
     
-    const activeObject = fabricCanvasRef.current.getActiveObject();
-    if (activeObject) {
-      fabricCanvasRef.current.remove(activeObject);
-      setHasSelection(false);
-      toast.success('Censura seleccionada eliminada');
+    try {
+      const activeObject = fabricCanvasRef.current.getActiveObject();
+      if (activeObject) {
+        fabricCanvasRef.current.remove(activeObject);
+        setHasSelection(false);
+        toast.success('Censura seleccionada eliminada');
+      }
+    } catch (error) {
+      console.error("Error al eliminar la censura seleccionada:", error);
+      toast.error("Error al eliminar la censura. Intente de nuevo.");
     }
   };
 
+  // Handle apply censors
   const handleApplyCensors = () => {
-    // Pass the canvas reference to the apply redactions function
     if (fabricCanvasRef.current) {
       applyRedactions();
     } else {
@@ -455,13 +488,15 @@ const CensorPDF = () => {
                     >
                       <canvas ref={canvasRef} className="absolute inset-0" />
                       
-                      <PdfCensorTools
-                        canvas={fabricCanvasRef.current}
-                        activeTool={activeTool}
-                        color={censorColor}
-                        size={size}
-                        onToolChange={setActiveTool}
-                      />
+                      {canvasInitialized && (
+                        <PdfCensorTools
+                          canvas={fabricCanvasRef.current}
+                          activeTool={activeTool}
+                          color={censorColor}
+                          size={size}
+                          onToolChange={setActiveTool}
+                        />
+                      )}
                       
                       <PdfNavigation
                         currentPage={currentPage}
