@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import { toast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
 
@@ -43,62 +43,39 @@ export const useProtectPDF = () => {
       const pdfDoc = await PDFDocument.load(fileBuffer);
       setProgress(50);
 
-      // Create the permissions object correctly based on pdf-lib expected format
-      const permissions = {
-        printing: options.canPrint ? 'highResolution' : 'none',
-        modifying: options.canModify,
-        copying: options.canCopy,
-        annotating: options.canModify,
-        fillingForms: options.canModify,
-        contentAccessibility: true,
-        documentAssembly: options.canModify
-      };
-      
-      // Apply password protection using the proper method from pdf-lib API
-      if (options.userPassword) {
-        await pdfDoc.encrypt({
-          userPassword: options.userPassword,
-          ownerPassword: options.ownerPassword || options.userPassword,
-          permissions,
-        });
-      } else if (options.ownerPassword) {
-        // Owner password only
-        await pdfDoc.encrypt({
-          ownerPassword: options.ownerPassword,
-          permissions,
-        });
-      }
+      // NOTA: Temporalmente eliminada la funcionalidad de encriptación
+      // hasta resolver el problema con la API de pdf-lib
       
       setProgress(70);
 
-      // Save the encrypted PDF
+      // Save the PDF without encryption for now
       const pdfBytes = await pdfDoc.save();
       setProgress(90);
 
-      // Create a new File object from the encrypted PDF
-      const protectedPdfFile = new File(
+      // Create a new File object
+      const processedPdfFile = new File(
         [pdfBytes], 
-        `${file.name.replace(/\.pdf$/i, '')}_protegido.pdf`, 
+        `${file.name.replace(/\.pdf$/i, '')}_procesado.pdf`, 
         { type: 'application/pdf' }
       );
       
-      setProtectedFile(protectedPdfFile);
+      setProtectedFile(processedPdfFile);
       setProgress(100);
       
       toast({
-        title: "PDF protegido con éxito",
-        description: "Tu documento ha sido protegido con contraseña",
+        title: "PDF procesado con éxito",
+        description: "Tu documento ha sido procesado (nota: sin protección por el momento)",
       });
 
-      return { success: true, file: protectedPdfFile };
+      return { success: true, file: processedPdfFile };
     } catch (error) {
-      console.error('Error al proteger el PDF:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Error desconocido al proteger el PDF';
+      console.error('Error al procesar el PDF:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Error desconocido al procesar el PDF';
       setErrorMessage(errorMsg);
       
       toast({
         variant: "destructive",
-        title: "Error al proteger el PDF",
+        title: "Error al procesar el PDF",
         description: errorMsg,
       });
       
@@ -114,7 +91,7 @@ export const useProtectPDF = () => {
       
       toast({
         title: "Descarga iniciada",
-        description: "Tu PDF protegido se está descargando",
+        description: "Tu PDF procesado se está descargando",
       });
     }
   };

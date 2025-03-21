@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileLock, File, Download, Shield } from 'lucide-react';
+import { FileLock, File, Download, Shield, Info } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useProtectPDF } from '@/hooks/useProtectPDF';
 import PdfPreview from '@/components/PdfPreview';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ProtectPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -72,6 +73,13 @@ const ProtectPDF = () => {
           </p>
         </motion.div>
 
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            La funcionalidad de protección con contraseña está temporalmente desactivada mientras trabajamos en mejorarla.
+          </AlertDescription>
+        </Alert>
+
         <div className="grid grid-cols-1 gap-8">
           <motion.div
             className="rounded-xl border bg-card p-6 shadow-sm"
@@ -81,12 +89,12 @@ const ProtectPDF = () => {
           >
             <div className="mb-6 flex items-center">
               <FileLock className="mr-2 h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Proteger PDF</h2>
+              <h2 className="text-xl font-semibold">Procesar PDF</h2>
             </div>
 
             <div className="space-y-6">
               <div>
-                <Label htmlFor="file">1. Selecciona el PDF a proteger</Label>
+                <Label htmlFor="file">1. Selecciona el PDF a procesar</Label>
                 <FileUpload
                   onFilesSelected={handleFilesSelected}
                   multiple={false}
@@ -101,7 +109,7 @@ const ProtectPDF = () => {
                   <div className="space-y-3">
                     <Label htmlFor="userPassword">2. Configura la protección</Label>
                     
-                    <div className="p-4 border rounded-md space-y-4">
+                    <div className="p-4 border rounded-md space-y-4 opacity-70">
                       <div className="space-y-2">
                         <Label htmlFor="userPassword">Contraseña de usuario</Label>
                         <Input
@@ -110,6 +118,7 @@ const ProtectPDF = () => {
                           placeholder="Contraseña para abrir el documento"
                           value={userPassword}
                           onChange={(e) => setUserPassword(e.target.value)}
+                          disabled
                         />
                         <p className="text-xs text-muted-foreground">
                           Esta contraseña será necesaria para abrir el documento
@@ -124,6 +133,7 @@ const ProtectPDF = () => {
                             onCheckedChange={(checked) => {
                               setUseOwnerPassword(checked === true);
                             }}
+                            disabled
                           />
                           <Label htmlFor="useOwnerPassword">Usar contraseña de propietario diferente</Label>
                         </div>
@@ -137,6 +147,7 @@ const ProtectPDF = () => {
                               placeholder="Contraseña para modificar permisos"
                               value={ownerPassword}
                               onChange={(e) => setOwnerPassword(e.target.value)}
+                              disabled
                             />
                             <p className="text-xs text-muted-foreground">
                               Esta contraseña permitirá modificar la configuración de seguridad
@@ -156,6 +167,7 @@ const ProtectPDF = () => {
                               onCheckedChange={(checked) => {
                                 setCanPrint(checked === true);
                               }}
+                              disabled
                             />
                             <Label htmlFor="canPrint">Permitir imprimir</Label>
                           </div>
@@ -167,6 +179,7 @@ const ProtectPDF = () => {
                               onCheckedChange={(checked) => {
                                 setCanCopy(checked === true);
                               }}
+                              disabled
                             />
                             <Label htmlFor="canCopy">Permitir copiar texto</Label>
                           </div>
@@ -178,6 +191,7 @@ const ProtectPDF = () => {
                               onCheckedChange={(checked) => {
                                 setCanModify(checked === true);
                               }}
+                              disabled
                             />
                             <Label htmlFor="canModify">Permitir modificar</Label>
                           </div>
@@ -189,15 +203,15 @@ const ProtectPDF = () => {
                   <div>
                     <Button 
                       onClick={handleProtect}
-                      disabled={!file || (!userPassword && !ownerPassword) || isProcessing}
+                      disabled={!file}
                       className="w-full sm:w-auto"
                     >
                       {isProcessing ? (
                         <>Procesando</>
                       ) : (
                         <>
-                          <Shield className="h-4 w-4 mr-2" />
-                          Proteger PDF
+                          <File className="h-4 w-4 mr-2" />
+                          Procesar PDF
                         </>
                       )}
                     </Button>
@@ -219,7 +233,7 @@ const ProtectPDF = () => {
                     <div className="flex items-center">
                       <File className="h-5 w-5 text-primary mr-2" />
                       <div>
-                        <p className="font-medium">PDF protegido con éxito</p>
+                        <p className="font-medium">PDF procesado con éxito</p>
                         <p className="text-sm text-muted-foreground">
                           {protectedFile.name} ({(protectedFile.size / 1024 / 1024).toFixed(2)} MB)
                         </p>
