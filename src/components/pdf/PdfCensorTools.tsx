@@ -8,49 +8,16 @@ interface PdfCensorToolsProps {
   canvas: fabric.Canvas | null;
   activeTool: CensorToolType;
   censorStyle: CensorStyleType;
-  zoomLevel: number;
 }
 
 const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   canvas,
   activeTool,
   censorStyle,
-  zoomLevel
 }) => {
   const isDrawingRef = useRef(false);
   const startPointRef = useRef({ x: 0, y: 0 });
   const [currentRect, setCurrentRect] = useState<fabric.Rect | null>(null);
-  const prevZoomRef = useRef(zoomLevel);
-  
-  // Apply zoom to canvas objects
-  useEffect(() => {
-    if (!canvas || zoomLevel === prevZoomRef.current) return;
-    
-    try {
-      console.log(`Applying zoom level: ${zoomLevel}`);
-      
-      // Get the canvas center
-      const center = canvas.getCenter();
-      
-      // Calculate zoom ratio
-      const zoomRatio = zoomLevel / prevZoomRef.current;
-      
-      // Zoom to point with animation
-      canvas.zoomToPoint(
-        { x: center.left, y: center.top }, 
-        canvas.getZoom() * zoomRatio
-      );
-      
-      // Force render
-      canvas.renderAll();
-      
-      // Update previous zoom reference
-      prevZoomRef.current = zoomLevel;
-      
-    } catch (error) {
-      console.error("Error applying zoom:", error);
-    }
-  }, [canvas, zoomLevel]);
   
   // Setup rectangle drawing functionality
   useEffect(() => {
