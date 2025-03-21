@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -24,10 +25,8 @@ const CensorPDF = () => {
   const [hasSelection, setHasSelection] = useState(false);
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
   const [isPanning, setIsPanning] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
   
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -54,16 +53,19 @@ const CensorPDF = () => {
     cleanupCanvas
   } = useCensorPDF({ file: selectedFile });
 
+  // Synchronize the fabricCanvasRef with censorCanvasRef
   useEffect(() => {
     if (fabricCanvasRef.current) {
       censorCanvasRef.current = fabricCanvasRef.current;
     }
   }, [fabricCanvasRef.current]);
 
+  // Update active page in censorPDF when currentPage changes
   useEffect(() => {
     setActivePage(currentPage);
   }, [currentPage, setActivePage]);
 
+  // Clean up resources when component unmounts or file changes
   useEffect(() => {
     return () => {
       console.log("Component unmounting or file changing, cleaning up resources");
@@ -74,17 +76,20 @@ const CensorPDF = () => {
       }
       
       cleanupCanvas();
-      
       fabricCanvasRef.current = null;
+      setCanvasInitialized(false);
     };
   }, [cleanupCanvas, selectedFile]);
 
+  // Handle canvas initialization
   const handleCanvasInitialized = (canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
     fabricCanvasRef.current = canvas;
     censorCanvasRef.current = canvas;
+    setCanvasInitialized(true);
   };
 
+  // Load all page thumbnails when PDF document is available
   useEffect(() => {
     const loadAllPageThumbnails = async () => {
       if (!pdfDocument || totalPages === 0) return;
@@ -110,24 +115,30 @@ const CensorPDF = () => {
     loadAllPageThumbnails();
   }, [pdfDocument, totalPages, renderThumbnail]);
 
+  // Handle file selection
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       console.log("New file selected:", files[0].name);
       
+      // Clear any pending page change
       if (pageChangeTimeoutRef.current) {
         clearTimeout(pageChangeTimeoutRef.current);
         pageChangeTimeoutRef.current = null;
       }
       
+      // Clean up existing canvas
       cleanupCanvas();
       fabricCanvasRef.current = null;
+      setCanvasInitialized(false);
       setPageRenderedUrls([]);
       
+      // Set the new file
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
+  // Handle page selection
   const handlePageSelect = async (pageNum: number) => {
     if (pageNum === currentPage) {
       console.log(`Already on page ${pageNum}`);
@@ -145,8 +156,10 @@ const CensorPDF = () => {
     }
     
     try {
-      cleanupCanvas();
-      fabricCanvasRef.current = null;
+      // Reset canvas before page change
+      if (canvasInitialized) {
+        setCanvasInitialized(false);
+      }
       
       console.log(`Starting page change to page ${pageNum}`);
       toast.info(`Cambiando a la página ${pageNum}...`);
@@ -159,12 +172,13 @@ const CensorPDF = () => {
     }
   };
 
+  // Handle clearing all censors
   const handleClearAll = () => {
     if (!fabricCanvasRef.current) return;
     
     try {
       const bgImage = fabricCanvasRef.current.backgroundImage;
-      fabricCanvasRef.current.clear();
+      fabricCanvasRef.current.remove(...fabricCanvasRef.current.getObjects());
       
       if (bgImage) {
         fabricCanvasRef.current.setBackgroundImage(bgImage, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current));
@@ -178,6 +192,7 @@ const CensorPDF = () => {
     }
   };
 
+  // Handle deleting selected censors
   const handleDeleteSelected = () => {
     if (!fabricCanvasRef.current) return;
     
@@ -194,6 +209,7 @@ const CensorPDF = () => {
     }
   };
 
+  // Handle applying censors
   const handleApplyCensors = () => {
     if (fabricCanvasRef.current) {
       applyRedactions();
@@ -202,21 +218,7 @@ const CensorPDF = () => {
     }
   };
 
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 3));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-  };
-
-  const togglePanMode = () => {
-    setIsPanning(!isPanning);
-    if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.defaultCursor = !isPanning ? 'grab' : 'default';
-    }
-  };
-
+  // Render the CensorPDF component
   return (
     <Layout>
       <Header />
@@ -342,7 +344,7 @@ const CensorPDF = () => {
                             onCanvasInitialized={handleCanvasInitialized}
                           />
                           
-                          {fabricCanvasRef.current && (
+                          {canvasInitialized && fabricCanvasRef.current && (
                             <PdfCensorTools
                               canvas={fabricCanvasRef.current}
                               activeTool={activeTool}
@@ -356,29 +358,11 @@ const CensorPDF = () => {
                             <Button 
                               variant={isPanning ? "default" : "secondary"} 
                               size="sm" 
-                              onClick={togglePanMode} 
+                              onClick={() => setIsPanning(!isPanning)} 
                               className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
                               title={isPanning ? "Desactivar modo movimiento" : "Activar modo movimiento"}
                             >
                               <Move className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="secondary" 
-                              size="sm" 
-                              onClick={handleZoomIn} 
-                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                              title="Acercar"
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="secondary" 
-                              size="sm" 
-                              onClick={handleZoomOut} 
-                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                              title="Alejar"
-                            >
-                              <ZoomOut className="h-4 w-4" />
                             </Button>
                           </div>
                           
