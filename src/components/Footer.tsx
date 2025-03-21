@@ -24,11 +24,6 @@ const Footer: React.FC = () => {
           <ul className="flex space-x-6 text-sm font-medium">
             <li>
               <Link to="/" className="text-secondary hover:text-naranja transition-colors">
-                Inicio
-              </Link>
-            </li>
-            <li>
-              <Link to="/" className="text-secondary hover:text-naranja transition-colors">
                 Herramientas
               </Link>
             </li>
