@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, Upload, Download, Move } from 'lucide-react';
+import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,6 @@ const CensorPDF = () => {
   const [size, setSize] = useState(5);
   const [hasSelection, setHasSelection] = useState(false);
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
-  const [isPanning, setIsPanning] = useState(false);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [currentlyChangingPage, setCurrentlyChangingPage] = useState(false);
   
@@ -372,18 +371,6 @@ const CensorPDF = () => {
                             />
                           )}
                           
-                          <div className="absolute bottom-16 right-4 flex gap-2 z-10">
-                            <Button 
-                              variant={isPanning ? "default" : "secondary"} 
-                              size="sm" 
-                              onClick={() => setIsPanning(!isPanning)} 
-                              className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
-                              title={isPanning ? "Desactivar modo movimiento" : "Activar modo movimiento"}
-                            >
-                              <Move className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
                           <PdfNavigation
                             currentPage={currentPage}
                             totalPages={totalPages}
@@ -405,4 +392,3 @@ const CensorPDF = () => {
 };
 
 export default CensorPDF;
-

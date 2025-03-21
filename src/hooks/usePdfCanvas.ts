@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { fabric } from 'fabric';
 
@@ -6,15 +5,16 @@ interface UsePdfCanvasProps {
   onSelectionChange?: (hasSelection: boolean) => void;
   onCanvasInitialized?: (canvas: fabric.Canvas) => void;
   zoomLevel: number;
+  isPanning?: boolean;
 }
 
 export const usePdfCanvas = ({
   onSelectionChange,
   onCanvasInitialized,
-  zoomLevel = 1
+  zoomLevel = 1,
+  isPanning = false
 }: UsePdfCanvasProps) => {
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
-  const [isPanning, setIsPanning] = useState(false);
   const [initialImgData, setInitialImgData] = useState<{
     width: number;
     height: number;
@@ -24,6 +24,9 @@ export const usePdfCanvas = ({
   });
   const currentImageRef = useRef<fabric.Image | null>(null);
   const lastDisplayedUrl = useRef<string | null>(null);
+  const isDraggingRef = useRef(false);
+  const lastPosXRef = useRef(0);
+  const lastPosYRef = useRef(0);
 
   // Initialize Fabric canvas with proper error handling
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
@@ -33,7 +36,9 @@ export const usePdfCanvas = ({
       // Create new canvas
       const fabricCanvas = new fabric.Canvas(canvasEl, {
         selection: true,
-        preserveObjectStacking: true
+        preserveObjectStacking: true,
+        renderOnAddRemove: true,
+        stateful: false
       });
       
       setCanvas(fabricCanvas);
@@ -47,84 +52,90 @@ export const usePdfCanvas = ({
       fabricCanvas.on('selection:updated', handleSelectionUpdated);
       fabricCanvas.on('selection:cleared', handleSelectionCleared);
       
-      // Setup panning functionality
-      let isDragging = false;
-      let lastPosX = 0;
-      let lastPosY = 0;
-
-      const handleMouseDown = (opt: fabric.IEvent) => {
-        if (!isPanning) return;
-        
-        isDragging = true;
-        
-        const evt = opt.e as MouseEvent;
-        lastPosX = evt.clientX;
-        lastPosY = evt.clientY;
-        
-        // Disable object selection while panning
-        if (isPanning && fabricCanvas) {
-          fabricCanvas.selection = false;
-          fabricCanvas.discardActiveObject();
-          fabricCanvas.forEachObject(function(obj) {
-            obj.selectable = false;
-          });
-          fabricCanvas.renderAll();
-        }
-      };
-
-      const handleMouseMove = (opt: fabric.IEvent) => {
-        if (!isDragging || !isPanning || !fabricCanvas) return;
-        
-        if (!fabricCanvas.backgroundImage) return;
-        
-        const evt = opt.e as MouseEvent;
-        const deltaX = evt.clientX - lastPosX;
-        const deltaY = evt.clientY - lastPosY;
-        
-        // Move the background image
-        fabricCanvas.backgroundImage.set({
-          left: (fabricCanvas.backgroundImage.left || 0) + deltaX,
-          top: (fabricCanvas.backgroundImage.top || 0) + deltaY
-        });
-        
-        // Also move all objects on the canvas
-        fabricCanvas.forEachObject(function(obj) {
-          obj.set({
-            left: obj.left! + deltaX,
-            top: obj.top! + deltaY
-          });
-          obj.setCoords();
-        });
-        
-        fabricCanvas.renderAll();
-        
-        lastPosX = evt.clientX;
-        lastPosY = evt.clientY;
-      };
-
-      const handleMouseUp = () => {
-        isDragging = false;
-        
-        // Re-enable object selection after panning
-        if (isPanning && fabricCanvas) {
-          fabricCanvas.selection = true;
-          fabricCanvas.forEachObject(function(obj) {
-            obj.selectable = true;
-          });
-          fabricCanvas.renderAll();
-        }
-      };
-
-      fabricCanvas.on('mouse:down', handleMouseDown);
-      fabricCanvas.on('mouse:move', handleMouseMove);
-      fabricCanvas.on('mouse:up', handleMouseUp);
-      
       return fabricCanvas;
     } catch (error) {
       console.error("Error initializing canvas:", error);
       return null;
     }
-  }, [isPanning, onSelectionChange]);
+  }, [onSelectionChange]);
+
+  // Setup panning functionality
+  useEffect(() => {
+    if (!canvas) return;
+    
+    const handleMouseDown = (opt: fabric.IEvent) => {
+      if (!isPanning) return;
+      
+      isDraggingRef.current = true;
+      
+      const evt = opt.e as MouseEvent;
+      lastPosXRef.current = evt.clientX;
+      lastPosYRef.current = evt.clientY;
+      
+      // Disable object selection while panning
+      canvas.selection = false;
+      canvas.discardActiveObject();
+      canvas.forEachObject(function(obj) {
+        obj.selectable = false;
+      });
+      canvas.renderAll();
+    };
+
+    const handleMouseMove = (opt: fabric.IEvent) => {
+      if (!isDraggingRef.current || !isPanning || !canvas) return;
+      
+      if (!canvas.backgroundImage) return;
+      
+      const evt = opt.e as MouseEvent;
+      const deltaX = evt.clientX - lastPosXRef.current;
+      const deltaY = evt.clientY - lastPosYRef.current;
+      
+      // Move the background image
+      canvas.backgroundImage.set({
+        left: (canvas.backgroundImage.left || 0) + deltaX,
+        top: (canvas.backgroundImage.top || 0) + deltaY
+      });
+      
+      // Also move all objects on the canvas
+      canvas.forEachObject(function(obj) {
+        obj.set({
+          left: obj.left! + deltaX,
+          top: obj.top! + deltaY
+        });
+        obj.setCoords();
+      });
+      
+      canvas.renderAll();
+      
+      lastPosXRef.current = evt.clientX;
+      lastPosYRef.current = evt.clientY;
+    };
+
+    const handleMouseUp = () => {
+      if (!canvas) return;
+      
+      isDraggingRef.current = false;
+      
+      // Re-enable object selection after panning
+      if (isPanning) {
+        canvas.selection = true;
+        canvas.forEachObject(function(obj) {
+          obj.selectable = true;
+        });
+        canvas.renderAll();
+      }
+    };
+
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
+    
+    return () => {
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
+    };
+  }, [canvas, isPanning]);
 
   // Update canvas size
   const updateCanvasSize = useCallback((containerEl: HTMLDivElement) => {
@@ -133,8 +144,6 @@ export const usePdfCanvas = ({
     try {
       const containerWidth = containerEl.clientWidth;
       const containerHeight = containerEl.clientHeight;
-      
-      console.log("Container dimensions:", containerWidth, containerHeight);
       
       // Only resize if dimensions actually changed
       if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
@@ -167,7 +176,7 @@ export const usePdfCanvas = ({
     }
   }, [canvas, initialImgData, zoomLevel]);
 
-  // Display PDF page
+  // Display PDF page with caching to prevent flickering
   const displayPdfPage = useCallback((pageUrl: string, containerEl: HTMLDivElement) => {
     if (!canvas) return;
     
@@ -192,9 +201,6 @@ export const usePdfCanvas = ({
           const containerWidth = containerEl.clientWidth;
           const containerHeight = containerEl.clientHeight;
           
-          console.log("Container dimensions:", containerWidth, containerHeight);
-          console.log("Image dimensions:", img.width, img.height);
-          
           // Store initial image data for zooming
           setInitialImgData({
             width: img.width as number,
@@ -215,8 +221,6 @@ export const usePdfCanvas = ({
           const topPos = (containerHeight - (img.getScaledHeight() || 0)) / 2;
           
           // Keep existing objects on the canvas
-          const objects = canvas.getObjects();
-          
           // Set as background with positioning
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
             originX: 'left',
@@ -226,13 +230,11 @@ export const usePdfCanvas = ({
           });
           
           canvas.renderAll();
-          console.log("PDF displayed with dimensions:", img.width, img.height, "at scale:", scale);
         } catch (error) {
           console.error("Error setting PDF as background:", error);
         }
       }, { 
         crossOrigin: 'anonymous',
-        // Add options to improve rendering stability
         enableRetinaScaling: false,
         objectCaching: true
       });
@@ -254,11 +256,17 @@ export const usePdfCanvas = ({
       // Remove all event listeners first
       canvas.off();
       
-      // Then dispose the canvas
-      canvas.dispose();
-      console.log("Canvas disposed successfully");
-    } catch (error) {
-      console.error("Error during canvas cleanup:", error);
+      // Dispose the canvas safely
+      try {
+        if (canvas.lowerCanvasEl && document.body.contains(canvas.lowerCanvasEl)) {
+          canvas.dispose();
+          console.log("Canvas disposed successfully");
+        } else {
+          console.log("Canvas element not in DOM, skipping disposal");
+        }
+      } catch (error) {
+        console.error("Error during canvas disposal:", error);
+      }
     } finally {
       // Always set the canvas to null
       setCanvas(null);
@@ -267,17 +275,9 @@ export const usePdfCanvas = ({
     }
   }, [canvas]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cleanup();
-    };
-  }, [cleanup]);
-
   return {
     canvas,
     isPanning,
-    setIsPanning,
     initializeCanvas,
     updateCanvasSize,
     displayPdfPage,

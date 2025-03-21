@@ -23,18 +23,18 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const canvasInitializedRef = useRef(false);
+  const [isPanning, setIsPanning] = useState(false);
   
   const {
     canvas,
-    isPanning,
-    setIsPanning,
     initializeCanvas,
     updateCanvasSize,
     displayPdfPage,
     cleanup
   } = usePdfCanvas({
     onSelectionChange,
-    zoomLevel
+    zoomLevel,
+    isPanning
   });
 
   // Initialize canvas ONCE when component mounts
@@ -97,12 +97,11 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     
     // Use a stable reference to avoid flickering
     const currentContainer = containerRef.current;
-    const currentPageUrl = pageUrl;
     
     // Add a small timeout to prevent rapid re-renders
     const timer = setTimeout(() => {
-      displayPdfPage(currentPageUrl, currentContainer);
-    }, 50);
+      displayPdfPage(pageUrl, currentContainer);
+    }, 100); // Increased timeout for better stability
     
     return () => {
       clearTimeout(timer);
