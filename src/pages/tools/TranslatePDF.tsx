@@ -13,7 +13,7 @@ import PdfPreview from '@/components/PdfPreview';
 import { useTranslatePDF } from '@/hooks/useTranslatePDF';
 
 // API Key proporcionada por CoHispania - Nota: normalmente esto debería estar en una variable de entorno segura
-const OPENAI_API_KEY = "your_openai_api_key_here"; // Replace this with your actual OpenAI API key
+const OPENAI_API_KEY = "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";
 
 const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
