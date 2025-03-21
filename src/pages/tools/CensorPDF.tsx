@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -46,7 +47,8 @@ const CensorPDF = () => {
     prevPage,
     renderPage,
     pdfDocument,
-    reloadCurrentPage
+    reloadCurrentPage,
+    renderThumbnail
   } = usePdfRenderer(selectedFile);
 
   const {
