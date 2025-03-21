@@ -165,7 +165,9 @@ const ToolsGrid = () => {
       description: "Traduce PDF de español a inglés con IA",
       icon: Languages,
       to: "/tools/translate",
-      category: "avanzadas"
+      category: "avanzadas",
+      maintenance: true,
+      isNew: true
     },
     {
       title: "Comparar PDFs",
@@ -182,7 +184,8 @@ const ToolsGrid = () => {
       icon: History,
       to: "/historial",
       isNew: true,
-      category: "avanzadas"
+      category: "avanzadas",
+      maintenance: true
     }
   ];
 
