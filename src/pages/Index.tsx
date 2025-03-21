@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -163,6 +162,7 @@ const Index = () => {
               icon={FileSearch}
               to="/tools/watermark"
               className="h-full"
+              isNew={true}
             />
           </motion.div>
           
