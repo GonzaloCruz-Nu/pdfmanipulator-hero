@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
+import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
 import { useSimpleConvertPDF } from '@/hooks/useSimpleConvertPDF';
@@ -36,6 +37,8 @@ const ConvertPDF = () => {
 
   return (
     <Layout>
+      <Header />
+      
       <div className="container px-4 py-8 mx-auto">
         <ConversionHeader />
 
