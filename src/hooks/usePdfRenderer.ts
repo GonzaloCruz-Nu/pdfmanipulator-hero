@@ -113,6 +113,8 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       
       // Set page URL and update current page
       const newPageUrl = canvas.toDataURL('image/jpeg', 0.9);
+      
+      // Only update state if still on the same component render
       setPageUrl(newPageUrl);
       setCurrentPage(pageNum);
       
@@ -125,7 +127,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     }
   };
 
-  // Nueva función para renderizar miniaturas de páginas
+  // Render thumbnail of pages
   const renderThumbnail = async (pageNum: number, rotation = 0): Promise<string | null> => {
     try {
       if (!pdfDocument) return null;
@@ -177,7 +179,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     }
   };
   
-  const reloadCurrentPage = (rotation = 0) => {
+  const reloadCurrentPage = (rotation = currentRotation) => {
     if (pdfDocument) {
       renderPage(pdfDocument, currentPage, rotation);
     }
