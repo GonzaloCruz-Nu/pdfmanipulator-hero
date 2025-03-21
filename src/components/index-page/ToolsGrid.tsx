@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -128,7 +129,9 @@ const ToolsGrid = () => {
       description: "Oculta información sensible en tus documentos",
       icon: EyeOff,
       to: "/tools/censor",
-      category: "edicion"
+      category: "edicion",
+      maintenance: true,
+      isNew: true
     },
     {
       title: "Extraer Imágenes",
