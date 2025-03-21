@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import { useTranslatePDF } from '@/hooks/useTranslatePDF';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // API Key proporcionada por CoHispania - Nota: normalmente esto debería estar en una variable de entorno segura
 const OPENAI_API_KEY = "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";
@@ -19,12 +20,16 @@ const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
   const [translationStarted, setTranslationStarted] = useState(false);
+  const [useOcr, setUseOcr] = useState(true); // Por defecto, usamos OCR
+  const [debugMode, setDebugMode] = useState(false);
+  
   const { 
     translatePDF, 
     isProcessing, 
     progress, 
     translatedFile,
-    downloadTranslatedFile
+    downloadTranslatedFile,
+    lastError
   } = useTranslatePDF();
 
   // Effect to auto-switch to results tab when translation is complete
@@ -66,8 +71,8 @@ const TranslatePDF = () => {
 
     try {
       setTranslationStarted(true);
-      console.log("Iniciando proceso de traducción...");
-      const result = await translatePDF(pdfFile, OPENAI_API_KEY);
+      console.log("Iniciando proceso de traducción con OCR:", useOcr);
+      const result = await translatePDF(pdfFile, OPENAI_API_KEY, useOcr);
       
       if (result.success && result.file) {
         console.log("Traducción completada exitosamente");
@@ -130,9 +135,43 @@ const TranslatePDF = () => {
             
             <TabsContent value="preview" className="pt-4">
               {pdfFile && (
-                <div className="border rounded-lg overflow-hidden h-[500px]">
-                  <PdfPreview file={pdfFile} />
-                </div>
+                <>
+                  <div className="flex items-center mb-4 space-x-2">
+                    <label className="text-sm font-medium flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={useOcr} 
+                        onChange={(e) => setUseOcr(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span>Usar OCR para mejorar la extracción de texto</span>
+                    </label>
+                    <div className="ml-auto">
+                      <label className="text-xs text-muted-foreground flex items-center space-x-1">
+                        <input 
+                          type="checkbox" 
+                          checked={debugMode} 
+                          onChange={(e) => setDebugMode(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <span>Modo debug</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {useOcr && (
+                    <Alert className="mb-4">
+                      <AlertDescription>
+                        El modo OCR permite extraer texto de PDFs escaneados o que contienen principalmente imágenes.
+                        La traducción puede tardar más tiempo, pero será más precisa.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <div className="border rounded-lg overflow-hidden h-[500px]">
+                    <PdfPreview file={pdfFile} />
+                  </div>
+                </>
               )}
             </TabsContent>
             
@@ -165,8 +204,18 @@ const TranslatePDF = () => {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2">
-                Este proceso puede tardar varios minutos dependiendo del tamaño del documento.
+                {useOcr 
+                  ? "Este proceso puede tardar varios minutos debido al procesamiento OCR y la traducción."
+                  : "Este proceso puede tardar varios minutos dependiendo del tamaño del documento."
+                }
               </p>
+              
+              {debugMode && lastError && (
+                <div className="mt-4 p-3 bg-red-50 text-red-800 rounded text-xs">
+                  <p className="font-semibold">Error:</p>
+                  <pre className="overflow-auto max-h-32 whitespace-pre-wrap">{lastError}</pre>
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-6">
@@ -185,10 +234,9 @@ const TranslatePDF = () => {
           <h2 className="text-lg font-medium mb-4">Notas importantes</h2>
           <ul className="list-disc list-inside space-y-2 text-muted-foreground">
             <li>La calidad de la traducción depende del contenido y la estructura del PDF.</li>
-            <li>PDFs con texto escaneado o de baja calidad pueden no traducirse correctamente.</li>
+            <li>Activar el modo OCR permite extraer texto de PDFs escaneados o con imágenes.</li>
             <li>La traducción mantiene el formato, imágenes y estructura original del PDF.</li>
             <li>La traducción de documentos grandes puede consumir gran cantidad de créditos de la API.</li>
-            <li>La herramienta funciona mejor con PDFs que contienen texto reconocible digitalmente.</li>
             <li>Si experimenta errores durante la traducción, intente con un PDF más pequeño o contacte con soporte.</li>
           </ul>
         </div>

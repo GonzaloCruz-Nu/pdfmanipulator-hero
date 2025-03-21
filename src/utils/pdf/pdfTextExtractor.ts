@@ -250,4 +250,3 @@ export const detectHeadings = (text: string): { isHeading: boolean; level: 1 | 2
   
   return { isHeading: false, level: null }; // Texto normal
 };
-

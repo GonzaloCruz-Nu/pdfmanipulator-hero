@@ -5,6 +5,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import { extractTextFromPDF } from '@/utils/pdf/pdfTextExtractor';
 import { saveAs } from 'file-saver';
 import * as pdfjsLib from 'pdfjs-dist';
+import { verificarContenidoExtraible } from '@/utils/pdf/fileOperations';
 
 // Ensure PDF.js worker is set
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -19,6 +20,7 @@ export const useTranslatePDF = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [translatedFile, setTranslatedFile] = useState<File | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   /**
    * Divide el texto en chunks para no exceder los límites de la API de OpenAI
@@ -85,6 +87,65 @@ export const useTranslatePDF = () => {
   };
 
   /**
+   * Procesa texto con OCR utilizando la API de OpenAI
+   */
+  const processOCRWithOpenAI = async (imageData: string | ArrayBuffer, apiKey: string): Promise<string> => {
+    try {
+      // Convertir imageData a base64 si es ArrayBuffer
+      let base64Image;
+      if (imageData instanceof ArrayBuffer) {
+        const uint8Array = new Uint8Array(imageData);
+        const binary = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+        base64Image = btoa(binary);
+      } else {
+        // Ya es base64
+        base64Image = imageData.split(',')[1];
+      }
+
+      console.log(`Enviando imagen para OCR (tamaño aproximado: ${Math.round(base64Image.length / 1024)} KB)`);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o', // Modelo con capacidad OCR
+          messages: [
+            {
+              role: 'system',
+              content: 'Eres un sistema de OCR preciso que extrae y transcribe texto de imágenes o documentos escaneados en español. Mantén exactamente el formato original con los espacios, saltos de línea y estructura del documento.'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Extrae y transcribe TODO el texto visible de esta imagen o documento manteniendo el formato exacto. No omitas ningún texto visible, incluso si está en los bordes o es pequeño.' },
+                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+              ]
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 4096
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error respuesta API OpenAI (OCR):", errorData);
+        throw new Error(`Error de API OCR: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("OCR completado correctamente");
+      return data.choices[0].message.content.trim();
+    } catch (error) {
+      console.error(`Error en procesamiento OCR:`, error);
+      throw error;
+    }
+  };
+
+  /**
    * Traduce texto utilizando la API de OpenAI con lógica de reintento
    */
   const translateTextWithOpenAI = async (text: string, apiKey: string, retryCount = 0): Promise<string> => {
@@ -140,9 +201,44 @@ export const useTranslatePDF = () => {
   };
 
   /**
+   * Convertir una página de PDF a imagen para OCR
+   */
+  const convertPdfPageToImage = async (pdfBytes: Uint8Array, pageNum: number): Promise<string> => {
+    try {
+      const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(pageNum);
+      
+      // Ajustar la escala para obtener una imagen de buena calidad para OCR
+      const viewport = page.getViewport({ scale: 2.0 });
+      
+      // Crear un canvas para renderizar la página
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { alpha: false });
+      if (!context) throw new Error('No se pudo crear el contexto 2D');
+      
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      // Renderizar la página en el canvas
+      await page.render({
+        canvasContext: context,
+        viewport: viewport
+      }).promise;
+      
+      // Convertir el canvas a una imagen data URL
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      return imageDataUrl;
+    } catch (error) {
+      console.error(`Error al convertir página ${pageNum} a imagen:`, error);
+      throw error;
+    }
+  };
+
+  /**
    * Procesa y traduce un archivo PDF
    */
-  const translatePDF = async (file: File, apiKey: string): Promise<TranslationResult> => {
+  const translatePDF = async (file: File, apiKey: string, useOcr: boolean = false): Promise<TranslationResult> => {
     if (!file) {
       toast.error('Por favor selecciona un archivo PDF');
       return { success: false, file: null, message: 'No se seleccionó ningún archivo' };
@@ -154,31 +250,112 @@ export const useTranslatePDF = () => {
       return { success: false, file: null, message: 'El archivo no es un PDF válido' };
     }
 
+    setLastError(null);
+
     try {
       setIsProcessing(true);
-      setProgress(10);
+      setProgress(5);
       setTranslatedFile(null);
-      console.log('Iniciando traducción de PDF...', file.name);
+      console.log('Iniciando traducción de PDF...', file.name, 'Modo OCR:', useOcr);
 
       // Cargar PDF como ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       const pdfData = new Uint8Array(arrayBuffer);
-      setProgress(20);
+      setProgress(10);
 
-      // Extraer texto del PDF manteniendo la información de posición
-      console.log("Extrayendo texto del PDF...");
-      const { pageContents, totalTextExtracted, numPages } = await extractTextFromPDF(
-        pdfData,
-        (newProgress) => setProgress(Math.min(20 + Math.floor(newProgress * 0.3), 50))
-      );
-      
-      setProgress(50);
-      console.log(`Texto extraído: ${totalTextExtracted} caracteres en ${numPages} páginas`);
-      
-      if (totalTextExtracted === 0) {
-        throw new Error('No se pudo extraer texto del PDF. Es posible que sea un documento escaneado sin OCR.');
+      // PASO 1: Extraer texto del PDF (con o sin OCR)
+      let pageContents = [];
+      let totalTextExtracted = 0;
+      let numPages = 0;
+
+      if (useOcr) {
+        // ENFOQUE CON OCR
+        console.log("Utilizando OCR para extraer texto...");
+        try {
+          // Cargar el documento para obtener el número de páginas
+          const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+          const pdf = await loadingTask.promise;
+          numPages = pdf.numPages;
+          console.log(`PDF cargado: ${numPages} páginas`);
+          
+          // Procesar cada página con OCR
+          pageContents = [];
+          
+          for (let i = 1; i <= numPages; i++) {
+            console.log(`Procesando página ${i} con OCR...`);
+            setProgress(10 + Math.floor((i / numPages) * 40));
+            
+            try {
+              // Convertir página a imagen
+              const imageDataUrl = await convertPdfPageToImage(pdfData, i);
+              console.log(`Página ${i} convertida a imagen`);
+              
+              // Procesar imagen con OCR
+              const extractedText = await processOCRWithOpenAI(imageDataUrl, apiKey);
+              console.log(`OCR completado para página ${i}: ${extractedText.length} caracteres`);
+              
+              totalTextExtracted += extractedText.length;
+              pageContents.push({
+                text: extractedText,
+                pageNum: i,
+                hasImages: true,
+                textItems: [] // No usamos textItems en modo OCR
+              });
+            } catch (pageError) {
+              console.error(`Error en OCR para página ${i}:`, pageError);
+              pageContents.push({
+                text: `[Error en OCR para página ${i}]`,
+                pageNum: i,
+                hasImages: true,
+                textItems: []
+              });
+            }
+          }
+          
+        } catch (ocrError) {
+          console.error("Error en procesamiento OCR:", ocrError);
+          setLastError(`Error en OCR: ${ocrError instanceof Error ? ocrError.message : String(ocrError)}`);
+          throw new Error(`Error en procesamiento OCR: ${ocrError instanceof Error ? ocrError.message : 'Error desconocido'}`);
+        }
+      } else {
+        // ENFOQUE TRADICIONAL (sin OCR)
+        console.log("Extrayendo texto del PDF (método tradicional)...");
+        try {
+          const extractionResult = await extractTextFromPDF(
+            pdfData,
+            (newProgress) => setProgress(Math.min(10 + Math.floor(newProgress * 0.4), 50))
+          );
+          
+          pageContents = extractionResult.pageContents;
+          totalTextExtracted = extractionResult.totalTextExtracted;
+          numPages = extractionResult.numPages;
+          
+          console.log(`Texto extraído: ${totalTextExtracted} caracteres en ${numPages} páginas`);
+        } catch (extractError) {
+          console.error("Error al extraer texto:", extractError);
+          setLastError(`Error extracción: ${extractError instanceof Error ? extractError.message : String(extractError)}`);
+          throw new Error(`Error al extraer texto: ${extractError instanceof Error ? extractError.message : 'Error desconocido'}`);
+        }
       }
       
+      // Verificar si se extrajo suficiente texto
+      if (totalTextExtracted === 0) {
+        const errorMsg = 'No se pudo extraer texto del PDF. Intente usar el modo OCR o con un documento PDF que contenga texto extraíble.';
+        setLastError(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // Verificar calidad del contenido extraído
+      const verificacion = verificarContenidoExtraible(file.size, totalTextExtracted);
+      if (!verificacion.extraible && !useOcr) {
+        console.warn(verificacion.mensaje);
+        toast.warning(verificacion.mensaje + " Se recomienda usar el modo OCR para mejores resultados.");
+      }
+      
+      setProgress(50);
+      
+      // PASO 2: TRADUCIR EL TEXTO
+      console.log("Comenzando traducción de texto...");
       // Preparar texto para traducción manteniendo separación por páginas
       const textsByPage: string[] = pageContents.map(page => page.text);
       
@@ -206,6 +383,7 @@ export const useTranslatePDF = () => {
             translatedChunks.push(translatedChunk);
           } catch (error) {
             console.error(`Error al traducir fragmento ${j + 1} de la página ${i + 1}:`, error);
+            setLastError(`Error traducción: ${error instanceof Error ? error.message : String(error)}`);
             
             // Si falla, mantener el texto original para preservar el contenido
             translatedChunks.push(chunk);
@@ -226,7 +404,7 @@ export const useTranslatePDF = () => {
       
       console.log('Traducción completada, procesando documento final...');
       
-      // ---- IMPROVED PDF GENERATION APPROACH ----
+      // PASO 3: GENERAR PDF FINAL
       try {
         console.log("Generando nuevo PDF con traducción...");
         // Use pdf-lib to load the original PDF
@@ -270,7 +448,7 @@ export const useTranslatePDF = () => {
               y: 50,
               width: page.getWidth() - 100,
               height: page.getHeight() - 100,
-              color: rgb(1, 1, 1),  // White with r, g, b values between 0-1
+              color: rgb(1, 1, 1),  // White color
               opacity: 0.4,
               borderColor: rgb(0, 0, 0),
               borderWidth: 0,
@@ -291,6 +469,7 @@ export const useTranslatePDF = () => {
             console.log(`Texto traducido agregado a la página ${i+1}`);
           } catch (pageError) {
             console.error(`Error al procesar la página ${i} para traducción:`, pageError);
+            setLastError(`Error página ${i+1}: ${pageError instanceof Error ? pageError.message : String(pageError)}`);
             // Continue with other pages if one fails
           }
         }
@@ -301,7 +480,7 @@ export const useTranslatePDF = () => {
         console.log(`PDF generado: ${pdfBytes.length} bytes`);
         
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-        console.log("PDF Blob creado correctamente");
+        console.log("PDF Blob creado correctamente:", pdfBlob.size, "bytes");
         
         // Create file for download
         const translatedFileName = file.name.replace(/.pdf$/i, '_translated.pdf');
@@ -319,6 +498,7 @@ export const useTranslatePDF = () => {
         };
       } catch (pdfError) {
         console.error('Error al procesar el PDF final:', pdfError);
+        setLastError(`Error PDF final: ${pdfError instanceof Error ? pdfError.message : String(pdfError)}`);
         throw new Error(`Error al generar el PDF final: ${pdfError instanceof Error ? pdfError.message : 'Error desconocido'}`);
       }
     } catch (error) {
@@ -354,6 +534,7 @@ export const useTranslatePDF = () => {
     isProcessing,
     progress,
     translatedFile,
-    downloadTranslatedFile
+    downloadTranslatedFile,
+    lastError
   };
 };
