@@ -1,158 +1,140 @@
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
-import Header from '@/components/Header';
-import { useConvertPDF } from '@/hooks/useConvertPDF';
+import { FileUpload } from '@/components/FileUpload';
+import { Button } from '@/components/ui/button';
 import { useSimpleConvertPDF } from '@/hooks/useSimpleConvertPDF';
-import ConversionHeader from '@/components/convert-pdf/ConversionHeader';
-import ConversionForm from '@/components/convert-pdf/ConversionForm';
-import ConversionResults from '@/components/convert-pdf/ConversionResults';
+import { Progress } from '@/components/ui/progress';
 import PreviewPanel from '@/components/convert-pdf/PreviewPanel';
+import ConversionHeader from '@/components/convert-pdf/ConversionHeader';
+import { Copy, Download, FileText } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ConvertPDF = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [conversionStarted, setConversionStarted] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('standard'); // Cambiado a standard por defecto
-  
-  const { 
-    convertPDF, 
-    isProcessing, 
-    progress, 
-    convertedFiles,
-    downloadConvertedFiles
-  } = useConvertPDF();
-  
-  // Añadimos el hook del conversor simplificado
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const {
-    convertPDF: convertPDFSimple,
-    isProcessing: isProcessingSimple,
-    progress: progressSimple,
-    convertedFiles: convertedFilesSimple,
-    downloadConvertedFiles: downloadConvertedFilesSimple
+    extractTextFromPDFWithOCR,
+    isProcessing,
+    progress,
+    extractedText,
+    copyToClipboard,
+    downloadAsTextFile
   } = useSimpleConvertPDF();
-
-  // Reset state when a new file is selected
-  useEffect(() => {
-    setConversionStarted(false);
-    setErrorMessage(null);
-  }, [file]);
 
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
-      setFile(files[0]);
-      console.log('Archivo seleccionado:', files[0].name, 'tamaño:', (files[0].size / 1024 / 1024).toFixed(2), 'MB');
-    } else {
-      setFile(null);
+      setSelectedFile(files[0]);
     }
   };
 
-  const handleConvert = async () => {
-    if (file) {
-      try {
-        setConversionStarted(true);
-        setErrorMessage(null);
-        console.log('Iniciando conversión para:', file.name, 'modo:', conversionMode);
-        
-        // Elegir el método de conversión según el modo
-        let result;
-        if (conversionMode === 'simple') {
-          result = await convertPDFSimple(file);
-        } else {
-          result = await convertPDF(file, 'docx');
-        }
-        
-        console.log('Resultado de conversión:', result);
-        
-        if (result.success) {
-          // Mostrar tamaño en KB para archivos pequeños
-          const fileSize = result.files[0].size;
-          const fileSizeFormatted = fileSize > 1024 * 1024 
-            ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
-            : (fileSize / 1024).toFixed(2) + ' KB';
-            
-          if (fileSize < 20000 && file.size > 200000) {
-            toast.warning(`El documento Word generado es muy pequeño (${fileSizeFormatted}). El PDF probablemente contiene principalmente imágenes o texto no extraíble.`);
-          } else if (fileSize < 50000 && file.size > 500000) {
-            toast.warning(`El documento Word (${fileSizeFormatted}) es considerablemente más pequeño que el PDF original. Algunas imágenes o elementos complejos pueden no haberse convertido.`);
-          } else {
-            toast.success(`PDF convertido exitosamente a Word (${fileSizeFormatted})`);
-          }
-          console.log('Conversión completada correctamente, resultado:', result);
-        } else {
-          setErrorMessage(result.message || 'Error desconocido en la conversión');
-          toast.error(result.message || 'Error al convertir PDF');
-          console.error('Error de conversión:', result.message);
-        }
-      } catch (error) {
-        console.error('Error de conversión:', error);
-        const errorMsg = error instanceof Error ? error.message : 'Error desconocido durante la conversión';
-        setErrorMessage(errorMsg);
-        toast.error('Error al convertir PDF a Word: ' + errorMsg);
-      }
-    } else {
-      toast.error('Por favor selecciona un archivo PDF');
-    }
+  const handleProcessPDF = async () => {
+    if (!selectedFile) return;
+    await extractTextFromPDFWithOCR(selectedFile);
   };
-
-  // Devuelve los valores activos según el modo de conversión
-  const getActiveValues = () => {
-    if (conversionMode === 'simple') {
-      return {
-        isProcessing: isProcessingSimple,
-        progress: progressSimple,
-        convertedFiles: convertedFilesSimple,
-        downloadConvertedFiles: downloadConvertedFilesSimple
-      };
-    } else {
-      return {
-        isProcessing,
-        progress,
-        convertedFiles,
-        downloadConvertedFiles
-      };
-    }
-  };
-
-  const activeValues = getActiveValues();
 
   return (
     <Layout>
-      <Header />
-      
-      <div className="py-8">
-        <ConversionHeader />
+      <div className="container px-4 py-8 mx-auto">
+        <ConversionHeader
+          title="Extraer texto de PDF (OCR)"
+          description="Extrae texto de tus documentos PDF utilizando tecnología de reconocimiento óptico de caracteres (OCR)."
+        />
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <ConversionForm 
-              file={file}
-              isProcessing={activeValues.isProcessing}
-              progress={activeValues.progress}
-              onFileSelected={handleFileSelected}
-              onConvert={handleConvert}
-              conversionMode={conversionMode}
-              onModeChange={setConversionMode}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">1. Selecciona un PDF</h2>
+              <FileUpload
+                onFilesSelected={handleFileSelected}
+                acceptedFileTypes={[".pdf"]}
+                maxFiles={1}
+                maxSize={15}
+                disabled={isProcessing}
+              />
+            </Card>
 
-            <ConversionResults 
-              convertedFiles={activeValues.convertedFiles}
-              originalFile={file}
-              onDownload={activeValues.downloadConvertedFiles}
-              errorMessage={errorMessage}
-              conversionStarted={conversionStarted}
-              isProcessing={activeValues.isProcessing}
-            />
-          </motion.div>
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold mb-4">2. Extraer texto</h2>
+              <Button 
+                onClick={handleProcessPDF} 
+                disabled={!selectedFile || isProcessing}
+                className="w-full"
+              >
+                <FileText className="mr-2 h-4 w-4" /> 
+                {isProcessing ? 'Procesando...' : 'Extraer texto del PDF'}
+              </Button>
+              
+              {isProcessing && (
+                <div className="mt-4 space-y-2">
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-sm text-muted-foreground text-center">{progress}% completado</p>
+                </div>
+              )}
+            </Card>
 
-          <PreviewPanel file={file} />
+            {extractedText && (
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">3. Obtener el texto extraído</h2>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={copyToClipboard}
+                    className="flex-1"
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Copiar al portapapeles
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={downloadAsTextFile}
+                    className="flex-1"
+                  >
+                    <Download className="mr-2 h-4 w-4" /> Descargar como TXT
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            {selectedFile ? (
+              <Tabs defaultValue="preview" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="preview">Vista previa</TabsTrigger>
+                  <TabsTrigger value="extracted" disabled={!extractedText}>Texto extraído</TabsTrigger>
+                </TabsList>
+                <TabsContent value="preview" className="mt-4">
+                  <PreviewPanel file={selectedFile} />
+                </TabsContent>
+                <TabsContent value="extracted" className="mt-4">
+                  {extractedText ? (
+                    <Card className="h-[500px] p-4">
+                      <ScrollArea className="h-full">
+                        <pre className="whitespace-pre-wrap font-mono text-sm">
+                          {extractedText}
+                        </pre>
+                      </ScrollArea>
+                    </Card>
+                  ) : (
+                    <Card className="h-[500px] flex items-center justify-center">
+                      <p className="text-muted-foreground">
+                        Procesa el PDF para ver el texto extraído
+                      </p>
+                    </Card>
+                  )}
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <Card className="h-[500px] flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p className="mb-2">Selecciona un archivo PDF para comenzar</p>
+                  <p className="text-sm">Soportamos archivos de hasta 15MB</p>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
