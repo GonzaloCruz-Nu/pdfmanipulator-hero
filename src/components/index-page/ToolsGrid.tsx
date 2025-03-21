@@ -152,7 +152,7 @@ const ToolsGrid = () => {
             icon={Languages}
             to="/tools/translate"
             className="h-full"
-            maintenance={true}
+            maintenance={false}
             isNew={true}
           />
         </motion.div>
@@ -164,7 +164,7 @@ const ToolsGrid = () => {
             icon={FileLock}
             to="/tools/protect"
             className="h-full"
-            maintenance={true}
+            maintenance={false}
             isNew={true}
           />
         </motion.div>
