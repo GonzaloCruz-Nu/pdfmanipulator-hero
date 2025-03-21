@@ -1,18 +1,15 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileLock, File, Download, Shield, Info, Construction } from 'lucide-react';
+import { FileLock, File } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
-import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useProtectPDF } from '@/hooks/useProtectPDF';
-import PdfPreview from '@/components/PdfPreview';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import ProtectHeader from '@/components/protect-pdf/ProtectHeader';
+import ProtectUpload from '@/components/protect-pdf/ProtectUpload';
+import ProtectSettings from '@/components/protect-pdf/ProtectSettings';
+import ProtectResults from '@/components/protect-pdf/ProtectResults';
 
 const ProtectPDF = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -60,33 +57,7 @@ const ProtectPDF = () => {
       <Header />
       
       <div className="container py-12 max-w-4xl mx-auto">
-        <motion.div 
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Proteger PDF</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Añade contraseñas y restricciones de seguridad a tus documentos PDF. Toda la operación
-            se realiza en tu navegador sin enviar datos a servidores externos.
-          </p>
-        </motion.div>
-
-        <Alert className="mb-6 bg-amber-50 border-amber-200">
-          <Construction className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            Esta herramienta se encuentra temporalmente en mantenimiento. Estamos trabajando para mejorar sus funcionalidades y rendimiento. 
-            Disculpe las molestias.
-          </AlertDescription>
-        </Alert>
-
-        <Alert className="mb-6">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            La funcionalidad de protección con contraseña está temporalmente desactivada mientras trabajamos en mejorarla.
-          </AlertDescription>
-        </Alert>
+        <ProtectHeader />
 
         <div className="grid grid-cols-1 gap-8">
           <motion.div
@@ -101,112 +72,24 @@ const ProtectPDF = () => {
             </div>
 
             <div className="space-y-6">
-              <div>
-                <Label htmlFor="file">1. Selecciona el PDF a procesar</Label>
-                <FileUpload
-                  onFilesSelected={handleFilesSelected}
-                  multiple={false}
-                  accept=".pdf"
-                  maxFiles={1}
-                  maxSize={100} // 100 MB
-                />
-              </div>
+              <ProtectUpload onFilesSelected={handleFilesSelected} />
 
               {file && (
                 <>
-                  <div className="space-y-3">
-                    <Label htmlFor="userPassword">2. Configura la protección</Label>
-                    
-                    <div className="p-4 border rounded-md space-y-4 opacity-70">
-                      <div className="space-y-2">
-                        <Label htmlFor="userPassword">Contraseña de usuario</Label>
-                        <Input
-                          id="userPassword"
-                          type="password"
-                          placeholder="Contraseña para abrir el documento"
-                          value={userPassword}
-                          onChange={(e) => setUserPassword(e.target.value)}
-                          disabled
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Esta contraseña será necesaria para abrir el documento
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="useOwnerPassword" 
-                            checked={useOwnerPassword}
-                            onCheckedChange={(checked) => {
-                              setUseOwnerPassword(checked === true);
-                            }}
-                            disabled
-                          />
-                          <Label htmlFor="useOwnerPassword">Usar contraseña de propietario diferente</Label>
-                        </div>
-                        
-                        {useOwnerPassword && (
-                          <div className="space-y-2 mt-2">
-                            <Label htmlFor="ownerPassword">Contraseña de propietario</Label>
-                            <Input
-                              id="ownerPassword"
-                              type="password"
-                              placeholder="Contraseña para modificar permisos"
-                              value={ownerPassword}
-                              onChange={(e) => setOwnerPassword(e.target.value)}
-                              disabled
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Esta contraseña permitirá modificar la configuración de seguridad
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="border-t pt-4 mt-4">
-                        <Label className="mb-2 block">Permisos (con la contraseña de usuario)</Label>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="canPrint" 
-                              checked={canPrint}
-                              onCheckedChange={(checked) => {
-                                setCanPrint(checked === true);
-                              }}
-                              disabled
-                            />
-                            <Label htmlFor="canPrint">Permitir imprimir</Label>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="canCopy" 
-                              checked={canCopy}
-                              onCheckedChange={(checked) => {
-                                setCanCopy(checked === true);
-                              }}
-                              disabled
-                            />
-                            <Label htmlFor="canCopy">Permitir copiar texto</Label>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="canModify" 
-                              checked={canModify}
-                              onCheckedChange={(checked) => {
-                                setCanModify(checked === true);
-                              }}
-                              disabled
-                            />
-                            <Label htmlFor="canModify">Permitir modificar</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <ProtectSettings 
+                    userPassword={userPassword}
+                    setUserPassword={setUserPassword}
+                    ownerPassword={ownerPassword}
+                    setOwnerPassword={setOwnerPassword}
+                    useOwnerPassword={useOwnerPassword}
+                    setUseOwnerPassword={setUseOwnerPassword}
+                    canPrint={canPrint}
+                    setCanPrint={setCanPrint}
+                    canCopy={canCopy}
+                    setCanCopy={setCanCopy}
+                    canModify={canModify}
+                    setCanModify={setCanModify}
+                  />
                   
                   <div>
                     <Button 
@@ -225,47 +108,16 @@ const ProtectPDF = () => {
                     </Button>
                   </div>
                   
-                  {isProcessing && progress > 0 && (
-                    <Progress value={progress} className="h-2 mt-4" />
-                  )}
-                  
-                  {errorMessage && (
-                    <p className="text-sm text-destructive mt-2">{errorMessage}</p>
-                  )}
+                  <ProtectResults 
+                    isProcessing={isProcessing}
+                    progress={progress}
+                    errorMessage={errorMessage}
+                    protectedFile={protectedFile}
+                    showPreview={showPreview}
+                    togglePreview={togglePreview}
+                    downloadProtectedFile={downloadProtectedFile}
+                  />
                 </>
-              )}
-
-              {protectedFile && (
-                <div className="rounded-lg border p-4 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <File className="h-5 w-5 text-primary mr-2" />
-                      <div>
-                        <p className="font-medium">PDF procesado con éxito</p>
-                        <p className="text-sm text-muted-foreground">
-                          {protectedFile.name} ({(protectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={togglePreview}>
-                        {showPreview ? "Ocultar vista previa" : "Ver PDF"}
-                      </Button>
-                      <Button size="sm" onClick={downloadProtectedFile}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Descargar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {showPreview && protectedFile && (
-                <PdfPreview 
-                  file={protectedFile} 
-                  onClose={() => setShowPreview(false)}
-                  showEditor={false}
-                />
               )}
             </div>
           </motion.div>
