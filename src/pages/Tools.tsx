@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages, RotateCw, Stamp } from 'lucide-react';
+import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages, RotateCw, Stamp, MoveVertical } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -119,6 +118,28 @@ const Tools = () => {
               className="h-full"
             />
           </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Ordenar PDF"
+              description="Reordena las páginas de tus documentos PDF"
+              icon={MoveVertical}
+              to="/tools/sort"
+              className="h-full"
+              isNew={true}
+            />
+          </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Marca de Agua"
+              description="Añade marca de agua a tus documentos PDF"
+              icon={Stamp}
+              to="/tools/watermark"
+              className="h-full"
+              isNew={true}
+            />
+          </motion.div>
 
           <motion.div variants={fadeInUp}>
             <ToolCard
@@ -140,17 +161,6 @@ const Tools = () => {
               to="/tools/protect"
               className="h-full"
               maintenance={true}
-              isNew={true}
-            />
-          </motion.div>
-          
-          <motion.div variants={fadeInUp}>
-            <ToolCard
-              title="Marca de Agua"
-              description="Añade marca de agua a tus documentos PDF"
-              icon={Stamp}
-              to="/tools/watermark"
-              className="h-full"
               isNew={true}
             />
           </motion.div>

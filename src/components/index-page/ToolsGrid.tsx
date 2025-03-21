@@ -3,7 +3,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Merge, Scissors, Zap, Unlock, FileCog, 
-  FileSearch, FileLock, RotateCcw, Languages 
+  FileSearch, FileLock, RotateCcw, Languages, 
+  Stamp, MoveVertical
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 
@@ -116,9 +117,20 @@ const ToolsGrid = () => {
         
         <motion.div variants={fadeInUp}>
           <ToolCard
+            title="Ordenar PDF"
+            description="Reordena las páginas de tus documentos"
+            icon={MoveVertical}
+            to="/tools/sort"
+            className="h-full"
+            isNew={true}
+          />
+        </motion.div>
+        
+        <motion.div variants={fadeInUp}>
+          <ToolCard
             title="Marca de Agua"
             description="Añade texto como marca de agua a tu PDF"
-            icon={FileSearch}
+            icon={Stamp}
             to="/tools/watermark"
             className="h-full"
             isNew={true}

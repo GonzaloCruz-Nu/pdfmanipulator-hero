@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCw, Stamp } from 'lucide-react';
+import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCw, Stamp, MoveVertical } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
@@ -117,6 +117,19 @@ const Wiki = () => {
                     Añade texto como marca de agua a tus documentos PDF.
                   </p>
                   <Link to="/wiki/watermark" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <MoveVertical className="h-5 w-5 mr-2 text-primary" />
+                    Ordenar PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Reordena las páginas de tus documentos PDF fácilmente.
+                  </p>
+                  <Link to="/wiki/sort" className="text-primary text-sm hover:underline">
                     Leer guía completa →
                   </Link>
                 </li>
