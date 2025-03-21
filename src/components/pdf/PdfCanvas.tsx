@@ -1,7 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { fabric } from 'fabric';
-import { useFabricCanvas } from '@/hooks/useFabricCanvas';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -12,9 +11,9 @@ interface PdfCanvasProps {
 }
 
 const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabricRef }) => {
-  const { canvas, canvasRef, containerRef } = useFabricCanvas({
-    onSelectionChange,
-  });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
   const [initialImgData, setInitialImgData] = useState<{
@@ -27,12 +26,78 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     height: 0
   });
 
+  // Initialize Fabric canvas
+  useEffect(() => {
+    if (!canvasRef.current || canvas) return;
+    
+    console.log("Initializing new Fabric canvas");
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      selection: true,
+    });
+    
+    setCanvas(fabricCanvas);
+    
+    // Handle selection changes
+    fabricCanvas.on('selection:created', () => onSelectionChange(true));
+    fabricCanvas.on('selection:updated', () => onSelectionChange(true));
+    fabricCanvas.on('selection:cleared', () => onSelectionChange(false));
+    
+    return () => {
+      console.log("Cleaning up Fabric canvas");
+      
+      // First remove all event listeners
+      try {
+        fabricCanvas.off();
+      } catch (error) {
+        console.error("Error removing canvas event listeners:", error);
+      }
+      
+      // Then dispose of the canvas
+      try {
+        fabricCanvas.dispose();
+      } catch (error) {
+        console.error("Error disposing canvas:", error);
+      }
+      
+      setCanvas(null);
+    };
+  }, []);
+
   // Pass canvas reference to parent component if needed
   useEffect(() => {
     if (canvas && fabricRef) {
       fabricRef.current = canvas;
     }
+    
+    return () => {
+      if (fabricRef) {
+        fabricRef.current = null;
+      }
+    };
   }, [canvas, fabricRef]);
+
+  // Update canvas size on window resize
+  useEffect(() => {
+    if (!canvas || !containerRef.current) return;
+    
+    const updateCanvasSize = () => {
+      if (!canvas || !containerRef.current) return;
+      
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      
+      canvas.setWidth(containerWidth);
+      canvas.setHeight(containerHeight);
+      canvas.renderAll();
+    };
+
+    window.addEventListener('resize', updateCanvasSize);
+    updateCanvasSize();
+
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+    };
+  }, [canvas]);
 
   // Display PDF when pageUrl changes
   useEffect(() => {
@@ -45,7 +110,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     
     // Load PDF image as background
     fabric.Image.fromURL(pageUrl, (img) => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || !canvas) return;
       
       const containerWidth = containerRef.current.clientWidth;
       const containerHeight = containerRef.current.clientHeight;
@@ -53,7 +118,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       console.log("Container dimensions:", containerWidth, containerHeight);
       console.log("Image dimensions:", img.width, img.height);
       
-      // Establecer dimensiones del canvas más grandes
+      // Set canvas dimensions
       canvas.setDimensions({
         width: containerWidth,
         height: containerHeight
@@ -66,8 +131,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
         height: img.height as number
       });
       
-      // Calcular escala para que el PDF ocupe más espacio
-      // Aumentamos el factor de escala para que se vea más grande
+      // Calculate scale for PDF to fill more space
       const scale = Math.min(
         (containerWidth * 0.85) / img.width!,
         (containerHeight * 0.85) / img.height!
@@ -95,10 +159,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
 
   // Apply zoom when zoom level changes for existing background
   useEffect(() => {
-    if (!canvas || !initialImgData.img) return;
-    
-    const background = canvas.backgroundImage;
-    if (!background) return;
+    if (!canvas || !initialImgData.img || !canvas.backgroundImage) return;
     
     if (!containerRef.current) return;
     const containerWidth = containerRef.current.clientWidth;
@@ -110,13 +171,13 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       (containerHeight * 0.85) / initialImgData.height
     ) * zoomLevel;
     
-    background.scale(scale);
+    canvas.backgroundImage.scale(scale);
     
     // Recenter the image
-    const leftPos = (containerWidth - background.getScaledWidth()) / 2;
-    const topPos = (containerHeight - background.getScaledHeight()) / 2;
+    const leftPos = (containerWidth - canvas.backgroundImage.getScaledWidth()) / 2;
+    const topPos = (containerHeight - canvas.backgroundImage.getScaledHeight()) / 2;
     
-    background.set({
+    canvas.backgroundImage.set({
       left: leftPos,
       top: topPos
     });
@@ -144,7 +205,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       lastPosY = evt.clientY;
       
       // Disable object selection while panning
-      if (isPanning) {
+      if (isPanning && canvas) {
         canvas.selection = false;
         canvas.discardActiveObject();
         canvas.forEachObject(function(obj) {
@@ -155,14 +216,16 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     };
 
     const handleMouseMove = (opt: fabric.IEvent) => {
-      if (!isDragging || !isPanning || !canvas.backgroundImage) return;
+      if (!isDragging || !isPanning || !canvas) return;
+      
+      const bg = canvas.backgroundImage;
+      if (!bg) return;
       
       const evt = opt.e as MouseEvent;
       const deltaX = evt.clientX - lastPosX;
       const deltaY = evt.clientY - lastPosY;
       
       // Move the background image
-      const bg = canvas.backgroundImage;
       bg.set({
         left: (bg.left || 0) + deltaX,
         top: (bg.top || 0) + deltaY
@@ -187,7 +250,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       isDragging = false;
       
       // Re-enable object selection after panning
-      if (isPanning) {
+      if (isPanning && canvas) {
         canvas.selection = true;
         canvas.forEachObject(function(obj) {
           obj.selectable = true;
@@ -196,14 +259,33 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       }
     };
 
-    canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
+    // Use safe event handlers that check if canvas still exists
+    const safeAddHandler = (eventName: string, handler: (e: fabric.IEvent) => void) => {
+      try {
+        canvas.on(eventName, handler);
+      } catch (error) {
+        console.error(`Error adding ${eventName} handler:`, error);
+      }
+    };
+
+    const safeRemoveHandler = (eventName: string, handler: (e: fabric.IEvent) => void) => {
+      try {
+        if (canvas) {
+          canvas.off(eventName, handler);
+        }
+      } catch (error) {
+        console.error(`Error removing ${eventName} handler:`, error);
+      }
+    };
+
+    safeAddHandler('mouse:down', handleMouseDown);
+    safeAddHandler('mouse:move', handleMouseMove);
+    safeAddHandler('mouse:up', handleMouseUp);
 
     return () => {
-      canvas.off('mouse:down', handleMouseDown);
-      canvas.off('mouse:move', handleMouseMove);
-      canvas.off('mouse:up', handleMouseUp);
+      safeRemoveHandler('mouse:down', handleMouseDown);
+      safeRemoveHandler('mouse:move', handleMouseMove);
+      safeRemoveHandler('mouse:up', handleMouseUp);
     };
   }, [canvas, isPanning]);
 
