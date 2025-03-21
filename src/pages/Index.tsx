@@ -125,19 +125,7 @@ const Index = () => {
               className="h-full"
             />
           </motion.div>
-
-          <motion.div variants={fadeInUp}>
-            <ToolCard
-              title="Proteger PDF"
-              description="Añade contraseñas a tus PDFs"
-              icon={FileLock}
-              to="/tools/protect"
-              className="h-full"
-              maintenance={true}
-              isNew={true}
-            />
-          </motion.div>
-
+          
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Rotar PDF"
@@ -170,10 +158,32 @@ const Index = () => {
           
           <motion.div variants={fadeInUp}>
             <ToolCard
+              title="Marca de Agua"
+              description="Añade texto como marca de agua a tu PDF"
+              icon={FileSearch}
+              to="/tools/watermark"
+              className="h-full"
+            />
+          </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
               title="Traducir PDF"
               description="Traduce PDF de español a inglés con IA"
               icon={Languages}
               to="/tools/translate"
+              className="h-full"
+              maintenance={true}
+              isNew={true}
+            />
+          </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Proteger PDF"
+              description="Añade contraseñas a tus PDFs"
+              icon={FileLock}
+              to="/tools/protect"
               className="h-full"
               maintenance={true}
               isNew={true}
