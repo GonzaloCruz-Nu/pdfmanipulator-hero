@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Cpu, Zap } from 'lucide-react';
+import { Shield, Cpu, Zap, Code } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 
@@ -23,12 +23,27 @@ const About = () => {
           </p>
         </motion.div>
 
+        <motion.div 
+          className="bg-white rounded-xl p-6 shadow-subtle mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.6 }}
+        >
+          <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
+            <Code className="h-6 w-6 text-naranja" />
+          </div>
+          <h2 className="text-xl font-bold mb-3">Desarrollo</h2>
+          <p className="text-muted-foreground">
+            Esta herramienta ha sido diseñada y programada íntegramente por el departamento de Sistemas e I+D de CoHispania.
+          </p>
+        </motion.div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <motion.div 
             className="bg-white rounded-xl p-6 shadow-subtle"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
           >
             <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
               <Shield className="h-6 w-6 text-naranja" />
@@ -44,7 +59,7 @@ const About = () => {
             className="bg-white rounded-xl p-6 shadow-subtle"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
           >
             <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
               <Cpu className="h-6 w-6 text-naranja" />
@@ -60,7 +75,7 @@ const About = () => {
             className="bg-white rounded-xl p-6 shadow-subtle"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
           >
             <div className="rounded-full bg-naranja/10 p-3 inline-block mb-4">
               <Zap className="h-6 w-6 text-naranja" />
