@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { usePdfCanvas } from '@/hooks/usePdfCanvas';
 import PdfCanvasControls from './PdfCanvasControls';
 import PdfPanningIndicator from './PdfPanningIndicator';
+import { fabric } from 'fabric';
 
 interface PdfCanvasProps {
   pageUrl: string | null;

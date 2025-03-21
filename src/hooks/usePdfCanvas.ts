@@ -28,18 +28,9 @@ export const usePdfCanvas = ({
     height: 0
   });
 
-  // Initialize Fabric canvas
+  // Initialize Fabric canvas with proper cleanup
   useEffect(() => {
     if (!canvasRef.current) return;
-    
-    // Clean up existing canvas first
-    if (canvas) {
-      try {
-        canvas.dispose();
-      } catch (err) {
-        console.error("Error disposing canvas:", err);
-      }
-    }
     
     console.log("Initializing new Fabric canvas");
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
@@ -61,14 +52,13 @@ export const usePdfCanvas = ({
     return () => {
       console.log("Cleaning up Fabric canvas in usePdfCanvas");
       
-      // First remove all event listeners
       try {
+        // First remove all event listeners
         fabricCanvas.off();
       } catch (error) {
         console.error("Error removing canvas event listeners:", error);
       }
       
-      // Then dispose of the canvas
       try {
         fabricCanvas.dispose();
       } catch (error) {
@@ -77,7 +67,7 @@ export const usePdfCanvas = ({
       
       setCanvas(null);
     };
-  }, [canvasRef.current]);
+  }, [onSelectionChange, onCanvasInitialized, canvasRef.current]);
 
   // Update canvas size on window resize
   useEffect(() => {
@@ -288,33 +278,16 @@ export const usePdfCanvas = ({
       }
     };
 
-    // Use safe event handlers that check if canvas still exists
-    const safeAddHandler = (eventName: string, handler: (e: fabric.IEvent) => void) => {
-      try {
-        canvas.on(eventName, handler);
-      } catch (error) {
-        console.error(`Error adding ${eventName} handler:`, error);
-      }
-    };
-
-    const safeRemoveHandler = (eventName: string, handler: (e: fabric.IEvent) => void) => {
-      try {
-        if (canvas) {
-          canvas.off(eventName, handler);
-        }
-      } catch (error) {
-        console.error(`Error removing ${eventName} handler:`, error);
-      }
-    };
-
-    safeAddHandler('mouse:down', handleMouseDown);
-    safeAddHandler('mouse:move', handleMouseMove);
-    safeAddHandler('mouse:up', handleMouseUp);
+    // Add event listeners
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
 
     return () => {
-      safeRemoveHandler('mouse:down', handleMouseDown);
-      safeRemoveHandler('mouse:move', handleMouseMove);
-      safeRemoveHandler('mouse:up', handleMouseUp);
+      // Remove event listeners
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
     };
   }, [canvas, isPanning]);
 
