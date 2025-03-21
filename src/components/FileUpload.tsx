@@ -6,24 +6,30 @@ import { cn } from '@/lib/utils';
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
   multiple?: boolean;
+  acceptedFileTypes?: string[];
   accept?: string;
   className?: string;
   maxFiles?: number;
+  maxSize?: number;
+  disabled?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
   onFilesSelected,
   multiple = true,
+  acceptedFileTypes = [".pdf"],
   accept = ".pdf",
   className,
   maxFiles = 10,
+  maxSize = 15,
+  disabled = false,
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = useCallback(
     (selectedFiles: FileList | null) => {
-      if (!selectedFiles) return;
+      if (!selectedFiles || disabled) return;
 
       const newFiles = Array.from(selectedFiles);
       if (multiple) {
@@ -35,13 +41,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onFilesSelected(newFiles.slice(0, 1));
       }
     },
-    [files, multiple, maxFiles, onFilesSelected]
+    [files, multiple, maxFiles, onFilesSelected, disabled]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
-  }, []);
+    if (!disabled) setIsDragging(true);
+  }, [disabled]);
 
   const handleDragLeave = useCallback(() => {
     setIsDragging(false);
@@ -51,19 +57,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragging(false);
-      handleFileChange(e.dataTransfer.files);
+      if (!disabled) handleFileChange(e.dataTransfer.files);
     },
-    [handleFileChange]
+    [handleFileChange, disabled]
   );
 
   const removeFile = useCallback(
     (index: number) => {
+      if (disabled) return;
       const newFiles = [...files];
       newFiles.splice(index, 1);
       setFiles(newFiles);
       onFilesSelected(newFiles);
     },
-    [files, onFilesSelected]
+    [files, onFilesSelected, disabled]
   );
 
   return (
@@ -73,9 +80,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "input-file",
-          isDragging && "input-file-dragging",
-          files.length > 0 && "h-40"
+          "input-file relative border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer transition-all hover:border-naranja",
+          {
+            "opacity-50 cursor-not-allowed": disabled,
+            "border-naranja bg-naranja/5": isDragging,
+            "h-40": files.length > 0
+          }
         )}
       >
         <input
@@ -84,6 +94,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           accept={accept}
           onChange={(e) => handleFileChange(e.target.files)}
           className="absolute inset-0 cursor-pointer opacity-0"
+          disabled={disabled}
         />
         <div className="flex flex-col items-center justify-center space-y-3">
           <div className="rounded-full bg-naranja/10 p-3">
@@ -120,6 +131,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   type="button"
                   onClick={() => removeFile(index)}
                   className="rounded-full p-1 text-muted-foreground hover:bg-naranja/10 hover:text-naranja"
+                  disabled={disabled}
                 >
                   <X className="h-4 w-4" />
                 </button>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
-import { FileUpload } from '@/components/FileUpload';
+import FileUpload from '@/components/FileUpload';
 import { Button } from '@/components/ui/button';
 import { useSimpleConvertPDF } from '@/hooks/useSimpleConvertPDF';
 import { Progress } from '@/components/ui/progress';
@@ -37,10 +37,7 @@ const ConvertPDF = () => {
   return (
     <Layout>
       <div className="container px-4 py-8 mx-auto">
-        <ConversionHeader
-          title="Extraer texto de PDF (OCR)"
-          description="Extrae texto de tus documentos PDF utilizando tecnología de reconocimiento óptico de caracteres (OCR)."
-        />
+        <ConversionHeader />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="space-y-6">
