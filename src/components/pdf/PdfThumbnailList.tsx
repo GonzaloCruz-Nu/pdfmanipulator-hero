@@ -7,13 +7,15 @@ interface PdfThumbnailListProps {
   currentPage: number;
   onPageSelect: (pageNumber: number) => void;
   className?: string;
+  isChangingPage?: boolean;
 }
 
 const PdfThumbnailList: React.FC<PdfThumbnailListProps> = ({
   pages,
   currentPage,
   onPageSelect,
-  className
+  className,
+  isChangingPage = false
 }) => {
   return (
     <div className={cn("flex flex-col h-full overflow-y-auto bg-gray-50 p-3", className)}>
@@ -27,7 +29,8 @@ const PdfThumbnailList: React.FC<PdfThumbnailListProps> = ({
             key={index}
             className={cn(
               "mb-3 cursor-pointer transition-all duration-150 flex flex-col items-center bg-white p-1",
-              currentPage === index + 1 ? "ring-2 ring-primary" : "ring-1 ring-gray-200 hover:ring-gray-300"
+              currentPage === index + 1 ? "ring-2 ring-primary" : "ring-1 ring-gray-200 hover:ring-gray-300",
+              isChangingPage && "opacity-50 pointer-events-none"
             )}
             onClick={() => onPageSelect(index + 1)}
           >

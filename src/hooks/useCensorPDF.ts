@@ -111,6 +111,15 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     toast.info('Censuras eliminadas');
   };
 
+  // Clean up canvas when changing files or unmounting
+  const cleanupCanvas = () => {
+    if (canvasRef.current) {
+      canvasRef.current.dispose();
+      canvasRef.current = null;
+      console.log("Canvas limpiado completamente");
+    }
+  };
+
   return {
     isProcessing,
     censoredFile,
@@ -119,6 +128,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     canvasRef,
     applyRedactions,
     downloadCensoredPDF,
-    resetCensor
+    resetCensor,
+    cleanupCanvas
   };
 };

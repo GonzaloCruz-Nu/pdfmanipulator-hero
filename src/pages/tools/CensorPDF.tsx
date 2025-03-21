@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -23,6 +22,7 @@ const CensorPDF = () => {
   const [size, setSize] = useState(5);
   const [hasSelection, setHasSelection] = useState(false);
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
+  const [isChangingPage, setIsChangingPage] = useState(false);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
@@ -45,7 +45,8 @@ const CensorPDF = () => {
     applyRedactions,
     downloadCensoredPDF,
     canvasRef: censorCanvasRef,
-    setActivePage
+    setActivePage,
+    cleanupCanvas
   } = useCensorPDF({ file: selectedFile });
 
   // Pass the fabricCanvas reference to the useCensorPDF hook
@@ -61,42 +62,46 @@ const CensorPDF = () => {
   // Cleanup and initialize canvas when the component unmounts or the file changes
   useEffect(() => {
     return () => {
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.dispose();
-        fabricCanvasRef.current = null;
-      }
+      cleanupCanvas();
     };
-  }, [selectedFile]);
+  }, [selectedFile, cleanupCanvas]);
 
   // Initialize Fabric canvas when the canvas reference is available
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    console.log("Inicializando canvas de fabric");
+    
     // Clean up previous canvas if it exists
     if (fabricCanvasRef.current) {
       fabricCanvasRef.current.dispose();
       fabricCanvasRef.current = null;
     }
 
-    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-      selection: true,
-    });
+    try {
+      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+        selection: true,
+      });
 
-    fabricCanvasRef.current = fabricCanvas;
+      fabricCanvasRef.current = fabricCanvas;
 
-    // Handle selection changes
-    fabricCanvas.on('selection:created', handleSelectionChange);
-    fabricCanvas.on('selection:updated', handleSelectionChange);
-    fabricCanvas.on('selection:cleared', handleSelectionChange);
-    
-    // Clean up when unmounting
-    return () => {
-      fabricCanvas.off('selection:created', handleSelectionChange);
-      fabricCanvas.off('selection:updated', handleSelectionChange);
-      fabricCanvas.off('selection:cleared', handleSelectionChange);
-      fabricCanvas.dispose();
-      fabricCanvasRef.current = null;
-    };
+      // Handle selection changes
+      fabricCanvas.on('selection:created', handleSelectionChange);
+      fabricCanvas.on('selection:updated', handleSelectionChange);
+      fabricCanvas.on('selection:cleared', handleSelectionChange);
+      
+      // Clean up when unmounting
+      return () => {
+        fabricCanvas.off('selection:created', handleSelectionChange);
+        fabricCanvas.off('selection:updated', handleSelectionChange);
+        fabricCanvas.off('selection:cleared', handleSelectionChange);
+        fabricCanvas.dispose();
+        fabricCanvasRef.current = null;
+      };
+    } catch (error) {
+      console.error("Error al inicializar canvas de fabric:", error);
+      toast.error("Error al preparar el editor. Intente de nuevo.");
+    }
   }, [canvasRef.current]);
 
   // Update canvas size on resize
@@ -124,12 +129,18 @@ const CensorPDF = () => {
   useEffect(() => {
     if (!fabricCanvasRef.current || !pageUrl) return;
     
-    // Clear existing content
+    console.log("Cargando imagen del PDF en el canvas, página:", currentPage);
+    
+    // Clear existing content but save the canvas object
     fabricCanvasRef.current.clear();
+    setIsChangingPage(false);
     
     // Load PDF image as background
     fabric.Image.fromURL(pageUrl, (img) => {
-      if (!canvasContainerRef.current || !fabricCanvasRef.current) return;
+      if (!canvasContainerRef.current || !fabricCanvasRef.current) {
+        console.error("Referencias perdidas al cargar la imagen del PDF");
+        return;
+      }
       
       const containerWidth = canvasContainerRef.current.clientWidth;
       const containerHeight = canvasContainerRef.current.clientHeight;
@@ -162,14 +173,16 @@ const CensorPDF = () => {
       });
       
       fabricCanvasRef.current.renderAll();
+      console.log("Imagen del PDF cargada correctamente en el canvas");
     }, { crossOrigin: 'anonymous' });
-  }, [pageUrl]);
+  }, [pageUrl, currentPage]);
 
   // Load thumbnails of all pages when PDF is loaded
   useEffect(() => {
     const loadAllPageThumbnails = async () => {
       if (!pdfDocument || totalPages === 0) return;
       
+      console.log("Cargando miniaturas de todas las páginas...");
       const pageUrls = [];
       
       for (let i = 1; i <= totalPages; i++) {
@@ -199,6 +212,7 @@ const CensorPDF = () => {
       }
       
       setPageRenderedUrls(pageUrls);
+      console.log(`${pageUrls.length} miniaturas cargadas correctamente`);
     };
     
     loadAllPageThumbnails();
@@ -212,14 +226,26 @@ const CensorPDF = () => {
   };
 
   const handlePageSelect = (pageNum: number) => {
+    if (isChangingPage || isLoading) return;
+    
     if (pdfDocument && pageNum >= 1 && pageNum <= totalPages) {
-      // Clean up and prepare for page change
+      // Set loading state
+      setIsChangingPage(true);
+      
+      // Clean up canvas objects (keep the canvas instance)
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.clear();
       }
       
       console.log(`Cambiando a la página ${pageNum}`);
-      renderPage(pdfDocument, pageNum);
+      
+      try {
+        renderPage(pdfDocument, pageNum);
+      } catch (error) {
+        console.error("Error al cambiar de página:", error);
+        toast.error("Error al cambiar de página. Intente de nuevo.");
+        setIsChangingPage(false);
+      }
     }
   };
 
@@ -366,16 +392,19 @@ const CensorPDF = () => {
                       pages={pageRenderedUrls}
                       currentPage={currentPage}
                       onPageSelect={handlePageSelect}
+                      isChangingPage={isChangingPage || isLoading}
                     />
                   </div>
                 )}
                 
                 {/* PDF content with censoring tools */}
                 <div className="flex-1 relative overflow-hidden">
-                  {isLoading ? (
+                  {isLoading || isChangingPage ? (
                     <div className="flex flex-col items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                      <p className="mt-2 text-sm text-muted-foreground">Cargando PDF...</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {isChangingPage ? 'Cambiando página...' : 'Cargando PDF...'}
+                      </p>
                     </div>
                   ) : error ? (
                     <div className="text-center p-4 text-red-500 h-full flex flex-col items-center justify-center">

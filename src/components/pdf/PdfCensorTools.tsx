@@ -26,6 +26,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
 
     canvas.isDrawingMode = false;
 
+    // Reset canvas selection options based on active tool
     switch (activeTool) {
       case 'select':
         canvas.selection = true;
@@ -114,7 +115,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     if (!canvas) return;
     
-    // Clean up previous event listeners
+    // Clean up previous event listeners to prevent duplicates
     canvas.off('mouse:down', handleCanvasMouseDown);
     
     // Add new event listener
