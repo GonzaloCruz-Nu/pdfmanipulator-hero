@@ -39,16 +39,15 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     canvasRef.current = canvas;
     
-    // Reset drawing state when canvas changes
     if (canvas) {
       console.log("Canvas reference changed in PdfCensorTools");
       isDrawingRef.current = false;
       
-      // Explicitly apply tool settings to the new canvas
-      applyToolSettings();
-      
-      // Force reattach event listeners
-      setupEventListeners();
+      // Delay to ensure canvas is ready before applying settings
+      setTimeout(() => {
+        applyToolSettings();
+        setupEventListeners();
+      }, 100);
     }
     
     return () => {
@@ -96,6 +95,15 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     
     canvasRef.current.renderAll();
   }, []);
+
+  // Handle tool changes
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    
+    console.log("Tool changed to:", activeTool);
+    applyToolSettings();
+    setupEventListeners();
+  }, [activeTool, color, size, applyToolSettings]);
 
   // Single function for rectangle drawing
   const handleRectangleDrawing = useCallback((e: fabric.IEvent) => {
@@ -217,14 +225,6 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     canvasRef.current.off('mouse:down', mouseDownHandlerRef.current);
     mouseDownHandlerRef.current = null;
   }, []);
-
-  // Handle tool changes
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    
-    applyToolSettings();
-    setupEventListeners();
-  }, [activeTool, color, size, applyToolSettings, setupEventListeners]);
 
   return null;
 };

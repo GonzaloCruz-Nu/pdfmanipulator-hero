@@ -16,8 +16,16 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   
   // Function to apply redactions to the PDF
   const applyRedactions = async () => {
-    if (!file || !canvasRef.current) {
+    if (!file) {
       toast.error('No hay documentos para censurar');
+      return;
+    }
+
+    console.log("Canvas reference when applying redactions:", canvasRef.current);
+    
+    if (!canvasRef.current) {
+      console.error("Canvas reference is null when trying to apply redactions");
+      toast.error('Error al aplicar censuras: No se pudo acceder al lienzo');
       return;
     }
 
@@ -28,6 +36,9 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // Get the current canvas with redaction areas
       const canvas = canvasRef.current;
       
+      // Log canvas objects to see if we have any censoring rectangles
+      console.log("Canvas objects to apply:", canvas.getObjects().length);
+      
       // Make sure all redaction objects are visible and rendered
       canvas.forEachObject(obj => {
         obj.visible = true;
@@ -37,7 +48,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       canvas.renderAll();
       
       // Small delay to ensure rendering is complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Create an image of the page with applied redactions
       const censoredPageDataUrl = canvas.toDataURL({
@@ -138,6 +149,12 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     }
   };
 
+  // Update canvas reference
+  const setCanvasReference = useCallback((canvas: fabric.Canvas | null) => {
+    console.log("Setting canvas reference in useCensorPDF", canvas ? "canvas provided" : "null canvas");
+    canvasRef.current = canvas;
+  }, []);
+
   // Safe canvas cleanup with proper error handling
   const cleanupCanvas = useCallback(() => {
     console.log("Executing canvas cleanup in useCensorPDF hook");
@@ -172,6 +189,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     activePage,
     setActivePage,
     canvasRef,
+    setCanvasReference,
     applyRedactions,
     downloadCensoredPDF,
     resetCensor,

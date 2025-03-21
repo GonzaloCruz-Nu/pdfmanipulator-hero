@@ -49,7 +49,7 @@ const CensorPDF = () => {
     censoredFile,
     applyRedactions,
     downloadCensoredPDF,
-    canvasRef: censorCanvasRef,
+    setCanvasReference,
     setActivePage,
     cleanupCanvas
   } = useCensorPDF({ file: selectedFile });
@@ -57,12 +57,6 @@ const CensorPDF = () => {
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
-
-  useEffect(() => {
-    if (fabricCanvasRef.current) {
-      censorCanvasRef.current = fabricCanvasRef.current;
-    }
-  }, [fabricCanvasRef.current]);
 
   useEffect(() => {
     console.log("Setting active page to:", currentPage);
@@ -88,11 +82,11 @@ const CensorPDF = () => {
   const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
     fabricCanvasRef.current = canvas;
-    censorCanvasRef.current = canvas;
+    setCanvasReference(canvas);
     setCanvasInitialized(true);
     
     setActiveTool('rectangle');
-  }, []);
+  }, [setCanvasReference]);
 
   useEffect(() => {
     const loadAllPageThumbnails = async () => {
@@ -222,14 +216,18 @@ const CensorPDF = () => {
   }, []);
 
   const handleApplyCensors = useCallback(() => {
+    console.log("Applying redactions, canvas ref:", fabricCanvasRef.current);
     if (fabricCanvasRef.current) {
-      console.log("Applying redactions...");
-      applyRedactions();
+      setCanvasReference(fabricCanvasRef.current);
+      // Small delay to ensure canvas reference is updated
+      setTimeout(() => {
+        applyRedactions();
+      }, 100);
     } else {
       console.error("No canvas reference available");
-      toast.error('No se pudo aplicar las censuras');
+      toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
     }
-  }, [applyRedactions]);
+  }, [applyRedactions, setCanvasReference]);
 
   return (
     <Layout>
@@ -287,16 +285,6 @@ const CensorPDF = () => {
                 >
                   {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
                 </Button>
-                
-                {censoredFile && (
-                  <Button 
-                    onClick={downloadCensoredPDF}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Descargar PDF censurado
-                  </Button>
-                )}
               </div>
             </div>
             
@@ -398,8 +386,17 @@ const CensorPDF = () => {
               </div>
             </div>
             
-            {censoredFile && (
-              <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-4">
+              <Button 
+                size="lg"
+                onClick={handleApplyCensors}
+                disabled={isProcessing}
+                className="bg-orange-500 hover:bg-orange-600 mr-4"
+              >
+                Aplicar censuras
+              </Button>
+              
+              {censoredFile && (
                 <Button 
                   size="lg"
                   onClick={downloadCensoredPDF}
@@ -408,8 +405,8 @@ const CensorPDF = () => {
                   <Download className="h-5 w-5 mr-2" />
                   Descargar PDF censurado
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
