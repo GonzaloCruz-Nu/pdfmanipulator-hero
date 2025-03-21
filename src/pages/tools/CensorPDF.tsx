@@ -258,7 +258,6 @@ const CensorPDF = () => {
     if (!fabricCanvasRef.current || !pageUrl) return;
     
     console.log("Loading PDF image into canvas, page:", currentPage);
-    setIsChangingPage(false);
     
     try {
       // Clear existing content without removing the canvas itself
@@ -305,6 +304,9 @@ const CensorPDF = () => {
         
         fabricCanvasRef.current.renderAll();
         console.log("PDF image loaded successfully into canvas");
+        
+        // Safe to mark page change as complete
+        setIsChangingPage(false);
       }, { crossOrigin: 'anonymous' });
     } catch (error) {
       console.error("Error loading PDF image:", error);
@@ -387,15 +389,15 @@ const CensorPDF = () => {
     }
   };
 
-  // Handle page selection
+  // Handle page selection - IMPROVED
   const handlePageSelect = async (pageNum: number) => {
-    if (isChangingPage || isLoading) {
-      console.log("Page change in progress, ignoring request");
+    if (pageNum === currentPage) {
+      console.log(`Already on page ${pageNum}`);
       return;
     }
     
-    if (pageNum === currentPage) {
-      console.log(`Already on page ${pageNum}`);
+    if (isChangingPage || isLoading) {
+      console.log("Page change in progress, ignoring request");
       return;
     }
     
@@ -407,26 +409,39 @@ const CensorPDF = () => {
     try {
       // Set loading state first
       setIsChangingPage(true);
+      
+      // Reset canvas state for the new page
       setCanvasInitialized(false);
-      toast.info(`Cambiando a la página ${pageNum}...`);
       
       console.log(`Changing to page ${pageNum}`);
       
-      // Safely clean up canvas
+      // Clean up current canvas to prevent memory leaks
       if (fabricCanvasRef.current) {
         try {
-          // Remove all event listeners first
+          console.log("Cleaning canvas before page change");
+          
+          // Remove all event listeners
           fabricCanvasRef.current.off();
           
           // Clear objects
           fabricCanvasRef.current.clear();
           
-          // Render to ensure clean state
-          fabricCanvasRef.current.renderAll();
+          // Dispose canvas
+          if (fabricCanvasRef.current.lowerCanvasEl) {
+            try {
+              fabricCanvasRef.current.dispose();
+              fabricCanvasRef.current = null;
+              console.log("Canvas disposed before page change");
+            } catch (error) {
+              console.error("Error disposing canvas before page change:", error);
+            }
+          }
         } catch (error) {
           console.error("Error cleaning canvas before page change:", error);
         }
       }
+      
+      toast.info(`Cambiando a la página ${pageNum}...`);
       
       // Render the new page
       await renderPage(pdfDocument, pageNum);
@@ -434,7 +449,6 @@ const CensorPDF = () => {
     } catch (error) {
       console.error("Error changing page:", error);
       toast.error("Error al cambiar de página. Intente de nuevo.");
-    } finally {
       setIsChangingPage(false);
     }
   };
