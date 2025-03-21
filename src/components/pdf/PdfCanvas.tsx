@@ -22,6 +22,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
+  const canvasInitializedRef = useRef(false);
   
   const {
     canvas,
@@ -38,7 +39,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
 
   // Initialize canvas when component mounts
   useEffect(() => {
-    if (!canvasElRef.current || !containerRef.current) return;
+    if (!canvasElRef.current || !containerRef.current || canvasInitializedRef.current) return;
     
     console.log("Initializing canvas in PdfCanvas component");
     const fabricCanvas = initializeCanvas(canvasElRef.current);
@@ -54,6 +55,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
       }
       
       setIsCanvasReady(true);
+      canvasInitializedRef.current = true;
     }
     
     return () => {
@@ -66,6 +68,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
       // Then clean up the canvas
       cleanup();
       setIsCanvasReady(false);
+      canvasInitializedRef.current = false;
     };
   }, [initializeCanvas, onCanvasInitialized, fabricRef, cleanup]);
 

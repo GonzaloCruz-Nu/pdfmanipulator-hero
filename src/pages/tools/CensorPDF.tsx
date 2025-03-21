@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Upload, Download, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { FileText, Upload, Download, Move } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ const CensorPDF = () => {
   
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const thumbnailsLoadedRef = useRef(false);
 
   const {
     currentPage,
@@ -78,21 +79,22 @@ const CensorPDF = () => {
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
+      thumbnailsLoadedRef.current = false;
     };
   }, [cleanupCanvas, selectedFile]);
 
   // Handle canvas initialization
-  const handleCanvasInitialized = (canvas: fabric.Canvas) => {
+  const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
     fabricCanvasRef.current = canvas;
     censorCanvasRef.current = canvas;
     setCanvasInitialized(true);
-  };
+  }, []);
 
   // Load all page thumbnails when PDF document is available
   useEffect(() => {
     const loadAllPageThumbnails = async () => {
-      if (!pdfDocument || totalPages === 0) return;
+      if (!pdfDocument || totalPages === 0 || thumbnailsLoadedRef.current) return;
       
       console.log("Loading thumbnails for all pages...");
       const pageUrls = [];
@@ -109,6 +111,7 @@ const CensorPDF = () => {
       }
       
       setPageRenderedUrls(pageUrls);
+      thumbnailsLoadedRef.current = true;
       console.log(`${pageUrls.length} thumbnails loaded successfully`);
     };
     
@@ -133,6 +136,7 @@ const CensorPDF = () => {
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setPageRenderedUrls([]);
+      thumbnailsLoadedRef.current = false;
       
       // Set the new file
       setSelectedFile(files[0]);
@@ -140,8 +144,8 @@ const CensorPDF = () => {
     }
   };
 
-  // Handle page selection
-  const handlePageSelect = async (pageNum: number) => {
+  // Handle page selection - memoized to avoid recreating on every render
+  const handlePageSelect = useCallback(async (pageNum: number) => {
     if (pageNum === currentPage) {
       console.log(`Already on page ${pageNum}`);
       return;
@@ -158,15 +162,8 @@ const CensorPDF = () => {
     }
     
     try {
-      // Reset canvas before page change
-      setCanvasInitialized(false);
-      
       console.log(`Starting page change to page ${pageNum}`);
       toast.info(`Cambiando a la página ${pageNum}...`);
-      
-      // Clean up existing canvas
-      cleanupCanvas();
-      fabricCanvasRef.current = null;
       
       // Go to the selected page
       await gotoPage(pageNum);
@@ -175,10 +172,10 @@ const CensorPDF = () => {
       console.error("Error changing page:", error);
       toast.error("Error al cambiar de página. Intente de nuevo.");
     }
-  };
+  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage]);
 
   // Handle clearing all censors
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     if (!fabricCanvasRef.current) return;
     
     try {
@@ -195,10 +192,10 @@ const CensorPDF = () => {
       console.error("Error al limpiar todas las censuras:", error);
       toast.error("Error al limpiar las censuras. Intente de nuevo.");
     }
-  };
+  }, []);
 
   // Handle deleting selected censors
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (!fabricCanvasRef.current) return;
     
     try {
@@ -212,16 +209,16 @@ const CensorPDF = () => {
       console.error("Error al eliminar la censura seleccionada:", error);
       toast.error("Error al eliminar la censura. Intente de nuevo.");
     }
-  };
+  }, []);
 
   // Handle applying censors
-  const handleApplyCensors = () => {
+  const handleApplyCensors = useCallback(() => {
     if (fabricCanvasRef.current) {
       applyRedactions();
     } else {
       toast.error('No se pudo aplicar las censuras');
     }
-  };
+  }, [applyRedactions]);
 
   // Render the CensorPDF component
   return (
@@ -259,6 +256,7 @@ const CensorPDF = () => {
           </div>
         ) : (
           <div className="flex flex-col space-y-4">
+            {/* File actions */}
             <div className="flex justify-between items-center">
               <Button 
                 variant="outline" 
@@ -349,6 +347,7 @@ const CensorPDF = () => {
                       {pageUrl && (
                         <>
                           <PdfCanvas 
+                            key={`pdf-canvas-${currentPage}`}
                             pageUrl={pageUrl}
                             onSelectionChange={setHasSelection}
                             fabricRef={fabricCanvasRef}

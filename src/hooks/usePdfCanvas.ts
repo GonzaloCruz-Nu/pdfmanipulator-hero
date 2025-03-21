@@ -21,6 +21,7 @@ export const usePdfCanvas = ({
     width: 0,
     height: 0
   });
+  const currentImageRef = useRef<fabric.Image | null>(null);
 
   // Initialize Fabric canvas with proper error handling
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
@@ -30,6 +31,7 @@ export const usePdfCanvas = ({
       // Create new canvas
       const fabricCanvas = new fabric.Canvas(canvasEl, {
         selection: true,
+        preserveObjectStacking: true
       });
       
       setCanvas(fabricCanvas);
@@ -165,16 +167,23 @@ export const usePdfCanvas = ({
     if (!canvas) return;
     
     try {
-      // First remove existing objects but keep the canvas
-      canvas.remove(...canvas.getObjects());
+      // Prevent loading the same image multiple times
+      if (currentImageRef.current && currentImageRef.current._element && 
+          currentImageRef.current._element.src === pageUrl) {
+        console.log("Skipping load of the same image");
+        return;
+      }
       
       console.log("Loading PDF page with URL:", pageUrl);
       
-      // Load PDF image as background
+      // Load PDF image as background - use promise to avoid race conditions
       fabric.Image.fromURL(pageUrl, (img) => {
         if (!canvas) return;
         
         try {
+          // Keep reference to the current image for comparison
+          currentImageRef.current = img;
+          
           const containerWidth = containerEl.clientWidth;
           const containerHeight = containerEl.clientHeight;
           
@@ -199,6 +208,9 @@ export const usePdfCanvas = ({
           // Center the image in the canvas
           const leftPos = (containerWidth - (img.getScaledWidth() || 0)) / 2;
           const topPos = (containerHeight - (img.getScaledHeight() || 0)) / 2;
+          
+          // Keep existing objects on the canvas
+          const objects = canvas.getObjects();
           
           // Set as background with positioning
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
@@ -240,6 +252,7 @@ export const usePdfCanvas = ({
     } finally {
       // Always set the canvas to null
       setCanvas(null);
+      currentImageRef.current = null;
     }
   }, [canvas]);
 
