@@ -120,6 +120,9 @@ const CensorPDF = () => {
     if (files.length > 0) {
       console.log("New file selected:", files[0].name);
       
+      // Reset state before loading new file
+      setCanvasInitialized(false);
+      
       // Clear any pending page change
       if (pageChangeTimeoutRef.current) {
         clearTimeout(pageChangeTimeoutRef.current);
@@ -129,7 +132,6 @@ const CensorPDF = () => {
       // Clean up existing canvas
       cleanupCanvas();
       fabricCanvasRef.current = null;
-      setCanvasInitialized(false);
       setPageRenderedUrls([]);
       
       // Set the new file
@@ -157,13 +159,16 @@ const CensorPDF = () => {
     
     try {
       // Reset canvas before page change
-      if (canvasInitialized) {
-        setCanvasInitialized(false);
-      }
+      setCanvasInitialized(false);
       
       console.log(`Starting page change to page ${pageNum}`);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
+      // Clean up existing canvas
+      cleanupCanvas();
+      fabricCanvasRef.current = null;
+      
+      // Go to the selected page
       await gotoPage(pageNum);
       
     } catch (error) {
@@ -257,7 +262,13 @@ const CensorPDF = () => {
             <div className="flex justify-between items-center">
               <Button 
                 variant="outline" 
-                onClick={() => setSelectedFile(null)}
+                onClick={() => {
+                  // Clean up before resetting file
+                  cleanupCanvas();
+                  fabricCanvasRef.current = null;
+                  setCanvasInitialized(false);
+                  setSelectedFile(null);
+                }}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Cambiar archivo

@@ -21,6 +21,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   const [zoomLevel, setZoomLevel] = useState(1);
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
   
   const {
     canvas,
@@ -28,7 +29,8 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     setIsPanning,
     initializeCanvas,
     updateCanvasSize,
-    displayPdfPage
+    displayPdfPage,
+    cleanup
   } = usePdfCanvas({
     onSelectionChange,
     zoomLevel
@@ -41,28 +43,35 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     console.log("Initializing canvas in PdfCanvas component");
     const fabricCanvas = initializeCanvas(canvasElRef.current);
     
-    if (fabricCanvas && onCanvasInitialized) {
-      onCanvasInitialized(fabricCanvas);
-    }
-    
-    // Set external reference if provided
-    if (fabricCanvas && fabricRef) {
-      fabricRef.current = fabricCanvas;
+    if (fabricCanvas) {
+      if (onCanvasInitialized) {
+        onCanvasInitialized(fabricCanvas);
+      }
+      
+      // Set external reference if provided
+      if (fabricRef) {
+        fabricRef.current = fabricCanvas;
+      }
+      
+      setIsCanvasReady(true);
     }
     
     return () => {
       console.log("PdfCanvas component unmounting, cleaning up");
+      // First clear references
       if (fabricRef) {
         fabricRef.current = null;
       }
+      
+      // Then clean up the canvas
+      cleanup();
+      setIsCanvasReady(false);
     };
-  }, [initializeCanvas, onCanvasInitialized, fabricRef]);
+  }, [initializeCanvas, onCanvasInitialized, fabricRef, cleanup]);
 
   // Update canvas size on window resize or container size change
   useEffect(() => {
-    if (!canvas || !containerRef.current) return;
-    
-    updateCanvasSize(containerRef.current);
+    if (!canvas || !containerRef.current || !isCanvasReady) return;
     
     const handleResize = () => {
       if (containerRef.current) {
@@ -70,18 +79,21 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
       }
     };
     
+    // Initial size update
+    updateCanvasSize(containerRef.current);
+    
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [canvas, updateCanvasSize]);
+  }, [canvas, updateCanvasSize, isCanvasReady]);
 
   // Display PDF when pageUrl changes
   useEffect(() => {
-    if (!canvas || !pageUrl || !containerRef.current) return;
+    if (!canvas || !pageUrl || !containerRef.current || !isCanvasReady) return;
     
     displayPdfPage(pageUrl, containerRef.current);
-  }, [pageUrl, canvas, displayPdfPage]);
+  }, [pageUrl, canvas, displayPdfPage, isCanvasReady]);
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%

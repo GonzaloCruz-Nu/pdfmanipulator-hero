@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { fabric } from 'fabric';
 
 interface UsePdfCanvasProps {
@@ -22,23 +22,10 @@ export const usePdfCanvas = ({
     height: 0
   });
 
-  // Store cleanup functions to ensure proper canvas disposal
-  const cleanupRef = useRef<(() => void) | null>(null);
-
   // Initialize Fabric canvas with proper error handling
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
     try {
       console.log("Creating new Fabric canvas instance");
-      
-      // Ensure any previous canvas is properly disposed
-      if (canvas) {
-        try {
-          console.log("Disposing previous canvas before creating new one");
-          canvas.dispose();
-        } catch (error) {
-          console.error("Error disposing previous canvas:", error);
-        }
-      }
       
       // Create new canvas
       const fabricCanvas = new fabric.Canvas(canvasEl, {
@@ -128,33 +115,12 @@ export const usePdfCanvas = ({
       fabricCanvas.on('mouse:move', handleMouseMove);
       fabricCanvas.on('mouse:up', handleMouseUp);
       
-      // Store cleanup function
-      cleanupRef.current = () => {
-        console.log("Executing canvas cleanup");
-        try {
-          fabricCanvas.off('selection:created', handleSelectionCreated);
-          fabricCanvas.off('selection:updated', handleSelectionUpdated);
-          fabricCanvas.off('selection:cleared', handleSelectionCleared);
-          fabricCanvas.off('mouse:down', handleMouseDown);
-          fabricCanvas.off('mouse:move', handleMouseMove);
-          fabricCanvas.off('mouse:up', handleMouseUp);
-          
-          try {
-            fabricCanvas.dispose();
-          } catch (disposeError) {
-            console.error("Error during canvas disposal:", disposeError);
-          }
-        } catch (error) {
-          console.error("Error during canvas cleanup:", error);
-        }
-      };
-      
       return fabricCanvas;
     } catch (error) {
       console.error("Error initializing canvas:", error);
       return null;
     }
-  }, [canvas, isPanning, onSelectionChange]);
+  }, [isPanning, onSelectionChange]);
 
   // Update canvas size
   const updateCanvasSize = useCallback((containerEl: HTMLDivElement) => {
@@ -163,6 +129,8 @@ export const usePdfCanvas = ({
     try {
       const containerWidth = containerEl.clientWidth;
       const containerHeight = containerEl.clientHeight;
+      
+      console.log("Container dimensions:", containerWidth, containerHeight);
       
       canvas.setWidth(containerWidth);
       canvas.setHeight(containerHeight);
@@ -253,12 +221,34 @@ export const usePdfCanvas = ({
 
   // Cleanup function to be called when component unmounts
   const cleanup = useCallback(() => {
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
+    console.log("Executing canvas cleanup in usePdfCanvas hook");
+    
+    if (!canvas) {
+      console.log("No canvas to clean up");
+      return;
     }
-    setCanvas(null);
-  }, []);
+    
+    try {
+      // Remove all event listeners first
+      canvas.off();
+      
+      // Then dispose the canvas
+      canvas.dispose();
+      console.log("Canvas disposed successfully");
+    } catch (error) {
+      console.error("Error during canvas cleanup:", error);
+    } finally {
+      // Always set the canvas to null
+      setCanvas(null);
+    }
+  }, [canvas]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   return {
     canvas,
