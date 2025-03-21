@@ -54,17 +54,17 @@ export const useProtectPDF = () => {
         documentAssembly: options.canModify
       };
       
-      // Apply password protection - using the correct method for pdf-lib
+      // Apply password protection using the proper method
       if (options.userPassword) {
-        // Using the correct encrypt method for PDF encryption in pdf-lib
-        await pdfDoc.encrypt({
+        // Using the correct method for PDF encryption
+        await pdfDoc.protect({
           userPassword: options.userPassword,
           ownerPassword: options.ownerPassword || options.userPassword,
           permissions,
         });
       } else if (options.ownerPassword) {
         // Owner password only
-        await pdfDoc.encrypt({
+        await pdfDoc.protect({
           ownerPassword: options.ownerPassword,
           permissions,
         });
