@@ -85,6 +85,13 @@ export const usePdfCanvas = ({
           top: topPos
         });
         
+        // Adjust objects' positions relative to the new scale if needed
+        // This ensures tools remain usable after zoom
+        if (zoomLevel !== 1) {
+          // We don't need to adjust the positions of objects here
+          // because they're drawn directly on the canvas in screen coordinates
+        }
+        
         // Redraw canvas with the new scale
         canvas.renderAll();
         

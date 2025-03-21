@@ -49,10 +49,18 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       case 'select':
         canvas.selection = true;
         canvas.defaultCursor = 'default';
+        canvas.forEachObject(obj => {
+          obj.selectable = true;
+          obj.evented = true;
+        });
         break;
       case 'rectangle':
         canvas.selection = false;
         canvas.defaultCursor = 'crosshair';
+        canvas.forEachObject(obj => {
+          obj.selectable = false;
+          obj.evented = false;
+        });
         break;
       case 'eraser':
         canvas.isDrawingMode = true;
@@ -100,6 +108,8 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       stroke: 'transparent',
       strokeWidth: 0,
       opacity: 1,
+      selectable: true, // Make sure the rectangle is selectable when done
+      evented: true
     });
     
     canvas.add(rect);
@@ -138,8 +148,19 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
         canvas.remove(rect);
         console.log("Rectangle too small, removed");
       } else {
+        // Make sure rectangle is selectable
+        rect.selectable = true;
+        rect.evented = true;
+        
         // Switch to selection tool after drawing
         onToolChangeRef.current('select');
+        
+        // Make all objects selectable again
+        canvas.forEachObject(obj => {
+          obj.selectable = true;
+          obj.evented = true;
+        });
+        
         canvas.setActiveObject(rect);
         console.log("Rectangle completed, switched to select tool");
       }
