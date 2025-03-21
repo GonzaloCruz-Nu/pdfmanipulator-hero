@@ -82,10 +82,12 @@ const CensorPDF = () => {
   const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
     fabricCanvasRef.current = canvas;
+    
     setCanvasReference(canvas);
     setCanvasInitialized(true);
     
     setActiveTool('rectangle');
+    console.log("Canvas reference set and initialization complete");
   }, [setCanvasReference]);
 
   useEffect(() => {
@@ -156,19 +158,15 @@ const CensorPDF = () => {
       setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
-      // First clean up the current canvas to avoid state conflicts
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
       
-      // Go to the requested page
       await gotoPage(pageNum);
       
-      // Reset tool to rectangle after page change
       setActiveTool('rectangle');
       setHasSelection(false);
       
-      // Delay ending the page change to allow for rendering
       setTimeout(() => {
         setCurrentlyChangingPage(false);
       }, 300);
@@ -217,12 +215,13 @@ const CensorPDF = () => {
 
   const handleApplyCensors = useCallback(() => {
     console.log("Applying redactions, canvas ref:", fabricCanvasRef.current);
+    
     if (fabricCanvasRef.current) {
       setCanvasReference(fabricCanvasRef.current);
-      // Small delay to ensure canvas reference is updated
+      
       setTimeout(() => {
         applyRedactions();
-      }, 100);
+      }, 300);
     } else {
       console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
@@ -391,16 +390,16 @@ const CensorPDF = () => {
                 size="lg"
                 onClick={handleApplyCensors}
                 disabled={isProcessing}
-                className="bg-orange-500 hover:bg-orange-600 mr-4"
+                className="bg-orange-500 hover:bg-orange-600 mr-4 text-white"
               >
-                Aplicar censuras
+                {isProcessing ? 'Aplicando censuras...' : 'Aplicar censuras'}
               </Button>
               
               {censoredFile && (
                 <Button 
                   size="lg"
                   onClick={downloadCensoredPDF}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Download className="h-5 w-5 mr-2" />
                   Descargar PDF censurado

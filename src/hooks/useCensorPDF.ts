@@ -152,7 +152,14 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   // Update canvas reference
   const setCanvasReference = useCallback((canvas: fabric.Canvas | null) => {
     console.log("Setting canvas reference in useCensorPDF", canvas ? "canvas provided" : "null canvas");
-    canvasRef.current = canvas;
+    
+    // Store the canvas reference
+    if (canvas) {
+      canvasRef.current = canvas;
+      console.log("Canvas reference stored successfully");
+    } else {
+      console.log("Received null canvas reference");
+    }
   }, []);
 
   // Safe canvas cleanup with proper error handling
@@ -196,3 +203,4 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     cleanupCanvas
   };
 };
+

@@ -43,11 +43,9 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       console.log("Canvas reference changed in PdfCensorTools");
       isDrawingRef.current = false;
       
-      // Delay to ensure canvas is ready before applying settings
-      setTimeout(() => {
-        applyToolSettings();
-        setupEventListeners();
-      }, 100);
+      // Apply tool settings immediately when canvas changes
+      applyToolSettings();
+      setupEventListeners();
     }
     
     return () => {
@@ -78,7 +76,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
         canvasRef.current.selection = false;
         canvasRef.current.defaultCursor = 'crosshair';
         canvasRef.current.forEachObject(obj => {
-          // Keep objects selectable but don't allow them to be selected while drawing
+          // Make objects non-selectable during rectangle drawing
           obj.selectable = false;
           obj.evented = false;
         });
@@ -102,6 +100,9 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     
     console.log("Tool changed to:", activeTool);
     applyToolSettings();
+    
+    // Cleanup existing listeners before adding new ones
+    cleanupEventListeners();
     setupEventListeners();
   }, [activeTool, color, size, applyToolSettings]);
 
@@ -206,9 +207,6 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     if (!canvasRef.current) return;
     
     console.log("Setting up canvas events for tool:", toolRef.current);
-    
-    // Clear any previous handlers
-    cleanupEventListeners();
     
     // Store the handler in the ref
     if (toolRef.current === 'rectangle') {
