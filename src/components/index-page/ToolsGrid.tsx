@@ -5,7 +5,7 @@ import {
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCw, Languages, 
   Stamp, MoveVertical, EyeOff, ImagePlus,
-  Files, ClockRewind
+  Files, History
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -179,7 +179,7 @@ const ToolsGrid = () => {
     {
       title: "Historial PDF",
       description: "Accede a tus PDFs procesados recientemente",
-      icon: ClockRewind,
+      icon: History,
       to: "/historial",
       isNew: true,
       category: "avanzadas"

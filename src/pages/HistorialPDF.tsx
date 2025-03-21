@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ClockRewind, Trash2, Download, FilePlus, FileSearch } from 'lucide-react';
+import { History, Trash2, Download, FilePlus, FileSearch } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,7 @@ const HistorialPDF = () => {
         >
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center">
-              <ClockRewind className="mr-3 h-8 w-8 text-primary" />
+              <History className="mr-3 h-8 w-8 text-primary" />
               Historial PDF
             </h1>
             <p className="text-muted-foreground">
