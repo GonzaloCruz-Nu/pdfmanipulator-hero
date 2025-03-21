@@ -7,13 +7,13 @@ const Header: React.FC = () => {
   const location = useLocation();
 
   return (
-    <header className="py-6">
+    <header className="py-8">
       <div className="container flex flex-col items-center justify-center">
-        <Link to="/" className="flex items-center space-x-2 text-foreground mb-4">
-          <FileText className="h-8 w-8 text-naranja" />
+        <Link to="/" className="flex items-center space-x-3 text-foreground mb-6">
+          <FileText className="h-12 w-12 text-naranja" />
           <div className="flex flex-col">
-            <span className="text-xl font-medium">PDFmanager</span>
-            <span className="text-xs text-muted-foreground">by CoHispania</span>
+            <span className="text-2xl font-bold">PDFmanager</span>
+            <span className="text-sm text-muted-foreground">by CoHispania</span>
           </div>
         </Link>
         
@@ -22,7 +22,7 @@ const Header: React.FC = () => {
             <li>
               <Link 
                 to="/" 
-                className={`${location.pathname === '/' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+                className={`${location.pathname === '/' ? 'text-foreground font-medium' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
                 Herramientas
               </Link>
@@ -30,7 +30,7 @@ const Header: React.FC = () => {
             <li>
               <Link 
                 to="/wiki" 
-                className={`${location.pathname === '/wiki' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+                className={`${location.pathname === '/wiki' ? 'text-foreground font-medium' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
                 Wiki
               </Link>
@@ -38,7 +38,7 @@ const Header: React.FC = () => {
             <li>
               <Link 
                 to="/about" 
-                className={`${location.pathname === '/about' ? 'text-foreground' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+                className={`${location.pathname === '/about' ? 'text-foreground font-medium' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
                 Acerca de
               </Link>

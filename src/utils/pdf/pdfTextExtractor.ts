@@ -36,6 +36,11 @@ export const extractTextFromPDF = async (
   documentTitle: string | null
 }> => {
   try {
+    // Inicializar progreso
+    onProgressUpdate(10);
+    
+    console.log('Iniciando extracción de texto del PDF');
+    
     // Cargar el documento PDF con opciones de tolerancia a errores
     const loadingTask = pdfjsLib.getDocument({
       data: pdfData,
@@ -63,6 +68,7 @@ export const extractTextFromPDF = async (
           documentTitle = info['Title'];
         }
       }
+      console.log('Metadatos extraídos:', documentTitle ? `Título: ${documentTitle}` : 'Sin título');
     } catch (metadataError) {
       console.warn("No se pudieron obtener los metadatos del PDF:", metadataError);
     }
@@ -73,8 +79,9 @@ export const extractTextFromPDF = async (
     
     // Extraer texto de todas las páginas del PDF con mejor manejo
     for (let i = 1; i <= numPages; i++) {
-      onProgressUpdate(30 + Math.floor((i / numPages) * 40));
-      console.log(`Procesando página ${i} de ${numPages}`);
+      const progressPercent = 30 + Math.floor((i / numPages) * 60);
+      onProgressUpdate(progressPercent);
+      console.log(`Procesando página ${i} de ${numPages} (${progressPercent}%)`);
       
       try {
         const page = await pdf.getPage(i);
@@ -213,6 +220,9 @@ export const extractTextFromPDF = async (
         });
       }
     }
+    
+    console.log(`Extracción de texto finalizada. Total de páginas: ${numPages}, caracteres extraídos: ${totalTextExtracted}`);
+    onProgressUpdate(100);
     
     return {
       pageContents,
