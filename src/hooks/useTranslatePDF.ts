@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import { extractTextFromPDF } from '@/utils/pdf/pdfTextExtractor';
 import { saveAs } from 'file-saver';
 
@@ -241,7 +241,7 @@ export const useTranslatePDF = () => {
           y: page.getHeight() - 50,
           size: 12,
           font: helveticaFont,
-          color: { r: 0, g: 0, b: 0 }, // Negro
+          color: rgb(0, 0, 0), // Usamos la función rgb del pdf-lib para crear el color correctamente
           opacity: 1,
           lineHeight: 16,
           maxWidth: page.getWidth() - 100
