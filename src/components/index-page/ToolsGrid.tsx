@@ -4,7 +4,7 @@ import {
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCw, Languages, 
   Stamp, MoveVertical, EyeOff, ImagePlus,
-  Files, History, BarChart
+  Files, History
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -185,15 +185,6 @@ const ToolsGrid = () => {
       description: "Accede a tus PDFs procesados recientemente",
       icon: History,
       to: "/historial",
-      isNew: true,
-      category: "avanzadas",
-      maintenance: true
-    },
-    {
-      title: "Estadísticas",
-      description: "Visualiza estadísticas de uso de herramientas",
-      icon: BarChart,
-      to: "/statistics",
       isNew: true,
       category: "avanzadas",
       maintenance: true
