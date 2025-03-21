@@ -4,7 +4,8 @@ import {
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCcw, Languages, 
   Stamp, MoveVertical, EyeOff, FolderCog, 
-  FileEdit, FileOutput, FileLockIcon
+  FileEdit, FileOutput, FileLockIcon,
+  LucideIcon
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface Tool {
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   to: string;
   category: string;
   maintenance?: boolean;
@@ -39,7 +40,6 @@ const ToolsGrid = () => {
     }
   };
 
-  // Definición de categorías y herramientas
   const categories = [
     {
       id: "todas",
@@ -63,7 +63,6 @@ const ToolsGrid = () => {
     }
   ];
 
-  // Herramientas categorizadas
   const basicTools: Tool[] = [
     {
       title: "Unir PDFs",
@@ -165,7 +164,6 @@ const ToolsGrid = () => {
     }
   ];
 
-  // Combinar todas las herramientas
   const allTools: Tool[] = [...basicTools, ...editTools, ...securityTools, ...advancedTools];
 
   return (
