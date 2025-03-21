@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch } from 'lucide-react';
+import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCcw } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
@@ -90,6 +91,19 @@ const Wiki = () => {
                     Reduce el tamaño de tus archivos PDF manteniendo la calidad.
                   </p>
                   <Link to="/wiki/compress" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+                
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <RotateCcw className="h-5 w-5 mr-2 text-primary" />
+                    Rotar PDF
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Cambia la orientación de páginas específicas o documentos completos.
+                  </p>
+                  <Link to="/wiki/rotate" className="text-primary text-sm hover:underline">
                     Leer guía completa →
                   </Link>
                 </li>

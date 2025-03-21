@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Cpu, Zap } from 'lucide-react';
+import { Shield, Cpu, Zap, Mail } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 
@@ -94,7 +94,7 @@ const About = () => {
         </motion.div>
 
         <motion.div 
-          className="bg-white rounded-xl p-8 shadow-glass-lg"
+          className="bg-white rounded-xl p-8 shadow-glass-lg mb-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.8 }}
@@ -107,6 +107,34 @@ const About = () => {
             <li>La compatibilidad puede variar según el navegador (recomendamos Chrome o Firefox actualizados)</li>
             <li>Sin conexión a internet, no se podrán cargar bibliotecas externas como PDF.js si no están cacheadas</li>
           </ul>
+        </motion.div>
+
+        <motion.div 
+          className="bg-white rounded-xl p-8 shadow-glass-lg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.8 }}
+        >
+          <h2 className="text-2xl font-bold mb-4 flex items-center">
+            <Mail className="h-6 w-6 mr-2 text-primary" />
+            Soporte y contacto
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            Si encuentras algún problema técnico, tienes sugerencias de mejora, o necesitas asistencia con la aplicación, 
+            puedes contactar con nuestro equipo de soporte directamente.
+          </p>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="font-medium text-primary">
+              Para reportar cualquier incidencia, envía un correo electrónico a:
+            </p>
+            <a href="mailto:soporte@cohispania.com" className="text-primary hover:underline font-bold text-lg block mt-2">
+              soporte@cohispania.com
+            </a>
+          </div>
+          <p className="text-muted-foreground mt-4">
+            Nuestro equipo técnico atenderá tu consulta lo antes posible y trabajará para resolver cualquier problema o 
+            implementar mejoras útiles para todos los usuarios.
+          </p>
         </motion.div>
       </div>
     </Layout>
