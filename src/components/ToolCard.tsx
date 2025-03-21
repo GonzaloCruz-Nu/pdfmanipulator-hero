@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ToolCardProps {
   title: string;
@@ -10,6 +11,8 @@ interface ToolCardProps {
   icon: LucideIcon;
   to: string;
   className?: string;
+  maintenance?: boolean;
+  isNew?: boolean;
 }
 
 const ToolCard: React.FC<ToolCardProps> = ({
@@ -18,6 +21,8 @@ const ToolCard: React.FC<ToolCardProps> = ({
   icon: Icon,
   to,
   className,
+  maintenance = false,
+  isNew = false,
 }) => {
   return (
     <Link
@@ -30,11 +35,25 @@ const ToolCard: React.FC<ToolCardProps> = ({
       <div className="mb-2 rounded-full bg-primary/10 p-2 text-primary">
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className="mb-1 text-base font-medium">{title}</h3>
+      <h3 className="mb-1 text-base font-medium">
+        {title}
+        {isNew && (
+          <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px]">
+            NUEVO
+          </Badge>
+        )}
+      </h3>
       <p className="text-center text-muted-foreground text-xs">{description}</p>
-      <div className="mt-2 text-primary text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-        Usar →
-      </div>
+      {maintenance && (
+        <div className="mt-2 text-amber-600 text-xs font-medium">
+          En mantenimiento
+        </div>
+      )}
+      {!maintenance && (
+        <div className="mt-2 text-primary text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+          Usar →
+        </div>
+      )}
     </Link>
   );
 };

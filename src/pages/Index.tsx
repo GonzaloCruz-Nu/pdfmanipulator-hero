@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, Unlock, FileCog, FileSearch, FileLock, RotateCcw } from 'lucide-react';
+import { Merge, Scissors, Zap, Unlock, FileCog, FileSearch, FileLock, RotateCcw, Languages } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -133,6 +133,8 @@ const Index = () => {
               icon={FileLock}
               to="/tools/protect"
               className="h-full"
+              maintenance={true}
+              isNew={true}
             />
           </motion.div>
 
@@ -163,6 +165,18 @@ const Index = () => {
               icon={FileSearch}
               to="/tools/ocr"
               className="h-full"
+            />
+          </motion.div>
+          
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Traducir PDF"
+              description="Traduce PDF de español a inglés con IA"
+              icon={Languages}
+              to="/tools/translate"
+              className="h-full"
+              maintenance={true}
+              isNew={true}
             />
           </motion.div>
         </motion.div>

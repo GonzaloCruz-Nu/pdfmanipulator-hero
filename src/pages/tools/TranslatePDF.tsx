@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Languages } from 'lucide-react';
+import { Languages, Info, Construction } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -111,6 +111,14 @@ const TranslatePDF = () => {
           </div>
           <h1 className="text-2xl font-bold">Traducir PDF de Español a Inglés</h1>
         </div>
+        
+        <Alert className="mb-6 bg-amber-50 border-amber-200">
+          <Construction className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            Esta herramienta se encuentra temporalmente en mantenimiento. Estamos trabajando para mejorar sus funcionalidades y rendimiento. 
+            Disculpe las molestias.
+          </AlertDescription>
+        </Alert>
         
         <div className="bg-white rounded-xl p-6 shadow-subtle mb-6">
           <p className="text-muted-foreground mb-4">

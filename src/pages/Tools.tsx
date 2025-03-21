@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages, RotateCw } from 'lucide-react';
+import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages, RotateCw, Construction } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -127,6 +127,8 @@ const Tools = () => {
               icon={Languages}
               to="/tools/translate"
               className="h-full"
+              maintenance={true}
+              isNew={true}
             />
           </motion.div>
 
@@ -137,6 +139,8 @@ const Tools = () => {
               icon={FileLock}
               to="/tools/protect"
               className="h-full"
+              maintenance={true}
+              isNew={true}
             />
           </motion.div>
         </motion.div>

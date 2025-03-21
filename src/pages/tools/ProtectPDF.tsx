@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileLock, File, Download, Shield, Info } from 'lucide-react';
+import { FileLock, File, Download, Shield, Info, Construction } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -72,6 +72,14 @@ const ProtectPDF = () => {
             se realiza en tu navegador sin enviar datos a servidores externos.
           </p>
         </motion.div>
+
+        <Alert className="mb-6 bg-amber-50 border-amber-200">
+          <Construction className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            Esta herramienta se encuentra temporalmente en mantenimiento. Estamos trabajando para mejorar sus funcionalidades y rendimiento. 
+            Disculpe las molestias.
+          </AlertDescription>
+        </Alert>
 
         <Alert className="mb-6">
           <Info className="h-4 w-4" />
