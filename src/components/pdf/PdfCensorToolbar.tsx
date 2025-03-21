@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { 
-  Download,
   Square, 
   Trash2,
   GridIcon,
@@ -34,35 +33,33 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
   onApplyCensors,
   isProcessing
 }) => {
-  // Safe handler for tool change
-  const handleToolChange = (value: string) => {
-    if (value && ['rectangle', 'pixelated'].includes(value)) {
-      console.log(`Toolbar: Changing tool to ${value}`);
-      onToolChange(value as CensorToolType);
-    }
-  };
-
+  console.log("Toolbar rendering with activeTool:", activeTool, "style:", censorStyle);
+  
   return (
     <div className="flex flex-wrap items-center gap-2 p-2 bg-gray-50 border-b">
       <ToggleGroup 
         type="single" 
         value={activeTool} 
-        onValueChange={handleToolChange}
+        onValueChange={(value) => {
+          if (value) {
+            console.log(`Toolbar: Changing tool to ${value}`);
+            onToolChange(value as CensorToolType);
+          }
+        }}
         className="flex gap-1"
       >
-        <ToggleGroupItem value="rectangle" aria-label="Área negra" className="h-9 px-3">
+        <ToggleGroupItem value="rectangle" aria-label="Rectángulo negro" className="h-9 px-3">
           <Square size={18} className="mr-1" />
-          <span className="text-xs">Área negra</span>
+          <span className="text-xs">Rectángulo</span>
         </ToggleGroupItem>
-        <ToggleGroupItem value="pixelated" aria-label="Área pixelada" className="h-9 px-3">
+        <ToggleGroupItem value="pixelated" aria-label="Rectángulo pixelado" className="h-9 px-3">
           <GridIcon size={18} className="mr-1" />
-          <span className="text-xs">Área pixelada</span>
+          <span className="text-xs">Pixelado</span>
         </ToggleGroupItem>
       </ToggleGroup>
 
       <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-      {/* Censor style options */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium">Estilo:</span>
         <RadioGroup 
@@ -83,7 +80,6 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
 
       <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-      {/* Clear button */}
       <Button 
         variant="outline" 
         size="sm" 
@@ -94,7 +90,6 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         <span className="text-xs">Limpiar todo</span>
       </Button>
 
-      {/* Apply censors button */}
       <Button 
         variant="default" 
         size="sm" 

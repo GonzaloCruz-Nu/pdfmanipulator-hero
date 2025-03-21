@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
@@ -14,20 +14,20 @@ import { fabric } from 'fabric';
 import PdfCensorToolbar, { CensorToolType, CensorStyleType } from '@/components/pdf/PdfCensorToolbar';
 import PdfCensorTools from '@/components/pdf/PdfCensorTools';
 import PdfNavigation from '@/components/pdf/PdfNavigation';
-import PdfCanvas from '@/components/pdf/PdfCanvas';
 
 const CensorPDF = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeTool, setActiveTool] = useState<CensorToolType>('rectangle');
   const [censorStyle, setCensorStyle] = useState<CensorStyleType>('black');
-  const [canvasInitialized, setCanvasInitialized] = useState(false);
-  const [currentlyChangingPage, setCurrentlyChangingPage] = useState(false);
   
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
-  const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const thumbnailsLoadedRef = useRef(false);
+  // Canvas related states and refs
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fabricCanvas = useRef<fabric.Canvas | null>(null);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // PDF renderer hook
   const {
     currentPage,
     totalPages,
@@ -37,189 +37,217 @@ const CensorPDF = () => {
     nextPage,
     prevPage,
     renderThumbnail,
-    pdfDocument,
     gotoPage
   } = usePdfRenderer(selectedFile);
 
+  // Censor PDF hook
   const {
     isProcessing,
     censoredFile,
     applyRedactions,
     downloadCensoredPDF,
+    resetCensor,
     setCanvasReference,
-    setActivePage,
-    resetCensor
+    setActivePage
   } = useCensorPDF({ file: selectedFile });
 
+  // Update active page when PDF page changes
   useEffect(() => {
-    console.log("Setting active page to:", currentPage);
+    console.log("Current page changed to:", currentPage);
     setActivePage(currentPage);
   }, [currentPage, setActivePage]);
 
+  // Initialize and manage the fabric.js canvas
   useEffect(() => {
-    return () => {
-      console.log("Component unmounting or file changing, cleaning up resources");
-      
-      if (pageChangeTimeoutRef.current) {
-        clearTimeout(pageChangeTimeoutRef.current);
-        pageChangeTimeoutRef.current = null;
+    console.log("Page initialization or page/URL change detected");
+    
+    // Skip if canvas element doesn't exist, or we're loading, or there's no page URL
+    if (!canvasRef.current || isLoading || !pageUrl) {
+      return;
+    }
+
+    console.log("Initializing canvas with page:", currentPage, "URL:", pageUrl);
+    
+    // Set up new fabric canvas instance for this page
+    const initCanvas = () => {
+      // Clean up previous canvas if it exists
+      if (fabricCanvas.current) {
+        console.log("Cleaning up previous canvas");
+        fabricCanvas.current.dispose();
+        fabricCanvas.current = null;
       }
       
-      fabricCanvasRef.current = null;
-      setCanvasInitialized(false);
-      thumbnailsLoadedRef.current = false;
+      try {
+        // Create new fabric.js canvas
+        const canvas = new fabric.Canvas(canvasRef.current, {
+          selection: true,
+          preserveObjectStacking: true
+        });
+        
+        fabricCanvas.current = canvas;
+        setCanvasReference(canvas);
+        setCanvasInitialized(true);
+        console.log("Fabric canvas initialized successfully");
+        
+        // Load the PDF page as background image
+        fabric.Image.fromURL(pageUrl, (img) => {
+          const containerWidth = containerRef.current?.clientWidth || 800;
+          const containerHeight = containerRef.current?.clientHeight || 600;
+          
+          // Scale to fit in container while maintaining aspect ratio
+          const scale = Math.min(
+            containerWidth / img.width!,
+            containerHeight / img.height!
+          ) * 0.8; // Scale to 80% of container to ensure margins
+          
+          // Set scaled dimensions
+          img.scale(scale);
+          
+          // Center the image
+          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+            top: (containerHeight - img.height! * scale) / 2,
+            left: (containerWidth - img.width! * scale) / 2
+          });
+          
+          console.log("Background image set successfully");
+        });
+        
+        // Update canvas size when window resizes
+        const handleResize = () => {
+          if (containerRef.current && canvas) {
+            canvas.setWidth(containerRef.current.clientWidth);
+            canvas.setHeight(containerRef.current.clientHeight);
+            canvas.renderAll();
+          }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Set initial size
+        
+        return () => {
+          window.removeEventListener('resize', handleResize);
+        };
+      } catch (error) {
+        console.error("Error initializing canvas:", error);
+        toast.error("Error al inicializar el lienzo para censura");
+      }
     };
-  }, [selectedFile]);
-
-  const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
-    console.log("Canvas initialized in CensorPDF component");
     
-    fabricCanvasRef.current = canvas;
-    setCanvasReference(canvas);
-    setCanvasInitialized(true);
+    const cleanup = initCanvas();
     
-    console.log("Canvas reference set and initialization complete");
-    
-    setTimeout(() => {
-      if (canvas) {
-        console.log("Forcing canvas render after initialization");
-        canvas.renderAll();
+    // Clean up function
+    return () => {
+      if (cleanup) cleanup();
+      
+      if (fabricCanvas.current) {
+        try {
+          fabricCanvas.current.dispose();
+          fabricCanvas.current = null;
+          setCanvasInitialized(false);
+        } catch (error) {
+          console.error("Error disposing canvas:", error);
+        }
       }
-    }, 200);
-  }, [setCanvasReference]);
+    };
+  }, [pageUrl, isLoading, currentPage, setCanvasReference]);
 
+  // Handle file selection
+  const handleFileSelected = (files: File[]) => {
+    if (files.length > 0) {
+      console.log("New file selected:", files[0].name);
+      setSelectedFile(files[0]);
+      
+      // Reset canvas
+      if (fabricCanvas.current) {
+        fabricCanvas.current.dispose();
+        fabricCanvas.current = null;
+      }
+      
+      setCanvasInitialized(false);
+      toast.success(`PDF cargado: ${files[0].name}`);
+    }
+  };
+
+  // Handle page selection in thumbnail list
+  const handlePageSelect = async (pageNum: number) => {
+    if (pageNum === currentPage || isLoading) return;
+    
+    try {
+      console.log(`Changing to page ${pageNum}`);
+      
+      // Reset canvas before page change
+      if (fabricCanvas.current) {
+        fabricCanvas.current.dispose();
+        fabricCanvas.current = null;
+      }
+      
+      setCanvasInitialized(false);
+      await gotoPage(pageNum);
+      
+    } catch (error) {
+      console.error("Error changing page:", error);
+      toast.error("Error al cambiar de página");
+    }
+  };
+
+  // Handle clear all censors
+  const handleClearAll = () => {
+    if (!fabricCanvas.current) {
+      toast.error("No hay lienzo disponible");
+      return;
+    }
+    
+    try {
+      const bgImage = fabricCanvas.current.backgroundImage;
+      fabricCanvas.current.clear();
+      
+      if (bgImage) {
+        fabricCanvas.current.setBackgroundImage(bgImage, fabricCanvas.current.renderAll.bind(fabricCanvas.current));
+      }
+      
+      fabricCanvas.current.renderAll();
+      toast.info('Todas las censuras han sido eliminadas');
+    } catch (error) {
+      console.error("Error clearing censors:", error);
+      toast.error("Error al limpiar las censuras");
+    }
+  };
+
+  // Handle apply censors
+  const handleApplyCensors = () => {
+    if (!fabricCanvas.current) {
+      toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
+      return;
+    }
+    
+    // Ensure canvas reference is up to date
+    setCanvasReference(fabricCanvas.current);
+    
+    // Apply censors
+    applyRedactions(censorStyle);
+  };
+
+  // Load thumbnails when file is selected
+  const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
   useEffect(() => {
-    const loadAllPageThumbnails = async () => {
-      if (!pdfDocument || totalPages === 0 || thumbnailsLoadedRef.current) return;
+    const loadThumbnails = async () => {
+      if (!selectedFile || totalPages === 0) return;
       
-      console.log("Loading thumbnails for all pages...");
-      const pageUrls = [];
-      
+      const thumbnails = [];
       for (let i = 1; i <= totalPages; i++) {
         try {
           const thumbnail = await renderThumbnail(i);
-          if (thumbnail) {
-            pageUrls.push(thumbnail);
-          }
+          if (thumbnail) thumbnails.push(thumbnail);
         } catch (error) {
           console.error(`Error rendering thumbnail for page ${i}:`, error);
         }
       }
       
-      setPageRenderedUrls(pageUrls);
-      thumbnailsLoadedRef.current = true;
-      console.log(`${pageUrls.length} thumbnails loaded successfully`);
+      setPageRenderedUrls(thumbnails);
     };
     
-    loadAllPageThumbnails();
-  }, [pdfDocument, totalPages, renderThumbnail]);
-
-  const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
-
-  const handleFileSelected = useCallback((files: File[]) => {
-    if (files.length > 0) {
-      console.log("New file selected:", files[0].name);
-      
-      setCanvasInitialized(false);
-      
-      if (pageChangeTimeoutRef.current) {
-        clearTimeout(pageChangeTimeoutRef.current);
-        pageChangeTimeoutRef.current = null;
-      }
-      
-      fabricCanvasRef.current = null;
-      
-      setPageRenderedUrls([]);
-      thumbnailsLoadedRef.current = false;
-      
-      setSelectedFile(files[0]);
-      toast.success(`PDF cargado: ${files[0].name}`);
-    }
-  }, []);
-
-  const handlePageSelect = useCallback(async (pageNum: number) => {
-    if (pageNum === currentPage) {
-      console.log(`Already on page ${pageNum}`);
-      return;
-    }
-    
-    if (isLoading || currentlyChangingPage) {
-      console.log("Page change in progress, ignoring request");
-      return;
-    }
-    
-    if (!pdfDocument || pageNum < 1 || pageNum > totalPages) {
-      console.error(`Invalid page: ${pageNum}`);
-      return;
-    }
-    
-    try {
-      console.log(`Starting page change to page ${pageNum}`);
-      setCurrentlyChangingPage(true);
-      toast.info(`Cambiando a la página ${pageNum}...`);
-      
-      fabricCanvasRef.current = null;
-      setCanvasInitialized(false);
-      
-      await gotoPage(pageNum);
-      
-      // Reset tool to rectangle for consistency
-      setActiveTool('rectangle');
-      
-      setTimeout(() => {
-        setCurrentlyChangingPage(false);
-      }, 300);
-      
-    } catch (error) {
-      console.error("Error changing page:", error);
-      toast.error("Error al cambiar de página. Intente de nuevo.");
-      setCurrentlyChangingPage(false);
-    }
-  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage]);
-
-  const handleClearAll = useCallback(() => {
-    if (!fabricCanvasRef.current) return;
-    
-    try {
-      const bgImage = fabricCanvasRef.current.backgroundImage;
-      
-      fabricCanvasRef.current.remove(...fabricCanvasRef.current.getObjects());
-      
-      if (bgImage) {
-        fabricCanvasRef.current.setBackgroundImage(bgImage, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current));
-      }
-      
-      fabricCanvasRef.current.renderAll();
-      toast.info('Todas las censuras han sido eliminadas');
-    } catch (error) {
-      console.error("Error al limpiar todas las censuras:", error);
-      toast.error("Error al limpiar las censuras. Intente de nuevo.");
-    }
-  }, []);
-
-  const handleApplyCensors = useCallback(() => {
-    console.log("Applying redactions, canvas ref:", fabricCanvasRef.current ? "Canvas available" : "Canvas null");
-    
-    if (fabricCanvasRef.current) {
-      setCanvasReference(fabricCanvasRef.current);
-      
-      const objectCount = fabricCanvasRef.current.getObjects().length;
-      
-      if (objectCount === 0) {
-        toast.warning('No hay áreas de censura para aplicar');
-        return;
-      }
-      
-      fabricCanvasRef.current.renderAll();
-      
-      setTimeout(() => {
-        applyRedactions(censorStyle);
-      }, 300);
-    } else {
-      console.error("No canvas reference available");
-      toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
-    }
-  }, [applyRedactions, setCanvasReference, censorStyle]);
+    loadThumbnails();
+  }, [selectedFile, totalPages, renderThumbnail]);
 
   return (
     <Layout>
@@ -260,22 +288,23 @@ const CensorPDF = () => {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  fabricCanvasRef.current = null;
-                  setCanvasInitialized(false);
+                  if (fabricCanvas.current) {
+                    fabricCanvas.current.dispose();
+                    fabricCanvas.current = null;
+                  }
                   setSelectedFile(null);
+                  setCanvasInitialized(false);
                 }}
               >
                 Cambiar archivo
               </Button>
               
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
-                </Button>
-              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowSidebar(!showSidebar)}
+              >
+                {showSidebar ? 'Ocultar miniaturas' : 'Mostrar miniaturas'}
+              </Button>
             </div>
             
             <Alert className="bg-blue-50 border-blue-200">
@@ -308,13 +337,13 @@ const CensorPDF = () => {
                       pages={pageRenderedUrls}
                       currentPage={currentPage}
                       onPageSelect={handlePageSelect}
-                      isChangingPage={isLoading || currentlyChangingPage}
+                      isChangingPage={isLoading}
                     />
                   </div>
                 )}
                 
-                <div className="flex-1 relative overflow-hidden">
-                  {isLoading || currentlyChangingPage ? (
+                <div className="flex-1 relative overflow-hidden" ref={containerRef}>
+                  {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                       <p className="mt-2 text-sm text-muted-foreground">
@@ -327,42 +356,30 @@ const CensorPDF = () => {
                     </div>
                   ) : (
                     <div className="w-full h-full relative">
-                      {pageUrl && (
-                        <>
-                          <PdfCanvas 
-                            key={`pdf-canvas-${currentPage}`}
-                            pageUrl={pageUrl}
-                            onSelectionChange={() => {}}
-                            fabricRef={fabricCanvasRef}
-                            onCanvasInitialized={handleCanvasInitialized}
-                          />
-                          
-                          {canvasInitialized && fabricCanvasRef.current && (
-                            <PdfCensorTools
-                              key={`pdf-censor-tools-${currentPage}`}
-                              canvas={fabricCanvasRef.current}
-                              activeTool={activeTool}
-                              censorStyle={censorStyle}
-                              onToolChange={setActiveTool}
-                            />
-                          )}
-                          
-                          <PdfNavigation
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onNextPage={nextPage}
-                            onPrevPage={prevPage}
-                          />
-                        </>
+                      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+                      
+                      {canvasInitialized && fabricCanvas.current && (
+                        <PdfCensorTools
+                          canvas={fabricCanvas.current}
+                          activeTool={activeTool}
+                          censorStyle={censorStyle}
+                        />
                       )}
+                      
+                      <PdfNavigation
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onNextPage={nextPage}
+                        onPrevPage={prevPage}
+                      />
                     </div>
                   )}
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-center mt-4">
-              {censoredFile && (
+            {censoredFile && (
+              <div className="flex justify-center mt-4">
                 <Button 
                   size="lg"
                   onClick={downloadCensoredPDF}
@@ -371,8 +388,8 @@ const CensorPDF = () => {
                   <Download className="h-5 w-5 mr-2" />
                   <span>Descargar PDF censurado</span>
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
