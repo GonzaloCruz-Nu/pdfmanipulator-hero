@@ -43,23 +43,30 @@ export const useProtectPDF = () => {
       const pdfDoc = await PDFDocument.load(fileBuffer);
       setProgress(50);
 
-      // Set the permissions based on options
+      // Create the permissions object correctly based on pdf-lib expected format
       const permissions = {
         printing: options.canPrint ? 'highResolution' : 'none',
         modifying: options.canModify,
         copying: options.canCopy,
-        annotating: options.canModify, // Usually linked with modifying
-        fillingForms: options.canModify, // Usually linked with modifying
-        contentAccessibility: true, // Usually keep this enabled for accessibility
-        documentAssembly: options.canModify // Usually linked with modifying
+        annotating: options.canModify,
+        fillingForms: options.canModify,
+        contentAccessibility: true,
+        documentAssembly: options.canModify
       };
       
-      // Encrypt the document with the provided passwords and permissions
-      pdfDoc.encrypt({
-        userPassword: options.userPassword,
-        ownerPassword: options.ownerPassword || options.userPassword, // Use user password as owner if not provided
-        permissions,
-      });
+      // Use the proper method to protect the PDF
+      if (options.userPassword) {
+        pdfDoc.protect({
+          userPassword: options.userPassword,
+          ownerPassword: options.ownerPassword || options.userPassword,
+          permissions,
+        });
+      } else if (options.ownerPassword) {
+        pdfDoc.protect({
+          ownerPassword: options.ownerPassword,
+          permissions,
+        });
+      }
       
       setProgress(70);
 
