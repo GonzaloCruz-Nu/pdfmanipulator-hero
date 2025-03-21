@@ -1,67 +1,42 @@
 
 import React from 'react';
 import { 
-  EyeOff, 
-  Eraser, 
+  Download,
   Square, 
   Trash2,
-  Move
+  GridIcon,
+  EyeOff
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger 
-} from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
-export type CensorToolType = 'select' | 'rectangle' | 'eraser';
-
-interface ColorOption {
-  value: string;
-  label: string;
-}
-
-const colorOptions: ColorOption[] = [
-  { value: '#000000', label: 'Negro' },
-  { value: '#FF0000', label: 'Rojo' },
-  { value: '#0000FF', label: 'Azul' },
-  { value: '#808080', label: 'Gris' },
-];
+export type CensorToolType = 'rectangle' | 'pixelated';
+export type CensorStyleType = 'black' | 'pixelated';
 
 interface PdfCensorToolbarProps {
   activeTool: CensorToolType;
   onToolChange: (tool: CensorToolType) => void;
-  censorColor: string;
-  onColorChange: (color: string) => void;
-  size: number;
-  onSizeChange: (size: number) => void;
+  censorStyle: CensorStyleType;
+  onStyleChange: (style: CensorStyleType) => void;
   onClearAll: () => void;
-  onDeleteSelected: () => void;
   onApplyCensors: () => void;
-  hasSelection: boolean;
   isProcessing: boolean;
 }
 
 const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
   activeTool,
   onToolChange,
-  censorColor,
-  onColorChange,
-  size,
-  onSizeChange,
+  censorStyle,
+  onStyleChange,
   onClearAll,
-  onDeleteSelected,
   onApplyCensors,
-  hasSelection,
   isProcessing
 }) => {
   // Safe handler for tool change
   const handleToolChange = (value: string) => {
-    if (value && ['select', 'rectangle', 'eraser'].includes(value)) {
+    if (value && ['rectangle', 'pixelated'].includes(value)) {
       console.log(`Toolbar: Changing tool to ${value}`);
       onToolChange(value as CensorToolType);
     }
@@ -75,101 +50,40 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         onValueChange={handleToolChange}
         className="flex gap-1"
       >
-        <ToggleGroupItem value="select" aria-label="Seleccionar" className="h-9 px-3">
-          <Move size={18} />
+        <ToggleGroupItem value="rectangle" aria-label="Área negra" className="h-9 px-3">
+          <Square size={18} className="mr-1" />
+          <span className="text-xs">Área negra</span>
         </ToggleGroupItem>
-        <ToggleGroupItem value="rectangle" aria-label="Censurar área" className="h-9 px-3">
-          <Square size={18} />
-        </ToggleGroupItem>
-        <ToggleGroupItem value="eraser" aria-label="Borrador" className="h-9 px-3">
-          <Eraser size={18} />
+        <ToggleGroupItem value="pixelated" aria-label="Área pixelada" className="h-9 px-3">
+          <GridIcon size={18} className="mr-1" />
+          <span className="text-xs">Área pixelada</span>
         </ToggleGroupItem>
       </ToggleGroup>
 
       <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-      {/* Color selector */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="h-9 px-3 border-2"
-            style={{ borderColor: censorColor }}
-          >
-            <div 
-              className="w-4 h-4 mr-1 rounded-full" 
-              style={{ backgroundColor: censorColor }}
-            ></div>
-            <span className="text-xs">Color</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-2">
-          <div className="space-y-2">
-            <Label>Color de censura</Label>
-            <RadioGroup 
-              value={censorColor} 
-              onValueChange={onColorChange}
-              className="grid grid-cols-2 gap-2"
-            >
-              {colorOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem 
-                    id={option.value} 
-                    value={option.value}
-                    className="peer sr-only" 
-                  />
-                  <Label
-                    htmlFor={option.value}
-                    className="flex items-center justify-center gap-2 rounded-md border-2 border-muted bg-transparent p-2 hover:bg-muted hover:text-muted-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: option.value }}></div>
-                    <span className="text-xs">{option.label}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+      {/* Censor style options */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium">Estilo:</span>
+        <RadioGroup 
+          value={censorStyle} 
+          onValueChange={(value) => onStyleChange(value as CensorStyleType)}
+          className="flex gap-3"
+        >
+          <div className="flex items-center space-x-1">
+            <RadioGroupItem id="black" value="black" />
+            <Label htmlFor="black" className="text-xs">Negro</Label>
           </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Size slider */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="h-9 px-3">
-            <span className="text-xs">Grosor</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Grosor</Label>
-              <span className="text-sm">{size}px</span>
-            </div>
-            <Slider
-              value={[size]}
-              min={1}
-              max={20}
-              step={1}
-              onValueChange={(value) => onSizeChange(value[0])}
-            />
+          <div className="flex items-center space-x-1">
+            <RadioGroupItem id="pixelated" value="pixelated" />
+            <Label htmlFor="pixelated" className="text-xs">Pixelado</Label>
           </div>
-        </PopoverContent>
-      </Popover>
+        </RadioGroup>
+      </div>
 
       <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-      {/* Delete selected and clear buttons */}
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={onDeleteSelected}
-        disabled={!hasSelection}
-        className="h-9 px-3"
-      >
-        <Trash2 size={16} className="mr-1" />
-        <span className="text-xs">Eliminar seleccionado</span>
-      </Button>
-
+      {/* Clear button */}
       <Button 
         variant="outline" 
         size="sm" 

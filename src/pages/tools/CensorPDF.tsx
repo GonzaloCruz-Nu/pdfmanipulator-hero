@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, Upload } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import PdfThumbnailList from '@/components/pdf/PdfThumbnailList';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fabric } from 'fabric';
-import PdfCensorToolbar, { CensorToolType } from '@/components/pdf/PdfCensorToolbar';
+import PdfCensorToolbar, { CensorToolType, CensorStyleType } from '@/components/pdf/PdfCensorToolbar';
 import PdfCensorTools from '@/components/pdf/PdfCensorTools';
 import PdfNavigation from '@/components/pdf/PdfNavigation';
 import PdfCanvas from '@/components/pdf/PdfCanvas';
@@ -19,17 +20,13 @@ const CensorPDF = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeTool, setActiveTool] = useState<CensorToolType>('rectangle');
-  const [censorColor, setCensorColor] = useState('#000000');
-  const [size, setSize] = useState(5);
-  const [hasSelection, setHasSelection] = useState(false);
-  const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
+  const [censorStyle, setCensorStyle] = useState<CensorStyleType>('black');
   const [canvasInitialized, setCanvasInitialized] = useState(false);
   const [currentlyChangingPage, setCurrentlyChangingPage] = useState(false);
   
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const thumbnailsLoadedRef = useRef(false);
-  const currentPageRef = useRef(1);
 
   const {
     currentPage,
@@ -51,13 +48,8 @@ const CensorPDF = () => {
     downloadCensoredPDF,
     setCanvasReference,
     setActivePage,
-    cleanupCanvas,
-    hasValidCanvas
+    resetCensor
   } = useCensorPDF({ file: selectedFile });
-
-  useEffect(() => {
-    currentPageRef.current = currentPage;
-  }, [currentPage]);
 
   useEffect(() => {
     console.log("Setting active page to:", currentPage);
@@ -73,22 +65,19 @@ const CensorPDF = () => {
         pageChangeTimeoutRef.current = null;
       }
       
-      cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
       thumbnailsLoadedRef.current = false;
     };
-  }, [cleanupCanvas, selectedFile]);
+  }, [selectedFile]);
 
   const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
     
     fabricCanvasRef.current = canvas;
-    
     setCanvasReference(canvas);
     setCanvasInitialized(true);
     
-    setActiveTool('rectangle');
     console.log("Canvas reference set and initialization complete");
     
     setTimeout(() => {
@@ -125,6 +114,8 @@ const CensorPDF = () => {
     loadAllPageThumbnails();
   }, [pdfDocument, totalPages, renderThumbnail]);
 
+  const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
+
   const handleFileSelected = useCallback((files: File[]) => {
     if (files.length > 0) {
       console.log("New file selected:", files[0].name);
@@ -136,7 +127,6 @@ const CensorPDF = () => {
         pageChangeTimeoutRef.current = null;
       }
       
-      cleanupCanvas();
       fabricCanvasRef.current = null;
       
       setPageRenderedUrls([]);
@@ -145,7 +135,7 @@ const CensorPDF = () => {
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
-  }, [cleanupCanvas]);
+  }, []);
 
   const handlePageSelect = useCallback(async (pageNum: number) => {
     if (pageNum === currentPage) {
@@ -168,14 +158,13 @@ const CensorPDF = () => {
       setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
-      cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
       
       await gotoPage(pageNum);
       
+      // Reset tool to rectangle for consistency
       setActiveTool('rectangle');
-      setHasSelection(false);
       
       setTimeout(() => {
         setCurrentlyChangingPage(false);
@@ -186,7 +175,7 @@ const CensorPDF = () => {
       toast.error("Error al cambiar de página. Intente de nuevo.");
       setCurrentlyChangingPage(false);
     }
-  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage, cleanupCanvas]);
+  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage]);
 
   const handleClearAll = useCallback(() => {
     if (!fabricCanvasRef.current) return;
@@ -208,22 +197,6 @@ const CensorPDF = () => {
     }
   }, []);
 
-  const handleDeleteSelected = useCallback(() => {
-    if (!fabricCanvasRef.current) return;
-    
-    try {
-      const activeObject = fabricCanvasRef.current.getActiveObject();
-      if (activeObject) {
-        fabricCanvasRef.current.remove(activeObject);
-        setHasSelection(false);
-        toast.success('Censura seleccionada eliminada');
-      }
-    } catch (error) {
-      console.error("Error al eliminar la censura seleccionada:", error);
-      toast.error("Error al eliminar la censura. Intente de nuevo.");
-    }
-  }, []);
-
   const handleApplyCensors = useCallback(() => {
     console.log("Applying redactions, canvas ref:", fabricCanvasRef.current ? "Canvas available" : "Canvas null");
     
@@ -237,20 +210,16 @@ const CensorPDF = () => {
         return;
       }
       
-      fabricCanvasRef.current.forEachObject(obj => {
-        obj.visible = true;
-      });
-      
       fabricCanvasRef.current.renderAll();
       
       setTimeout(() => {
-        applyRedactions();
+        applyRedactions(censorStyle);
       }, 300);
     } else {
       console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
     }
-  }, [applyRedactions, setCanvasReference]);
+  }, [applyRedactions, setCanvasReference, censorStyle]);
 
   return (
     <Layout>
@@ -260,7 +229,7 @@ const CensorPDF = () => {
         <div className="mb-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Censurar PDF</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Oculta información sensible en tus documentos PDF.
+            Oculta información sensible en tus documentos PDF con capas negras o pixeladas.
           </p>
         </div>
 
@@ -291,13 +260,11 @@ const CensorPDF = () => {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  cleanupCanvas();
                   fabricCanvasRef.current = null;
                   setCanvasInitialized(false);
                   setSelectedFile(null);
                 }}
               >
-                <Upload className="h-4 w-4 mr-2" />
                 Cambiar archivo
               </Button>
               
@@ -326,26 +293,11 @@ const CensorPDF = () => {
               
               <PdfCensorToolbar
                 activeTool={activeTool}
-                onToolChange={(tool) => {
-                  console.log("Tool changed to:", tool);
-                  setActiveTool(tool);
-                  
-                  if (tool === 'select' && fabricCanvasRef.current) {
-                    fabricCanvasRef.current.forEachObject(obj => {
-                      obj.selectable = true;
-                      obj.evented = true;
-                    });
-                    fabricCanvasRef.current.renderAll();
-                  }
-                }}
-                censorColor={censorColor}
-                onColorChange={setCensorColor}
-                size={size}
-                onSizeChange={setSize}
+                onToolChange={setActiveTool}
+                censorStyle={censorStyle}
+                onStyleChange={setCensorStyle}
                 onClearAll={handleClearAll}
-                onDeleteSelected={handleDeleteSelected}
                 onApplyCensors={handleApplyCensors}
-                hasSelection={hasSelection}
                 isProcessing={isProcessing}
               />
               
@@ -380,7 +332,7 @@ const CensorPDF = () => {
                           <PdfCanvas 
                             key={`pdf-canvas-${currentPage}`}
                             pageUrl={pageUrl}
-                            onSelectionChange={setHasSelection}
+                            onSelectionChange={() => {}}
                             fabricRef={fabricCanvasRef}
                             onCanvasInitialized={handleCanvasInitialized}
                           />
@@ -390,8 +342,7 @@ const CensorPDF = () => {
                               key={`pdf-censor-tools-${currentPage}`}
                               canvas={fabricCanvasRef.current}
                               activeTool={activeTool}
-                              color={censorColor}
-                              size={size}
+                              censorStyle={censorStyle}
                               onToolChange={setActiveTool}
                             />
                           )}
@@ -417,7 +368,8 @@ const CensorPDF = () => {
                   onClick={downloadCensoredPDF}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
-                  <span className="mr-2">Descargar PDF censurado</span>
+                  <Download className="h-5 w-5 mr-2" />
+                  <span>Descargar PDF censurado</span>
                 </Button>
               )}
             </div>

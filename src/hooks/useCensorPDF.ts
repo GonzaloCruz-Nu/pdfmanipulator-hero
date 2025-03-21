@@ -3,6 +3,7 @@ import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import { CensorStyleType } from '@/components/pdf/PdfCensorToolbar';
 
 interface UseCensorPDFProps {
   file: File | null;
@@ -25,7 +26,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   }, []);
   
   // Function to apply redactions to the PDF
-  const applyRedactions = async () => {
+  const applyRedactions = async (censorStyle: CensorStyleType) => {
     if (!file) {
       toast.error('No hay documentos para censurar');
       return;
@@ -53,6 +54,26 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
         toast.warning('No hay áreas de censura para aplicar');
         setIsProcessing(false);
         return;
+      }
+      
+      if (censorStyle === 'pixelated') {
+        // Apply pixelation effect to each rectangle
+        canvas.forEachObject(obj => {
+          if (obj.type === 'rect') {
+            try {
+              // Apply a custom pattern or filter to simulate pixelation
+              const originalFill = obj.fill;
+              obj.set({
+                fill: '#555555',
+                strokeWidth: 1,
+                stroke: '#333333',
+                strokeDashArray: [5, 5]
+              });
+            } catch (err) {
+              console.error("Error applying pixelation:", err);
+            }
+          }
+        });
       }
       
       // Make sure all redaction objects are visible and rendered
