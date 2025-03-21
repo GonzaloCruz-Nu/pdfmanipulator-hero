@@ -25,24 +25,29 @@ const ToolsBarChart: React.FC<ToolsBarChartProps> = ({ data, title = "Herramient
     >
       <Card className="shadow-md">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
+          <CardTitle className="text-xl font-medium">{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
+        <CardContent className="pt-4">
+          <div className="h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={sortedData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                barSize={40}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis 
                   dataKey="name" 
                   angle={-45} 
                   textAnchor="end" 
-                  height={70} 
-                  tick={{ fontSize: 12 }} 
+                  height={80} 
+                  tick={{ fontSize: 14 }} 
+                  padding={{ left: 10, right: 10 }}
                 />
-                <YAxis />
+                <YAxis 
+                  tick={{ fontSize: 14 }}
+                  width={50}
+                />
                 <Tooltip 
                   formatter={(value: number) => [`${value} usos`, 'Total']}
                   labelFormatter={(name) => `Herramienta: ${name}`}
@@ -50,10 +55,12 @@ const ToolsBarChart: React.FC<ToolsBarChartProps> = ({ data, title = "Herramient
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)',
-                    color: 'var(--card-foreground)'
+                    color: 'var(--card-foreground)',
+                    padding: '10px 14px',
+                    fontSize: '14px'
                   }}
                 />
-                <Bar dataKey="count" name="Usos" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="count" name="Usos" radius={[6, 6, 0, 0]} maxBarSize={50}>
                   {sortedData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}

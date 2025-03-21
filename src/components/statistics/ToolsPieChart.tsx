@@ -25,24 +25,26 @@ const ToolsPieChart: React.FC<ToolsPieChartProps> = ({ data, title = "Distribuci
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <Card className="shadow-md">
+      <Card className="shadow-md h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
+          <CardTitle className="text-xl font-medium">{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
+        <CardContent className="pt-4">
+          <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                 <Pie
                   data={topData}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   labelLine={false}
-                  outerRadius={80}
+                  outerRadius={100}
+                  innerRadius={30}
                   fill="#f68d2e"
                   dataKey="count"
                   nameKey="name"
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  paddingAngle={2}
                 >
                   {topData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -57,10 +59,18 @@ const ToolsPieChart: React.FC<ToolsPieChartProps> = ({ data, title = "Distribuci
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)',
-                    color: 'var(--card-foreground)'
+                    color: 'var(--card-foreground)',
+                    padding: '10px 14px',
+                    fontSize: '14px'
                   }}
                 />
-                <Legend formatter={(value) => <span style={{ color: 'var(--foreground)' }}>{value}</span>} />
+                <Legend 
+                  formatter={(value) => <span style={{ color: 'var(--foreground)', fontSize: '14px', paddingLeft: '4px' }}>{value}</span>}
+                  layout="vertical"
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{ paddingTop: '20px' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>

@@ -16,25 +16,29 @@ const DailyUsageChart: React.FC<DailyUsageChartProps> = ({ data, title = "Uso di
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="col-span-2"
+      className="col-span-full"
     >
       <Card className="shadow-md">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
+          <CardTitle className="text-xl font-medium">{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
+        <CardContent className="pt-4">
+          <div className="h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={data}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis 
                   dataKey="day" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 14 }}
+                  padding={{ left: 15, right: 15 }}
                 />
-                <YAxis />
+                <YAxis 
+                  tick={{ fontSize: 14 }}
+                  width={40}
+                />
                 <Tooltip 
                   formatter={(value: number) => [`${value} usos`, 'Total']}
                   labelFormatter={(day) => `Día: ${day}`}
@@ -42,7 +46,9 @@ const DailyUsageChart: React.FC<DailyUsageChartProps> = ({ data, title = "Uso di
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)',
-                    color: 'var(--card-foreground)'
+                    color: 'var(--card-foreground)',
+                    padding: '10px 14px',
+                    fontSize: '14px'
                   }}
                 />
                 <Area 
@@ -51,6 +57,7 @@ const DailyUsageChart: React.FC<DailyUsageChartProps> = ({ data, title = "Uso di
                   stroke="#f68d2e" 
                   fill="#f68d2e" 
                   fillOpacity={0.3}
+                  strokeWidth={2}
                 />
               </AreaChart>
             </ResponsiveContainer>

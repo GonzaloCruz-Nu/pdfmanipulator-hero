@@ -44,20 +44,20 @@ const Statistics = () => {
     <Layout>
       <Header />
       
-      <div className="py-8 container max-w-7xl mx-auto">
+      <div className="py-12 container max-w-7xl mx-auto">
         <motion.div 
-          className="text-center mb-8"
+          className="text-center mb-10"
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
         >
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-azul dark:text-white">Estadísticas de Uso</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 text-azul dark:text-white">Estadísticas de Uso</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Análisis detallado sobre el uso de nuestras herramientas PDF
           </p>
         </motion.div>
 
-        <div className="mb-6 flex justify-end">
+        <div className="mb-8 flex justify-end">
           <Select
             value={selectedMonth}
             onValueChange={setSelectedMonth}
@@ -89,34 +89,32 @@ const Statistics = () => {
           <>
             <StatsCardGrid stats={statistics} />
 
-            <Tabs defaultValue="charts" className="mb-8">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6 bg-background border">
+            <Tabs defaultValue="charts" className="mb-10">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8 bg-background border">
                 <TabsTrigger value="charts" className="data-[state=active]:bg-naranja data-[state=active]:text-white">Gráficos</TabsTrigger>
                 <TabsTrigger value="tendencies" className="data-[state=active]:bg-naranja data-[state=active]:text-white">Tendencias</TabsTrigger>
               </TabsList>
               
               <TabsContent value="charts">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-10">
                   <DailyUsageChart data={statistics.dailyUsage} title={`Uso diario - ${statistics.month}`} />
-                  <div className="grid grid-cols-1 gap-6">
-                    <ToolsBarChart data={statistics.toolUsage} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <ToolsPieChart data={statistics.toolUsage} />
-                      <CategoryPieChart data={statistics.categoryUsage} />
-                    </div>
+                  <ToolsBarChart data={statistics.toolUsage} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <ToolsPieChart data={statistics.toolUsage} />
+                    <CategoryPieChart data={statistics.categoryUsage} />
                   </div>
                 </div>
               </TabsContent>
               
               <TabsContent value="tendencies">
-                <div className="bg-card p-6 rounded-lg shadow-md border border-border">
-                  <h3 className="text-xl font-semibold mb-4">Tendencia de uso en el tiempo</h3>
-                  <p className="text-muted-foreground mb-6">
+                <div className="bg-card p-8 rounded-lg shadow-md border border-border">
+                  <h3 className="text-xl font-semibold mb-6">Tendencia de uso en el tiempo</h3>
+                  <p className="text-muted-foreground mb-8">
                     Este gráfico muestra la tendencia de uso de las herramientas más populares.
                   </p>
                   
                   <ChartContainer 
-                    className="h-[400px]"
+                    className="h-[500px]"
                     config={{
                       "Unir PDFs": { color: "#f68d2e" },
                       "Comprimir PDF": { color: "#1f2a44" },
@@ -124,7 +122,7 @@ const Statistics = () => {
                       "Desbloquear PDF": { color: "#8b5cf6" }
                     }}
                   >
-                    <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <LineChart margin={{ top: 30, right: 40, left: 30, bottom: 30 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="day" />
                       <YAxis />
@@ -152,7 +150,7 @@ const Statistics = () => {
                         stroke="#f68d2e"
                         name="Unir PDFs"
                         strokeWidth={2}
-                        activeDot={{ r: 6 }}
+                        activeDot={{ r: 8 }}
                         data={statistics.dailyUsage}
                       />
                     </LineChart>
