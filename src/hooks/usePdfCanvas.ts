@@ -23,6 +23,8 @@ export const usePdfCanvas = ({
     width: 0,
     height: 0
   });
+  
+  // Performance optimizations with refs
   const currentImageRef = useRef<fabric.Image | null>(null);
   const lastDisplayedUrl = useRef<string | null>(null);
   const isDraggingRef = useRef(false);
@@ -30,16 +32,37 @@ export const usePdfCanvas = ({
   const lastPosYRef = useRef(0);
   const isMountedRef = useRef(true);
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
+  const activePanningRef = useRef(isPanning);
+  const zoomLevelRef = useRef(zoomLevel);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track component mount state
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      
+      // Clear any pending timeouts
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+      }
     };
   }, []);
 
-  // Initialize Fabric canvas with proper error handling
+  // Update refs when props change
+  useEffect(() => {
+    activePanningRef.current = isPanning;
+  }, [isPanning]);
+
+  useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
+
+  // Initialize Fabric canvas with proper error handling and optimized settings
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
     try {
       // Store canvas element reference for safer cleanup
@@ -51,11 +74,15 @@ export const usePdfCanvas = ({
       const fabricCanvas = new fabric.Canvas(canvasEl, {
         selection: true,
         preserveObjectStacking: true,
-        renderOnAddRemove: true,
+        renderOnAddRemove: false, // Optimize rendering
         stateful: false,
         enableRetinaScaling: false,
         imageSmoothingEnabled: true
       });
+      
+      // Set additional performance optimizations
+      fabricCanvas.skipOffscreen = true;
+      fabricCanvas.stopContextMenu = true;
       
       if (isMountedRef.current) {
         setCanvas(fabricCanvas);
@@ -70,19 +97,23 @@ export const usePdfCanvas = ({
       fabricCanvas.on('selection:updated', handleSelectionUpdated);
       fabricCanvas.on('selection:cleared', handleSelectionCleared);
       
+      if (onCanvasInitialized) {
+        onCanvasInitialized(fabricCanvas);
+      }
+      
       return fabricCanvas;
     } catch (error) {
       console.error("Error initializing canvas:", error);
       return null;
     }
-  }, [onSelectionChange]);
+  }, [onSelectionChange, onCanvasInitialized]);
 
   // Setup panning functionality
   useEffect(() => {
     if (!canvas) return;
     
     const handleMouseDown = (opt: fabric.IEvent) => {
-      if (!isPanning) return;
+      if (!activePanningRef.current) return;
       
       isDraggingRef.current = true;
       
@@ -100,7 +131,7 @@ export const usePdfCanvas = ({
     };
 
     const handleMouseMove = (opt: fabric.IEvent) => {
-      if (!isDraggingRef.current || !isPanning || !canvas) return;
+      if (!isDraggingRef.current || !activePanningRef.current || !canvas) return;
       
       if (!canvas.backgroundImage) return;
       
@@ -108,25 +139,39 @@ export const usePdfCanvas = ({
       const deltaX = evt.clientX - lastPosXRef.current;
       const deltaY = evt.clientY - lastPosYRef.current;
       
-      // Move the background image
-      canvas.backgroundImage.set({
-        left: (canvas.backgroundImage.left || 0) + deltaX,
-        top: (canvas.backgroundImage.top || 0) + deltaY
-      });
+      // Performance optimization: batch updates and reduce renders
+      canvas.discardActiveObject();
       
-      // Also move all objects on the canvas
+      // Move the background image
+      if (canvas.backgroundImage) {
+        canvas.backgroundImage.set({
+          left: (canvas.backgroundImage.left || 0) + deltaX,
+          top: (canvas.backgroundImage.top || 0) + deltaY
+        });
+      }
+      
+      // Also move all objects on the canvas - but batch the update
       canvas.forEachObject(function(obj) {
         obj.set({
           left: obj.left! + deltaX,
-          top: obj.top! + deltaY
+          top: obj.top! + deltaY,
+          hasControls: false
         });
-        obj.setCoords();
       });
       
-      canvas.renderAll();
-      
+      // Update the cursor position
       lastPosXRef.current = evt.clientX;
       lastPosYRef.current = evt.clientY;
+      
+      // Throttle renders for better performance
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+      }
+      
+      renderTimeoutRef.current = setTimeout(() => {
+        canvas.requestRenderAll();
+        renderTimeoutRef.current = null;
+      }, 10);
     };
 
     const handleMouseUp = () => {
@@ -135,12 +180,16 @@ export const usePdfCanvas = ({
       isDraggingRef.current = false;
       
       // Re-enable object selection after panning
-      if (isPanning) {
+      if (activePanningRef.current) {
         canvas.selection = true;
         canvas.forEachObject(function(obj) {
           obj.selectable = true;
+          obj.hasControls = true;
+          obj.setCoords();
         });
-        canvas.renderAll();
+        
+        // Ensure we render with the correct object positions
+        canvas.requestRenderAll();
       }
     };
 
@@ -155,117 +204,149 @@ export const usePdfCanvas = ({
         canvas.off('mouse:up', handleMouseUp);
       }
     };
-  }, [canvas, isPanning]);
+  }, [canvas]);
 
-  // Update canvas size with improved error handling
+  // Update canvas size with improved error handling and debouncing
   const updateCanvasSize = useCallback((containerEl: HTMLDivElement) => {
     if (!canvas || !isMountedRef.current) return;
     
     try {
-      const containerWidth = containerEl.clientWidth;
-      const containerHeight = containerEl.clientHeight;
+      // Debounce resize operations
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
       
-      // Only resize if dimensions actually changed
-      if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
-        canvas.setWidth(containerWidth);
-        canvas.setHeight(containerHeight);
+      resizeTimeoutRef.current = setTimeout(() => {
+        if (!canvas || !isMountedRef.current) return;
         
-        // If we have a background image, reposition it
-        if (canvas.backgroundImage) {
-          const scale = Math.min(
-            (containerWidth * 0.85) / Math.max(initialImgData.width, 1),
-            (containerHeight * 0.85) / Math.max(initialImgData.height, 1)
-          ) * zoomLevel;
+        const containerWidth = containerEl.clientWidth;
+        const containerHeight = containerEl.clientHeight;
+        
+        // Only resize if dimensions actually changed
+        if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
+          canvas.setWidth(containerWidth);
+          canvas.setHeight(containerHeight);
           
-          canvas.backgroundImage.scale(scale);
+          // If we have a background image, reposition it
+          if (canvas.backgroundImage) {
+            const scale = Math.min(
+              (containerWidth * 0.85) / Math.max(initialImgData.width, 1),
+              (containerHeight * 0.85) / Math.max(initialImgData.height, 1)
+            ) * zoomLevelRef.current;
+            
+            canvas.backgroundImage.scale(scale);
+            
+            // Center the image
+            const leftPos = (containerWidth - (canvas.backgroundImage.getScaledWidth() || 0)) / 2;
+            const topPos = (containerHeight - (canvas.backgroundImage.getScaledHeight() || 0)) / 2;
+            
+            canvas.backgroundImage.set({
+              left: leftPos,
+              top: topPos
+            });
+          }
           
-          // Center the image
-          const leftPos = (containerWidth - (canvas.backgroundImage.getScaledWidth() || 0)) / 2;
-          const topPos = (containerHeight - (canvas.backgroundImage.getScaledHeight() || 0)) / 2;
-          
-          canvas.backgroundImage.set({
-            left: leftPos,
-            top: topPos
-          });
+          canvas.requestRenderAll();
         }
         
-        canvas.renderAll();
-      }
+        resizeTimeoutRef.current = null;
+      }, 100); // Debounce for performance
+      
     } catch (error) {
       console.error("Error updating canvas size:", error);
     }
-  }, [canvas, initialImgData, zoomLevel]);
+  }, [canvas, initialImgData.width, initialImgData.height]);
 
-  // Display PDF page with improved caching and loading
+  // Display PDF page with improved performance and caching
   const displayPdfPage = useCallback((pageUrl: string, containerEl: HTMLDivElement) => {
     if (!canvas || !isMountedRef.current) return;
     
-    // Skip if we're already displaying this URL (avoid flickering)
+    // Skip if we're already displaying this URL to avoid flicker
     if (lastDisplayedUrl.current === pageUrl) {
-      console.log("Skipping rendering of already displayed page:", pageUrl);
+      console.log("Skipping rendering of already displayed page");
       return;
     }
     
     try {
-      console.log("Loading PDF page with URL:", pageUrl);
+      console.log("Loading PDF page with URL - new implementation");
       lastDisplayedUrl.current = pageUrl;
       
-      // Load PDF image as background with improved options
-      fabric.Image.fromURL(pageUrl, (img) => {
+      // Clear any scheduled renders
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current);
+        renderTimeoutRef.current = null;
+      }
+      
+      // Immediately clear canvas to avoid ghosting
+      canvas.clear();
+      
+      // Use image caching pattern for better performance
+      const img = new Image();
+      
+      img.onload = () => {
         if (!canvas || !isMountedRef.current) return;
         
         try {
-          // Clear any existing objects except background
-          canvas.getObjects().forEach(obj => {
-            canvas.remove(obj);
+          const fabricImage = new fabric.Image(img, {
+            originX: 'left',
+            originY: 'top',
+            objectCaching: true
           });
           
           // Store reference to current image
-          currentImageRef.current = img;
+          currentImageRef.current = fabricImage;
           
           const containerWidth = containerEl.clientWidth;
           const containerHeight = containerEl.clientHeight;
           
           // Store initial image data for zooming
+          const imgWidth = fabricImage.width || 1;
+          const imgHeight = fabricImage.height || 1;
+          
           setInitialImgData({
-            width: img.width as number,
-            height: img.height as number
+            width: imgWidth,
+            height: imgHeight
           });
           
           // Calculate scale for PDF to fill more space
           const scale = Math.min(
-            (containerWidth * 0.85) / (img.width || 1),
-            (containerHeight * 0.85) / (img.height || 1)
-          ) * zoomLevel;
+            (containerWidth * 0.85) / imgWidth,
+            (containerHeight * 0.85) / imgHeight
+          ) * zoomLevelRef.current;
           
           // Apply scaling
-          img.scale(scale);
+          fabricImage.scale(scale);
           
           // Center the image in the canvas
-          const leftPos = (containerWidth - (img.getScaledWidth() || 0)) / 2;
-          const topPos = (containerHeight - (img.getScaledHeight() || 0)) / 2;
+          const leftPos = (containerWidth - (fabricImage.getScaledWidth() || 0)) / 2;
+          const topPos = (containerHeight - (fabricImage.getScaledHeight() || 0)) / 2;
           
           // Set as background with positioning
-          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-            originX: 'left',
-            originY: 'top',
+          canvas.setBackgroundImage(fabricImage, () => {
+            if (canvas && isMountedRef.current) {
+              canvas.requestRenderAll();
+              console.log("PDF page rendered successfully");
+            }
+          }, {
             left: leftPos,
             top: topPos
           });
-          
-          canvas.renderAll();
         } catch (error) {
           console.error("Error setting PDF as background:", error);
         }
-      }, { 
-        crossOrigin: 'anonymous',
-        enableRetinaScaling: false,
-        objectCaching: true
-      });
+      };
+      
+      img.onerror = (error) => {
+        console.error("Error loading PDF image:", error);
+      };
+      
+      // Set the source last to start loading
+      img.src = pageUrl;
+      
     } catch (error) {
       console.error("Error displaying PDF page:", error);
     }
-  }, [canvas, zoomLevel]);
+  }, [canvas]);
 
   // Safer cleanup function
   const cleanup = useCallback(() => {
@@ -283,15 +364,10 @@ export const usePdfCanvas = ({
       // Clear objects from the canvas
       canvas.clear();
       
-      // Safer canvas disposal approach
-      try {
-        // Just null the canvas itself rather than trying to dispose
-        // This avoids the DOM node removal errors
-        setCanvas(null);
-        console.log("Canvas nulled successfully");
-      } catch (error) {
-        console.error("Error during canvas cleanup:", error);
-      }
+      // DON'T try to dispose or modify the DOM - just reset state
+      console.log("Canvas state reset successfully");
+    } catch (error) {
+      console.error("Error during canvas cleanup:", error);
     } finally {
       // Always reset state variables
       if (isMountedRef.current) {

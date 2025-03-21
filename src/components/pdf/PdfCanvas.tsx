@@ -25,6 +25,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   const canvasInitializedRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
   const mountedRef = useRef(true);
+  const lastPageUrlRef = useRef<string | null>(null);
   
   const {
     canvas,
@@ -38,10 +39,13 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     isPanning
   });
 
-  // Ensure proper cleanup when component unmounts
+  // Set mounted ref on component mount/unmount
   useEffect(() => {
+    console.log("PdfCanvas component mounted");
     mountedRef.current = true;
+    
     return () => {
+      console.log("PdfCanvas component unmounting");
       mountedRef.current = false;
     };
   }, []);
@@ -67,24 +71,35 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
       canvasInitializedRef.current = true;
     }
     
+    // Cleanup function - use a local reference to ensure state closure consistency
     return () => {
-      console.log("PdfCanvas component unmounting, cleaning up");
+      if (mountedRef.current === false) return; // Already unmounted
+      
+      console.log("Canvas initialization effect cleanup");
+      
+      // Do NOT call cleanup() here - this creates multiple cleanup calls
+      // Just reset internal state
+      canvasInitializedRef.current = false;
+    };
+  }, [initializeCanvas, onCanvasInitialized, fabricRef]);
+
+  // Global cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log("PdfCanvas unmount effect triggered - cleaning up canvas");
       
       // First clear references
       if (fabricRef) {
         fabricRef.current = null;
       }
       
-      // Then clean up the canvas - only if still mounted
+      // Then clean up the canvas
       if (canvasInitializedRef.current) {
         cleanup();
-        if (mountedRef.current) {
-          setIsCanvasReady(false);
-          canvasInitializedRef.current = false;
-        }
+        canvasInitializedRef.current = false;
       }
     };
-  }, [initializeCanvas, onCanvasInitialized, fabricRef, cleanup]);
+  }, [cleanup, fabricRef]);
 
   // Update canvas size on window resize or container size change
   useEffect(() => {
@@ -96,60 +111,73 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
       }
     };
     
-    // Initial size update
-    updateCanvasSize(containerRef.current);
+    // Initial size update - with a small delay
+    const initialSizeTimer = setTimeout(() => {
+      if (mountedRef.current && containerRef.current) {
+        updateCanvasSize(containerRef.current);
+      }
+    }, 100);
     
     window.addEventListener('resize', handleResize);
+    
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearTimeout(initialSizeTimer);
     };
   }, [canvas, updateCanvasSize, isCanvasReady]);
-
-  // Memoize the displayPdfPage to prevent render loops
-  const memoizedDisplayPdfPage = useCallback(
-    (url: string, container: HTMLDivElement) => {
-      if (mountedRef.current) {
-        displayPdfPage(url, container);
-      }
-    },
-    [displayPdfPage]
-  );
 
   // Display PDF when pageUrl changes - with improved stability
   useEffect(() => {
     if (!canvas || !pageUrl || !containerRef.current || !isCanvasReady) return;
     
+    // Skip if this page was already loaded
+    if (lastPageUrlRef.current === pageUrl) {
+      console.log("Skipping duplicate page render:", pageUrl);
+      return;
+    }
+    
+    lastPageUrlRef.current = pageUrl;
+    console.log("Loading new PDF page:", pageUrl);
+    
     // Use a stable reference to avoid flickering
     const currentContainer = containerRef.current;
     
-    // Add a larger timeout to prevent rapid re-renders and give more time for loading
+    // Add a delay before displaying the page to prevent frequent reloads
     const timer = setTimeout(() => {
       if (mountedRef.current) {
-        memoizedDisplayPdfPage(pageUrl, currentContainer);
+        // Force a clean canvas state before loading new content
+        if (canvas.backgroundImage) {
+          canvas.clear();
+          canvas.renderAll();
+        }
+        
+        displayPdfPage(pageUrl, currentContainer);
       }
-    }, 250); // Increased timeout for better stability
+    }, 300); // Increased timeout for better stability
     
     return () => {
       clearTimeout(timer);
     };
-  }, [pageUrl, canvas, memoizedDisplayPdfPage, isCanvasReady]);
+  }, [pageUrl, canvas, displayPdfPage, isCanvasReady]);
 
-  const handleZoomIn = () => {
+  const handleZoomIn = useCallback(() => {
     setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%
-  };
+  }, []);
 
-  const handleZoomOut = () => {
+  const handleZoomOut = useCallback(() => {
     setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Minimum zoom 50%
-  };
+  }, []);
 
-  const togglePanning = () => {
+  const togglePanning = useCallback(() => {
     setIsPanning(prev => !prev);
-  };
+  }, []);
 
+  // Use local component CSS to ensure the container takes the full space
   return (
     <div 
       ref={containerRef} 
       className="w-full h-full flex-1 flex justify-center items-center overflow-hidden relative bg-gray-100"
+      style={{ minHeight: "400px" }} // Ensure minimum height
     >
       <canvas ref={canvasElRef} className="absolute inset-0" />
       
