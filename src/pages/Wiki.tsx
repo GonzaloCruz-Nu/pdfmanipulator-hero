@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch } from 'lucide-react';
@@ -137,7 +136,7 @@ const Wiki = () => {
                     Convertir PDF
                   </h3>
                   <p className="text-muted-foreground text-sm mb-2">
-                    Convierte tus PDFs a formatos editables como Word.
+                    Convierte tus PDFs a texto mediante reconocimiento OCR.
                   </p>
                   <Link to="/wiki/convert" className="text-primary text-sm hover:underline">
                     Leer guía completa →
