@@ -121,26 +121,30 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       if (canvasRef.current) {
         console.log("Iniciando limpieza del canvas...");
         
-        // First, remove all event listeners to prevent memory leaks
-        canvasRef.current.off();
-        
-        // Check if the canvas elements still exist in the DOM before trying to dispose
-        if (canvasRef.current.lowerCanvasEl) {
-          // Check if the canvas element is still in the DOM
-          const canvasIsInDOM = document.body.contains(canvasRef.current.lowerCanvasEl);
-          
-          if (canvasIsInDOM) {
-            console.log("Canvas está en el DOM, disponiéndolo normalmente");
-            canvasRef.current.dispose();
-          } else {
-            console.log("Canvas ya no está en el DOM, omitiendo dispose");
-            // Just nullify the reference without trying to dispose
-          }
-        } else {
-          console.log("El elemento lowerCanvasEl no existe, omitiendo dispose");
+        // First, safely remove all event listeners
+        try {
+          canvasRef.current.off();
+        } catch (error) {
+          console.error("Error al remover eventos del canvas:", error);
         }
         
-        // Clear the reference regardless
+        // Then try to dispose the canvas if it's still in the DOM
+        try {
+          if (canvasRef.current.lowerCanvasEl) {
+            const canvasElement = canvasRef.current.lowerCanvasEl;
+            // Safer check for DOM attachment
+            if (document.body.contains(canvasElement) || canvasElement.parentNode) {
+              console.log("Canvas está en el DOM, disponiéndolo correctamente");
+              canvasRef.current.dispose();
+            } else {
+              console.log("Canvas ya no está en el DOM, omitiendo dispose");
+            }
+          }
+        } catch (error) {
+          console.error("Error durante el dispose del canvas:", error);
+        }
+        
+        // Always clear the reference
         canvasRef.current = null;
         console.log("Canvas limpiado correctamente");
       }

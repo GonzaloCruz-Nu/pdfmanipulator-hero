@@ -24,6 +24,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   const colorRef = useRef(color);
   const sizeRef = useRef(size);
   const onToolChangeRef = useRef(onToolChange);
+  const mouseDownHandlerRef = useRef<((e: fabric.IEvent) => void) | null>(null);
   
   // Update refs when props change
   useEffect(() => {
@@ -137,21 +138,30 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     currentCanvas.on('mouse:up', handleMouseUp);
   }, [canvas]);
 
-  // Set up and clean up event handlers - this is the key part that needs fixing
+  // Set up and clean up event handlers
   useEffect(() => {
     if (!canvas) return;
     
     console.log("Configurando eventos del canvas para herramienta", activeTool);
+    
+    // Remove previous handler if it exists
+    if (mouseDownHandlerRef.current) {
+      canvas.off('mouse:down', mouseDownHandlerRef.current);
+      mouseDownHandlerRef.current = null;
+    }
+    
+    // Store the new handler reference
+    mouseDownHandlerRef.current = handleCanvasMouseDown;
     
     // Add mouse down event listener
     canvas.on('mouse:down', handleCanvasMouseDown);
     
     // Return cleanup function that properly removes the specific handler
     return () => {
-      if (canvas) {
+      if (canvas && mouseDownHandlerRef.current) {
         try {
-          // Remove our specific handler
-          canvas.off('mouse:down', handleCanvasMouseDown);
+          canvas.off('mouse:down', mouseDownHandlerRef.current);
+          mouseDownHandlerRef.current = null;
           console.log("Eventos del canvas limpiados correctamente");
         } catch (error) {
           console.error("Error al limpiar eventos del canvas:", error);
