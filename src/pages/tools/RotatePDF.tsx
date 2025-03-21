@@ -104,7 +104,7 @@ const RotatePDF: React.FC = () => {
         {!file ? (
           <Card className="p-6 max-w-xl mx-auto">
             <FileUpload
-              onFilesAdded={handleFileChange}
+              onFilesSelected={handleFileChange}
               maxFiles={1}
               maxSize={100}
               accept=".pdf"
