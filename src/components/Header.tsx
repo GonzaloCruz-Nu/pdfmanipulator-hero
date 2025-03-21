@@ -8,12 +8,8 @@ const Header: React.FC = () => {
 
   return (
     <header className="py-6">
-      <div className="container flex flex-col md:flex-row items-center justify-between">
-        <div className="flex-1 hidden md:block">
-          {/* Empty div for flex spacing */}
-        </div>
-        
-        <Link to="/" className="flex items-center space-x-2 text-foreground mb-4 md:mb-0">
+      <div className="container flex flex-col items-center justify-center">
+        <Link to="/" className="flex items-center space-x-2 text-foreground mb-4">
           <FileText className="h-8 w-8 text-naranja" />
           <div className="flex flex-col">
             <span className="text-xl font-medium">PDFmanager</span>
@@ -21,8 +17,8 @@ const Header: React.FC = () => {
           </div>
         </Link>
         
-        <nav className="flex-1">
-          <ul className="flex justify-center md:justify-end space-x-8">
+        <nav className="w-full">
+          <ul className="flex justify-center space-x-8">
             <li>
               <Link 
                 to="/" 
