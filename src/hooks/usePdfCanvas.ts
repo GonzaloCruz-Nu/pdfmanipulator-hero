@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { fabric } from 'fabric';
 
@@ -22,6 +23,7 @@ export const usePdfCanvas = ({
     height: 0
   });
   const currentImageRef = useRef<fabric.Image | null>(null);
+  const lastDisplayedUrl = useRef<string | null>(null);
 
   // Initialize Fabric canvas with proper error handling
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
@@ -134,29 +136,32 @@ export const usePdfCanvas = ({
       
       console.log("Container dimensions:", containerWidth, containerHeight);
       
-      canvas.setWidth(containerWidth);
-      canvas.setHeight(containerHeight);
-      
-      // If we have a background image, reposition it
-      if (canvas.backgroundImage) {
-        const scale = Math.min(
-          (containerWidth * 0.85) / initialImgData.width,
-          (containerHeight * 0.85) / initialImgData.height
-        ) * zoomLevel;
+      // Only resize if dimensions actually changed
+      if (canvas.width !== containerWidth || canvas.height !== containerHeight) {
+        canvas.setWidth(containerWidth);
+        canvas.setHeight(containerHeight);
         
-        canvas.backgroundImage.scale(scale);
+        // If we have a background image, reposition it
+        if (canvas.backgroundImage) {
+          const scale = Math.min(
+            (containerWidth * 0.85) / initialImgData.width,
+            (containerHeight * 0.85) / initialImgData.height
+          ) * zoomLevel;
+          
+          canvas.backgroundImage.scale(scale);
+          
+          // Center the image
+          const leftPos = (containerWidth - (canvas.backgroundImage.getScaledWidth() || 0)) / 2;
+          const topPos = (containerHeight - (canvas.backgroundImage.getScaledHeight() || 0)) / 2;
+          
+          canvas.backgroundImage.set({
+            left: leftPos,
+            top: topPos
+          });
+        }
         
-        // Center the image
-        const leftPos = (containerWidth - (canvas.backgroundImage.getScaledWidth() || 0)) / 2;
-        const topPos = (containerHeight - (canvas.backgroundImage.getScaledHeight() || 0)) / 2;
-        
-        canvas.backgroundImage.set({
-          left: leftPos,
-          top: topPos
-        });
+        canvas.renderAll();
       }
-      
-      canvas.renderAll();
     } catch (error) {
       console.error("Error updating canvas size:", error);
     }
@@ -166,22 +171,22 @@ export const usePdfCanvas = ({
   const displayPdfPage = useCallback((pageUrl: string, containerEl: HTMLDivElement) => {
     if (!canvas) return;
     
+    // Skip if we're already displaying this URL (avoid flickering)
+    if (lastDisplayedUrl.current === pageUrl) {
+      console.log("Skipping rendering of already displayed page:", pageUrl);
+      return;
+    }
+    
     try {
-      // Prevent loading the same image multiple times
-      if (currentImageRef.current && currentImageRef.current._element && 
-          currentImageRef.current._element.src === pageUrl) {
-        console.log("Skipping load of the same image");
-        return;
-      }
-      
       console.log("Loading PDF page with URL:", pageUrl);
+      lastDisplayedUrl.current = pageUrl;
       
-      // Load PDF image as background - use promise to avoid race conditions
+      // Load PDF image as background with custom options to prevent flicker
       fabric.Image.fromURL(pageUrl, (img) => {
         if (!canvas) return;
         
         try {
-          // Keep reference to the current image for comparison
+          // Store reference to current image
           currentImageRef.current = img;
           
           const containerWidth = containerEl.clientWidth;
@@ -225,7 +230,12 @@ export const usePdfCanvas = ({
         } catch (error) {
           console.error("Error setting PDF as background:", error);
         }
-      }, { crossOrigin: 'anonymous' });
+      }, { 
+        crossOrigin: 'anonymous',
+        // Add options to improve rendering stability
+        enableRetinaScaling: false,
+        objectCaching: true
+      });
     } catch (error) {
       console.error("Error displaying PDF page:", error);
     }
@@ -253,6 +263,7 @@ export const usePdfCanvas = ({
       // Always set the canvas to null
       setCanvas(null);
       currentImageRef.current = null;
+      lastDisplayedUrl.current = null;
     }
   }, [canvas]);
 

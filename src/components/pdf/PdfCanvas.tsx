@@ -37,7 +37,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     zoomLevel
   });
 
-  // Initialize canvas when component mounts
+  // Initialize canvas ONCE when component mounts
   useEffect(() => {
     if (!canvasElRef.current || !containerRef.current || canvasInitializedRef.current) return;
     
@@ -91,11 +91,22 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     };
   }, [canvas, updateCanvasSize, isCanvasReady]);
 
-  // Display PDF when pageUrl changes
+  // Display PDF when pageUrl changes - with stability improvements
   useEffect(() => {
     if (!canvas || !pageUrl || !containerRef.current || !isCanvasReady) return;
     
-    displayPdfPage(pageUrl, containerRef.current);
+    // Use a stable reference to avoid flickering
+    const currentContainer = containerRef.current;
+    const currentPageUrl = pageUrl;
+    
+    // Add a small timeout to prevent rapid re-renders
+    const timer = setTimeout(() => {
+      displayPdfPage(currentPageUrl, currentContainer);
+    }, 50);
+    
+    return () => {
+      clearTimeout(timer);
+    };
   }, [pageUrl, canvas, displayPdfPage, isCanvasReady]);
 
   const handleZoomIn = () => {
@@ -129,4 +140,4 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   );
 };
 
-export default PdfCanvas;
+export default React.memo(PdfCanvas);

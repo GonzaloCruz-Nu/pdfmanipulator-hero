@@ -26,6 +26,7 @@ const CensorPDF = () => {
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
   const [isPanning, setIsPanning] = useState(false);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const [currentlyChangingPage, setCurrentlyChangingPage] = useState(false);
   
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -119,7 +120,7 @@ const CensorPDF = () => {
   }, [pdfDocument, totalPages, renderThumbnail]);
 
   // Handle file selection
-  const handleFileSelected = (files: File[]) => {
+  const handleFileSelected = useCallback((files: File[]) => {
     if (files.length > 0) {
       console.log("New file selected:", files[0].name);
       
@@ -142,7 +143,7 @@ const CensorPDF = () => {
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
-  };
+  }, [cleanupCanvas]);
 
   // Handle page selection - memoized to avoid recreating on every render
   const handlePageSelect = useCallback(async (pageNum: number) => {
@@ -151,7 +152,7 @@ const CensorPDF = () => {
       return;
     }
     
-    if (isLoading) {
+    if (isLoading || currentlyChangingPage) {
       console.log("Page change in progress, ignoring request");
       return;
     }
@@ -163,16 +164,23 @@ const CensorPDF = () => {
     
     try {
       console.log(`Starting page change to page ${pageNum}`);
+      setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
       // Go to the selected page
       await gotoPage(pageNum);
       
+      // Small delay to ensure UI stability
+      setTimeout(() => {
+        setCurrentlyChangingPage(false);
+      }, 200);
+      
     } catch (error) {
       console.error("Error changing page:", error);
       toast.error("Error al cambiar de página. Intente de nuevo.");
+      setCurrentlyChangingPage(false);
     }
-  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage]);
+  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage]);
 
   // Handle clearing all censors
   const handleClearAll = useCallback(() => {
@@ -325,13 +333,13 @@ const CensorPDF = () => {
                       pages={pageRenderedUrls}
                       currentPage={currentPage}
                       onPageSelect={handlePageSelect}
-                      isChangingPage={isLoading}
+                      isChangingPage={isLoading || currentlyChangingPage}
                     />
                   </div>
                 )}
                 
                 <div className="flex-1 relative overflow-hidden">
-                  {isLoading ? (
+                  {isLoading || currentlyChangingPage ? (
                     <div className="flex flex-col items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                       <p className="mt-2 text-sm text-muted-foreground">
@@ -397,3 +405,4 @@ const CensorPDF = () => {
 };
 
 export default CensorPDF;
+
