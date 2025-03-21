@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, Unlock, FileCog, FileSearch, FileLock } from 'lucide-react';
+import { Merge, Scissors, Zap, Unlock, FileCog, FileSearch, FileLock, RotateCcw } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -128,6 +128,26 @@ const Index = () => {
 
           <motion.div variants={fadeInUp}>
             <ToolCard
+              title="Proteger PDF"
+              description="Añade contraseñas a tus PDFs"
+              icon={FileLock}
+              to="/tools/protect"
+              className="h-full"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Rotar PDF"
+              description="Cambia la orientación de las páginas"
+              icon={RotateCcw}
+              to="/tools/rotate"
+              className="h-full"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
               title="Editar PDF"
               description="Edita el contenido de tus documentos"
               icon={FileCog}
@@ -142,16 +162,6 @@ const Index = () => {
               description="Extrae texto de imágenes y escaneados"
               icon={FileSearch}
               to="/tools/ocr"
-              className="h-full"
-            />
-          </motion.div>
-
-          <motion.div variants={fadeInUp}>
-            <ToolCard
-              title="Proteger PDF"
-              description="Añade contraseñas a tus PDFs"
-              icon={FileLock}
-              to="/tools/protect"
               className="h-full"
             />
           </motion.div>
