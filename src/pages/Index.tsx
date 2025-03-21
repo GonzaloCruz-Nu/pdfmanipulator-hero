@@ -51,28 +51,28 @@ const Index = () => {
     <Layout>
       <Header />
       
-      <div className="pt-8 pb-16">
+      <div className="pt-6 pb-12">
         <motion.div 
-          className="text-center space-y-4 mb-10"
+          className="text-center space-y-3 mb-8"
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
         >
-          <div className="inline-block rounded-full bg-naranja/10 px-3 py-1 text-sm text-naranja mb-2">
+          <div className="inline-block rounded-full bg-naranja/10 px-3 py-1 text-sm text-naranja mb-1">
             100% Local, 100% Privado
           </div>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
             Manipula PDFs con facilidad<br />
             <span className="text-naranja">sin salir de tu navegador</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-muted-foreground text-base">
+          <p className="max-w-2xl mx-auto text-muted-foreground text-sm">
             Herramientas potentes para unir, dividir y comprimir PDFs.
             Sin servidores externos. Tus archivos nunca salen de tu dispositivo.
           </p>
         </motion.div>
 
         <motion.h2 
-          className="text-xl font-bold text-center mb-6"
+          className="text-lg font-bold text-center mb-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -81,7 +81,7 @@ const Index = () => {
         </motion.h2>
 
         <motion.div 
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-8 max-w-[800px] mx-auto"
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
@@ -89,7 +89,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Unir PDFs"
-              description="Combina múltiples documentos PDF en uno"
+              description="Combina múltiples documentos"
               icon={Merge}
               to="/tools/merge"
               className="h-full"
@@ -99,7 +99,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Dividir PDF"
-              description="Divide un documento PDF en varios archivos"
+              description="Divide un documento PDF"
               icon={Scissors}
               to="/tools/split"
               className="h-full"
@@ -109,7 +109,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Comprimir PDF"
-              description="Reduce el tamaño sin perder calidad"
+              description="Reduce el tamaño"
               icon={Zap}
               to="/tools/compress"
               className="h-full"
@@ -119,7 +119,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Desbloquear PDF"
-              description="Elimina contraseñas de PDFs protegidos"
+              description="Elimina contraseñas"
               icon={Unlock}
               to="/tools/unlock"
               className="h-full"
@@ -129,7 +129,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Editar PDF"
-              description="Edita el contenido de tus documentos"
+              description="Edita tus documentos"
               icon={FileCog}
               to="/tools/edit"
               className="h-full"
@@ -139,7 +139,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="OCR PDF"
-              description="Extrae texto de imágenes y escaneados"
+              description="Extrae texto de imágenes"
               icon={FileSearch}
               to="/tools/ocr"
               className="h-full"
@@ -149,7 +149,7 @@ const Index = () => {
           <motion.div variants={fadeInUp}>
             <ToolCard
               title="Proteger PDF"
-              description="Añade contraseñas a tus PDFs"
+              description="Añade contraseñas"
               icon={FileLock}
               to="/tools/protect"
               className="h-full"
@@ -158,19 +158,19 @@ const Index = () => {
         </motion.div>
 
         <motion.div 
-          className="rounded-2xl bg-white p-6 md:p-8 shadow-glass text-center"
+          className="rounded-2xl bg-white p-5 md:p-6 shadow-glass text-center max-w-[800px] mx-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.6 }}
         >
           <div className="mx-auto max-w-2xl">
-            <Zap className="h-10 w-10 text-naranja mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-3">Privacidad por diseño</h2>
-            <p className="text-muted-foreground mb-4 text-sm">
+            <Zap className="h-8 w-8 text-naranja mx-auto mb-3" />
+            <h2 className="text-lg font-bold mb-2">Privacidad por diseño</h2>
+            <p className="text-muted-foreground mb-3 text-sm">
               Toda la manipulación de PDF ocurre directamente en tu navegador. Tus archivos nunca 
               se cargan a ningún servidor. Funciona incluso sin conexión a internet.
             </p>
-            <Link to="/about" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+            <Link to="/about" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
               Conoce más
             </Link>
           </div>
