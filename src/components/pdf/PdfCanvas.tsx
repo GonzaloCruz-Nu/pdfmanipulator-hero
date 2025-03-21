@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePdfCanvas } from '@/hooks/usePdfCanvas';
 import PdfCanvasControls from './PdfCanvasControls';
 import PdfPanningIndicator from './PdfPanningIndicator';
@@ -24,6 +24,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   const canvasInitializedRef = useRef(false);
   const [isPanning, setIsPanning] = useState(false);
+  const mountedRef = useRef(true);
   
   const {
     canvas,
@@ -37,6 +38,14 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     isPanning
   });
 
+  // Ensure proper cleanup when component unmounts
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Initialize canvas ONCE when component mounts
   useEffect(() => {
     if (!canvasElRef.current || !containerRef.current || canvasInitializedRef.current) return;
@@ -44,7 +53,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     console.log("Initializing canvas in PdfCanvas component");
     const fabricCanvas = initializeCanvas(canvasElRef.current);
     
-    if (fabricCanvas) {
+    if (fabricCanvas && mountedRef.current) {
       if (onCanvasInitialized) {
         onCanvasInitialized(fabricCanvas);
       }
@@ -60,15 +69,20 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     
     return () => {
       console.log("PdfCanvas component unmounting, cleaning up");
+      
       // First clear references
       if (fabricRef) {
         fabricRef.current = null;
       }
       
-      // Then clean up the canvas
-      cleanup();
-      setIsCanvasReady(false);
-      canvasInitializedRef.current = false;
+      // Then clean up the canvas - only if still mounted
+      if (canvasInitializedRef.current) {
+        cleanup();
+        if (mountedRef.current) {
+          setIsCanvasReady(false);
+          canvasInitializedRef.current = false;
+        }
+      }
     };
   }, [initializeCanvas, onCanvasInitialized, fabricRef, cleanup]);
 
@@ -77,7 +91,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     if (!canvas || !containerRef.current || !isCanvasReady) return;
     
     const handleResize = () => {
-      if (containerRef.current) {
+      if (containerRef.current && mountedRef.current) {
         updateCanvasSize(containerRef.current);
       }
     };
@@ -91,22 +105,34 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({
     };
   }, [canvas, updateCanvasSize, isCanvasReady]);
 
-  // Display PDF when pageUrl changes - with stability improvements
+  // Memoize the displayPdfPage to prevent render loops
+  const memoizedDisplayPdfPage = useCallback(
+    (url: string, container: HTMLDivElement) => {
+      if (mountedRef.current) {
+        displayPdfPage(url, container);
+      }
+    },
+    [displayPdfPage]
+  );
+
+  // Display PDF when pageUrl changes - with improved stability
   useEffect(() => {
     if (!canvas || !pageUrl || !containerRef.current || !isCanvasReady) return;
     
     // Use a stable reference to avoid flickering
     const currentContainer = containerRef.current;
     
-    // Add a small timeout to prevent rapid re-renders
+    // Add a larger timeout to prevent rapid re-renders and give more time for loading
     const timer = setTimeout(() => {
-      displayPdfPage(pageUrl, currentContainer);
-    }, 100); // Increased timeout for better stability
+      if (mountedRef.current) {
+        memoizedDisplayPdfPage(pageUrl, currentContainer);
+      }
+    }, 250); // Increased timeout for better stability
     
     return () => {
       clearTimeout(timer);
     };
-  }, [pageUrl, canvas, displayPdfPage, isCanvasReady]);
+  }, [pageUrl, canvas, memoizedDisplayPdfPage, isCanvasReady]);
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%

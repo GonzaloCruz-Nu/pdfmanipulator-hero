@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { fabric } from 'fabric';
 
@@ -27,21 +28,38 @@ export const usePdfCanvas = ({
   const isDraggingRef = useRef(false);
   const lastPosXRef = useRef(0);
   const lastPosYRef = useRef(0);
+  const isMountedRef = useRef(true);
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Track component mount state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Initialize Fabric canvas with proper error handling
   const initializeCanvas = useCallback((canvasEl: HTMLCanvasElement): fabric.Canvas | null => {
     try {
+      // Store canvas element reference for safer cleanup
+      canvasElementRef.current = canvasEl;
+      
       console.log("Creating new Fabric canvas instance");
       
-      // Create new canvas
+      // Create new canvas with optimized settings
       const fabricCanvas = new fabric.Canvas(canvasEl, {
         selection: true,
         preserveObjectStacking: true,
         renderOnAddRemove: true,
-        stateful: false
+        stateful: false,
+        enableRetinaScaling: false,
+        imageSmoothingEnabled: true
       });
       
-      setCanvas(fabricCanvas);
+      if (isMountedRef.current) {
+        setCanvas(fabricCanvas);
+      }
       
       // Handle selection changes
       const handleSelectionCreated = () => onSelectionChange && onSelectionChange(true);
@@ -131,15 +149,17 @@ export const usePdfCanvas = ({
     canvas.on('mouse:up', handleMouseUp);
     
     return () => {
-      canvas.off('mouse:down', handleMouseDown);
-      canvas.off('mouse:move', handleMouseMove);
-      canvas.off('mouse:up', handleMouseUp);
+      if (canvas) {
+        canvas.off('mouse:down', handleMouseDown);
+        canvas.off('mouse:move', handleMouseMove);
+        canvas.off('mouse:up', handleMouseUp);
+      }
     };
   }, [canvas, isPanning]);
 
-  // Update canvas size
+  // Update canvas size with improved error handling
   const updateCanvasSize = useCallback((containerEl: HTMLDivElement) => {
-    if (!canvas) return;
+    if (!canvas || !isMountedRef.current) return;
     
     try {
       const containerWidth = containerEl.clientWidth;
@@ -153,8 +173,8 @@ export const usePdfCanvas = ({
         // If we have a background image, reposition it
         if (canvas.backgroundImage) {
           const scale = Math.min(
-            (containerWidth * 0.85) / initialImgData.width,
-            (containerHeight * 0.85) / initialImgData.height
+            (containerWidth * 0.85) / Math.max(initialImgData.width, 1),
+            (containerHeight * 0.85) / Math.max(initialImgData.height, 1)
           ) * zoomLevel;
           
           canvas.backgroundImage.scale(scale);
@@ -176,9 +196,9 @@ export const usePdfCanvas = ({
     }
   }, [canvas, initialImgData, zoomLevel]);
 
-  // Display PDF page with caching to prevent flickering
+  // Display PDF page with improved caching and loading
   const displayPdfPage = useCallback((pageUrl: string, containerEl: HTMLDivElement) => {
-    if (!canvas) return;
+    if (!canvas || !isMountedRef.current) return;
     
     // Skip if we're already displaying this URL (avoid flickering)
     if (lastDisplayedUrl.current === pageUrl) {
@@ -190,11 +210,16 @@ export const usePdfCanvas = ({
       console.log("Loading PDF page with URL:", pageUrl);
       lastDisplayedUrl.current = pageUrl;
       
-      // Load PDF image as background with custom options to prevent flicker
+      // Load PDF image as background with improved options
       fabric.Image.fromURL(pageUrl, (img) => {
-        if (!canvas) return;
+        if (!canvas || !isMountedRef.current) return;
         
         try {
+          // Clear any existing objects except background
+          canvas.getObjects().forEach(obj => {
+            canvas.remove(obj);
+          });
+          
           // Store reference to current image
           currentImageRef.current = img;
           
@@ -220,7 +245,6 @@ export const usePdfCanvas = ({
           const leftPos = (containerWidth - (img.getScaledWidth() || 0)) / 2;
           const topPos = (containerHeight - (img.getScaledHeight() || 0)) / 2;
           
-          // Keep existing objects on the canvas
           // Set as background with positioning
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
             originX: 'left',
@@ -243,7 +267,7 @@ export const usePdfCanvas = ({
     }
   }, [canvas, zoomLevel]);
 
-  // Cleanup function to be called when component unmounts
+  // Safer cleanup function
   const cleanup = useCallback(() => {
     console.log("Executing canvas cleanup in usePdfCanvas hook");
     
@@ -253,25 +277,29 @@ export const usePdfCanvas = ({
     }
     
     try {
-      // Remove all event listeners first
+      // First remove all event listeners to prevent memory leaks
       canvas.off();
       
-      // Dispose the canvas safely
+      // Clear objects from the canvas
+      canvas.clear();
+      
+      // Safer canvas disposal approach
       try {
-        if (canvas.lowerCanvasEl && document.body.contains(canvas.lowerCanvasEl)) {
-          canvas.dispose();
-          console.log("Canvas disposed successfully");
-        } else {
-          console.log("Canvas element not in DOM, skipping disposal");
-        }
+        // Just null the canvas itself rather than trying to dispose
+        // This avoids the DOM node removal errors
+        setCanvas(null);
+        console.log("Canvas nulled successfully");
       } catch (error) {
-        console.error("Error during canvas disposal:", error);
+        console.error("Error during canvas cleanup:", error);
       }
     } finally {
-      // Always set the canvas to null
-      setCanvas(null);
+      // Always reset state variables
+      if (isMountedRef.current) {
+        setCanvas(null);
+      }
       currentImageRef.current = null;
       lastDisplayedUrl.current = null;
+      canvasElementRef.current = null;
     }
   }, [canvas]);
 
