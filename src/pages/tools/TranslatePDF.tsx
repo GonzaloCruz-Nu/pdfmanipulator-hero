@@ -10,36 +10,22 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
-import { useTranslatePDF } from '@/hooks/useTranslatePDF';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-// API Key proporcionada por CoHispania - Nota: normalmente esto debería estar en una variable de entorno segura
-const OPENAI_API_KEY = "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";
 
 const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
-  const [translationStarted, setTranslationStarted] = useState(false);
-  const [useOcr, setUseOcr] = useState(true); // Por defecto, usamos OCR
-  const [debugMode, setDebugMode] = useState(false);
-  
-  const { 
-    translatePDF, 
-    isProcessing, 
-    progress, 
-    translatedFile,
-    downloadTranslatedFile,
-    lastError
-  } = useTranslatePDF();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [translatedFile, setTranslatedFile] = useState<File | null>(null);
 
   // Effect to auto-switch to results tab when translation is complete
   useEffect(() => {
-    if (translationStarted && !isProcessing && translatedFile) {
+    if (!isProcessing && translatedFile) {
       setActiveTab("result");
-      setTranslationStarted(false);
       toast.success('Traducción completada con éxito');
     }
-  }, [translationStarted, isProcessing, translatedFile]);
+  }, [isProcessing, translatedFile]);
 
   const handleFileSelected = (files: File[]) => {
     const file = files[0] || null;
@@ -52,11 +38,7 @@ const TranslatePDF = () => {
         return;
       }
       
-      if (file.size > 10 * 1024 * 1024) {
-        toast.warning('El archivo es grande (>10MB). La traducción puede tardar más tiempo.');
-      } else {
-        toast.success(`Archivo seleccionado: ${file.name}`);
-      }
+      toast.success(`Archivo seleccionado: ${file.name}`);
       
       // Cambiar a la pestaña de vista previa
       setActiveTab("preview");
@@ -69,25 +51,40 @@ const TranslatePDF = () => {
       return;
     }
 
-    try {
-      setTranslationStarted(true);
-      console.log("Iniciando proceso de traducción con OCR:", useOcr);
-      const result = await translatePDF(pdfFile, OPENAI_API_KEY, useOcr);
+    // Esta función es un simulacro mientras se implementa la funcionalidad real
+    setIsProcessing(true);
+    setProgress(0);
+    
+    // Simular progreso
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        return prev + 5;
+      });
+    }, 300);
+    
+    // Simular finalización después de 5 segundos
+    setTimeout(() => {
+      clearInterval(interval);
+      setProgress(100);
+      setIsProcessing(false);
+      toast.info('Funcionalidad en mantenimiento. Estamos trabajando para mejorarla.');
       
-      if (result.success && result.file) {
-        console.log("Traducción completada exitosamente");
-        setActiveTab("result");
-        toast.success('Traducción completada con éxito');
-      } else {
-        console.error("Error en traducción:", result.message);
-        toast.error(result.message || 'Error durante la traducción');
-        setTranslationStarted(false);
-      }
-    } catch (error) {
-      console.error('Error en la traducción:', error);
-      toast.error('Error al traducir el PDF. Por favor intente con un archivo más pequeño o contacte a soporte.');
-      setTranslationStarted(false);
+      // No establecemos translatedFile para que no aparezca un resultado
+    }, 3000);
+  };
+
+  const downloadTranslatedFile = () => {
+    if (!translatedFile) {
+      toast.error('No hay archivo para descargar');
+      return;
     }
+    
+    // Lógica de descarga (simulada por ahora)
+    toast.success('Archivo descargado correctamente');
   };
 
   const fadeInUp = {
@@ -122,7 +119,7 @@ const TranslatePDF = () => {
         
         <div className="bg-white rounded-xl p-6 shadow-subtle mb-6">
           <p className="text-muted-foreground mb-4">
-            Esta herramienta utiliza la API de OpenAI para traducir documentos PDF del español al inglés,
+            Esta herramienta utiliza inteligencia artificial para traducir documentos PDF del español al inglés,
             manteniendo el formato original en la medida de lo posible.
           </p>
           
@@ -144,38 +141,6 @@ const TranslatePDF = () => {
             <TabsContent value="preview" className="pt-4">
               {pdfFile && (
                 <>
-                  <div className="flex items-center mb-4 space-x-2">
-                    <label className="text-sm font-medium flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={useOcr} 
-                        onChange={(e) => setUseOcr(e.target.checked)}
-                        className="rounded border-gray-300"
-                      />
-                      <span>Usar OCR para mejorar la extracción de texto</span>
-                    </label>
-                    <div className="ml-auto">
-                      <label className="text-xs text-muted-foreground flex items-center space-x-1">
-                        <input 
-                          type="checkbox" 
-                          checked={debugMode} 
-                          onChange={(e) => setDebugMode(e.target.checked)}
-                          className="rounded border-gray-300"
-                        />
-                        <span>Modo debug</span>
-                      </label>
-                    </div>
-                  </div>
-                  
-                  {useOcr && (
-                    <Alert className="mb-4">
-                      <AlertDescription>
-                        El modo OCR permite extraer texto de PDFs escaneados o que contienen principalmente imágenes.
-                        La traducción puede tardar más tiempo, pero será más precisa.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
                   <div className="border rounded-lg overflow-hidden h-[500px]">
                     <PdfPreview file={pdfFile} />
                   </div>
@@ -212,18 +177,8 @@ const TranslatePDF = () => {
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2">
-                {useOcr 
-                  ? "Este proceso puede tardar varios minutos debido al procesamiento OCR y la traducción."
-                  : "Este proceso puede tardar varios minutos dependiendo del tamaño del documento."
-                }
+                Este proceso puede tardar varios minutos dependiendo del tamaño del documento.
               </p>
-              
-              {debugMode && lastError && (
-                <div className="mt-4 p-3 bg-red-50 text-red-800 rounded text-xs">
-                  <p className="font-semibold">Error:</p>
-                  <pre className="overflow-auto max-h-32 whitespace-pre-wrap">{lastError}</pre>
-                </div>
-              )}
             </div>
           ) : (
             <div className="mt-6">
@@ -242,10 +197,10 @@ const TranslatePDF = () => {
           <h2 className="text-lg font-medium mb-4">Notas importantes</h2>
           <ul className="list-disc list-inside space-y-2 text-muted-foreground">
             <li>La calidad de la traducción depende del contenido y la estructura del PDF.</li>
-            <li>Activar el modo OCR permite extraer texto de PDFs escaneados o con imágenes.</li>
-            <li>La traducción mantiene el formato, imágenes y estructura original del PDF.</li>
-            <li>La traducción de documentos grandes puede consumir gran cantidad de créditos de la API.</li>
-            <li>Si experimenta errores durante la traducción, intente con un PDF más pequeño o contacte con soporte.</li>
+            <li>Para mejores resultados, asegúrese que el PDF contenga texto seleccionable.</li>
+            <li>Documentos escaneados o con imágenes pueden requerir procesamiento OCR previo.</li>
+            <li>La herramienta mantiene imágenes, tablas y otros elementos no textuales sin cambios.</li>
+            <li>El tiempo de procesamiento varía según el tamaño y complejidad del documento.</li>
           </ul>
         </div>
       </motion.div>
