@@ -107,7 +107,7 @@ const RotatePDF: React.FC = () => {
               onFilesAdded={handleFileChange}
               maxFiles={1}
               maxSize={100}
-              accept={['.pdf']}
+              accept=".pdf"
               infoText="Arrastra un archivo PDF o haz clic para seleccionarlo"
             />
           </Card>
