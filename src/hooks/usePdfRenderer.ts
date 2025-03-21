@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Ensure PDF.js worker is configured
@@ -12,7 +12,7 @@ interface UsePdfRendererReturn {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
   isLoading: boolean;
   error: string | null;
-  renderPage: (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation?: number) => Promise<void>;
+  renderPage: (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation?: number) => Promise<string | null>;
   renderThumbnail: (pageNum: number, rotation?: number) => Promise<string | null>;
   nextPage: () => void;
   prevPage: () => void;
@@ -28,6 +28,18 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
   const [error, setError] = useState<string | null>(null);
   const [currentRotation, setCurrentRotation] = useState<number>(0);
 
+  // Clean up previous PDF document and resources
+  const cleanupPdf = useCallback(() => {
+    if (pdfDocument) {
+      console.log("Cleaning up PDF document");
+      pdfDocument.destroy();
+    }
+    if (pageUrl) {
+      URL.revokeObjectURL(pageUrl);
+    }
+  }, [pdfDocument, pageUrl]);
+
+  // Effect to load PDF when file changes
   useEffect(() => {
     if (!file) {
       setPageUrl(null);
@@ -40,10 +52,8 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
         setIsLoading(true);
         setError(null);
         
-        // Revoke previous URL if exists
-        if (pageUrl) {
-          URL.revokeObjectURL(pageUrl);
-        }
+        // Clean up previous resources
+        cleanupPdf();
         
         console.log("Loading PDF file:", file.name);
         const fileUrl = URL.createObjectURL(file);
@@ -54,7 +64,11 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
         setPdfDocument(pdf);
         
         // Load first page
-        await renderPage(pdf, 1);
+        const pageUrlResult = await renderPage(pdf, 1);
+        if (pageUrlResult) {
+          setPageUrl(pageUrlResult);
+          setCurrentPage(1);
+        }
         
         console.log("PDF loaded successfully with", pdf.numPages, "pages");
       } catch (error) {
@@ -67,18 +81,12 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
 
     loadPdf();
     
-    // Cleanup on unmount
-    return () => {
-      if (pdfDocument) {
-        pdfDocument.destroy();
-      }
-      if (pageUrl) {
-        URL.revokeObjectURL(pageUrl);
-      }
-    };
+    // Cleanup on unmount or file change
+    return cleanupPdf;
   }, [file]);
 
-  const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation = 0) => {
+  // Enhanced renderPage function that returns the pageUrl for more flexibility
+  const renderPage = async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number, rotation = 0): Promise<string | null> => {
     try {
       console.log("Rendering page", pageNum, "with rotation", rotation);
       setIsLoading(true);
@@ -111,17 +119,15 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
 
       await page.render(renderContext).promise;
       
-      // Set page URL and update current page
+      // Create page URL
       const newPageUrl = canvas.toDataURL('image/jpeg', 0.9);
       
-      // Only update state if still on the same component render
-      setPageUrl(newPageUrl);
-      setCurrentPage(pageNum);
-      
       console.log("Page", pageNum, "rendered successfully with rotation", rotation);
+      return newPageUrl;
     } catch (error) {
       console.error('Error rendering page:', error);
       setError('Could not render the PDF page.');
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -167,21 +173,34 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     }
   };
 
-  const nextPage = () => {
+  const nextPage = async () => {
     if (currentPage < totalPages && pdfDocument) {
-      renderPage(pdfDocument, currentPage + 1, currentRotation);
+      const nextPageNum = currentPage + 1;
+      const newPageUrl = await renderPage(pdfDocument, nextPageNum, currentRotation);
+      if (newPageUrl) {
+        setPageUrl(newPageUrl);
+        setCurrentPage(nextPageNum);
+      }
     }
   };
 
-  const prevPage = () => {
+  const prevPage = async () => {
     if (currentPage > 1 && pdfDocument) {
-      renderPage(pdfDocument, currentPage - 1, currentRotation);
+      const prevPageNum = currentPage - 1;
+      const newPageUrl = await renderPage(pdfDocument, prevPageNum, currentRotation);
+      if (newPageUrl) {
+        setPageUrl(newPageUrl);
+        setCurrentPage(prevPageNum);
+      }
     }
   };
   
-  const reloadCurrentPage = (rotation = currentRotation) => {
+  const reloadCurrentPage = async (rotation = currentRotation) => {
     if (pdfDocument) {
-      renderPage(pdfDocument, currentPage, rotation);
+      const newPageUrl = await renderPage(pdfDocument, currentPage, rotation);
+      if (newPageUrl) {
+        setPageUrl(newPageUrl);
+      }
     }
   };
 
