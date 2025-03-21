@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolUsage } from '@/hooks/useStatistics';
 
-const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#f0f9ff', '#eff6ff'];
+// Colores corporativos y complementarios
+const COLORS = ['#f68d2e', '#1f2a44', '#60a5fa', '#a855f7', '#f97316', '#10b981', '#3b82f6'];
 
 interface ToolsBarChartProps {
   data: ToolUsage[];
@@ -33,7 +34,7 @@ const ToolsBarChart: React.FC<ToolsBarChartProps> = ({ data, title = "Herramient
                 data={sortedData}
                 margin={{ top: 5, right: 30, left: 20, bottom: 70 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis 
                   dataKey="name" 
                   angle={-45} 
@@ -45,6 +46,12 @@ const ToolsBarChart: React.FC<ToolsBarChartProps> = ({ data, title = "Herramient
                 <Tooltip 
                   formatter={(value: number) => [`${value} usos`, 'Total']}
                   labelFormatter={(name) => `Herramienta: ${name}`}
+                  contentStyle={{ 
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    color: 'var(--card-foreground)'
+                  }}
                 />
                 <Bar dataKey="count" name="Usos" radius={[4, 4, 0, 0]}>
                   {sortedData.map((entry, index) => (

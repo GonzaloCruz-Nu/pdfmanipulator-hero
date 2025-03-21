@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolUsage } from '@/hooks/useStatistics';
 
-const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#38bdf8', '#0ea5e9'];
+// Colores corporativos y complementarios
+const COLORS = ['#f68d2e', '#1f2a44', '#3b82f6', '#a855f7', '#10b981'];
 
 interface ToolsPieChartProps {
   data: ToolUsage[];
@@ -38,7 +39,7 @@ const ToolsPieChart: React.FC<ToolsPieChartProps> = ({ data, title = "Distribuci
                   cy="50%"
                   labelLine={false}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#f68d2e"
                   dataKey="count"
                   nameKey="name"
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
@@ -48,9 +49,18 @@ const ToolsPieChart: React.FC<ToolsPieChartProps> = ({ data, title = "Distribuci
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number, name: string) => [`${value} usos (${topData.find(item => item.name === name)?.percentage.toFixed(1)}%)`, name]}
+                  formatter={(value: number, name: string) => [
+                    `${value} usos (${topData.find(item => item.name === name)?.percentage.toFixed(1)}%)`, 
+                    name
+                  ]}
+                  contentStyle={{ 
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    color: 'var(--card-foreground)'
+                  }}
                 />
-                <Legend />
+                <Legend formatter={(value) => <span style={{ color: 'var(--foreground)' }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>

@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategoryUsage } from '@/hooks/useStatistics';
 
-const COLORS = ['#3b82f6', '#f97316', '#a855f7', '#10b981'];
+// Colores corporativos y complementarios
+const COLORS = ['#f68d2e', '#1f2a44', '#3b82f6', '#10b981'];
 
 interface CategoryPieChartProps {
   data: CategoryUsage[];
@@ -36,7 +37,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, title = "Uso 
                   cy="50%"
                   labelLine={false}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#f68d2e"
                   dataKey="count"
                   nameKey="category"
                   label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
@@ -50,8 +51,14 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ data, title = "Uso 
                     `${value} usos (${filteredData.find(item => item.category === category)?.percentage.toFixed(1)}%)`, 
                     category
                   ]}
+                  contentStyle={{ 
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    color: 'var(--card-foreground)'
+                  }}
                 />
-                <Legend />
+                <Legend formatter={(value) => <span style={{ color: 'var(--foreground)' }}>{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           </div>

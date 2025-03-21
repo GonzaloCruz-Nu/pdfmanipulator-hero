@@ -51,9 +51,9 @@ const Statistics = () => {
           animate="visible"
           variants={fadeInUp}
         >
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Estadísticas de Uso</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-azul dark:text-white">Estadísticas de Uso</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Análisis detallado sobre el uso de nuestras herramientas PDF.
+            Análisis detallado sobre el uso de nuestras herramientas PDF
           </p>
         </motion.div>
 
@@ -77,11 +77,11 @@ const Statistics = () => {
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-naranja" />
             <span className="ml-2 text-lg">Cargando estadísticas...</span>
           </div>
         ) : error ? (
-          <div className="text-center p-8 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500">
+          <div className="text-center p-8 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500 border border-red-200 dark:border-red-800">
             <p className="text-lg font-medium">Error al cargar estadísticas</p>
             <p>{error}</p>
           </div>
@@ -90,9 +90,9 @@ const Statistics = () => {
             <StatsCardGrid stats={statistics} />
 
             <Tabs defaultValue="charts" className="mb-8">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
-                <TabsTrigger value="charts">Gráficos</TabsTrigger>
-                <TabsTrigger value="tendencies">Tendencias</TabsTrigger>
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6 bg-background border">
+                <TabsTrigger value="charts" className="data-[state=active]:bg-naranja data-[state=active]:text-white">Gráficos</TabsTrigger>
+                <TabsTrigger value="tendencies" className="data-[state=active]:bg-naranja data-[state=active]:text-white">Tendencias</TabsTrigger>
               </TabsList>
               
               <TabsContent value="charts">
@@ -109,7 +109,7 @@ const Statistics = () => {
               </TabsContent>
               
               <TabsContent value="tendencies">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <div className="bg-card p-6 rounded-lg shadow-md border border-border">
                   <h3 className="text-xl font-semibold mb-4">Tendencia de uso en el tiempo</h3>
                   <p className="text-muted-foreground mb-6">
                     Este gráfico muestra la tendencia de uso de las herramientas más populares.
@@ -118,14 +118,14 @@ const Statistics = () => {
                   <ChartContainer 
                     className="h-[400px]"
                     config={{
-                      "Unir PDFs": { color: "#3b82f6" },
-                      "Comprimir PDF": { color: "#ef4444" },
+                      "Unir PDFs": { color: "#f68d2e" },
+                      "Comprimir PDF": { color: "#1f2a44" },
                       "Dividir PDF": { color: "#10b981" },
                       "Desbloquear PDF": { color: "#8b5cf6" }
                     }}
                   >
                     <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="day" />
                       <YAxis />
                       <ChartTooltip
@@ -134,7 +134,7 @@ const Statistics = () => {
                             return (
                               <ChartTooltipContent
                                 style={{
-                                  backgroundColor: "var(--background)",
+                                  backgroundColor: "var(--card)",
                                   border: "1px solid var(--border)",
                                   borderRadius: "var(--radius)",
                                 }}
@@ -149,7 +149,7 @@ const Statistics = () => {
                       <Line
                         type="monotone"
                         dataKey="count"
-                        stroke="#3b82f6"
+                        stroke="#f68d2e"
                         name="Unir PDFs"
                         strokeWidth={2}
                         activeDot={{ r: 6 }}

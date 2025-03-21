@@ -52,10 +52,10 @@ const StatsCardGrid: React.FC<StatsCardGridProps> = ({ stats }) => {
       animate="show"
     >
       <motion.div variants={item}>
-        <Card className="bg-blue-50 dark:bg-blue-900/20">
+        <Card className="bg-naranja/10 dark:bg-naranja/20 border border-naranja/20">
           <CardContent className="p-6 flex items-center">
-            <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-800/50 flex items-center justify-center mr-4">
-              <BarChart3 className="h-6 w-6 text-blue-500 dark:text-blue-300" />
+            <div className="h-12 w-12 rounded-full bg-naranja/20 dark:bg-naranja/30 flex items-center justify-center mr-4">
+              <BarChart3 className="h-6 w-6 text-naranja" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total de usos</p>
@@ -66,10 +66,10 @@ const StatsCardGrid: React.FC<StatsCardGridProps> = ({ stats }) => {
       </motion.div>
       
       <motion.div variants={item}>
-        <Card className="bg-indigo-50 dark:bg-indigo-900/20">
+        <Card className="bg-azul/10 dark:bg-azul/20 border border-azul/20">
           <CardContent className="p-6 flex items-center">
-            <div className="h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-800/50 flex items-center justify-center mr-4">
-              <PieChart className="h-6 w-6 text-indigo-500 dark:text-indigo-300" />
+            <div className="h-12 w-12 rounded-full bg-azul/20 dark:bg-azul/30 flex items-center justify-center mr-4">
+              <PieChart className="h-6 w-6 text-azul dark:text-azul/90" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Herramienta más usada</p>
@@ -81,10 +81,10 @@ const StatsCardGrid: React.FC<StatsCardGridProps> = ({ stats }) => {
       </motion.div>
       
       <motion.div variants={item}>
-        <Card className="bg-cyan-50 dark:bg-cyan-900/20">
+        <Card className="bg-naranja/10 dark:bg-naranja/20 border border-naranja/20">
           <CardContent className="p-6 flex items-center">
-            <div className="h-12 w-12 rounded-full bg-cyan-100 dark:bg-cyan-800/50 flex items-center justify-center mr-4">
-              <LineChart className="h-6 w-6 text-cyan-500 dark:text-cyan-300" />
+            <div className="h-12 w-12 rounded-full bg-naranja/20 dark:bg-naranja/30 flex items-center justify-center mr-4">
+              <LineChart className="h-6 w-6 text-naranja" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Día más activo</p>
@@ -96,10 +96,10 @@ const StatsCardGrid: React.FC<StatsCardGridProps> = ({ stats }) => {
       </motion.div>
       
       <motion.div variants={item}>
-        <Card className="bg-purple-50 dark:bg-purple-900/20">
+        <Card className="bg-azul/10 dark:bg-azul/20 border border-azul/20">
           <CardContent className="p-6 flex items-center">
-            <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-800/50 flex items-center justify-center mr-4">
-              <TrendingUp className="h-6 w-6 text-purple-500 dark:text-purple-300" />
+            <div className="h-12 w-12 rounded-full bg-azul/20 dark:bg-azul/30 flex items-center justify-center mr-4">
+              <TrendingUp className="h-6 w-6 text-azul dark:text-azul/90" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Categoría más usada</p>
