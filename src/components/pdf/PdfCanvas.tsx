@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { fabric } from 'fabric';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
@@ -8,9 +7,15 @@ interface PdfCanvasProps {
   pageUrl: string | null;
   onSelectionChange: (hasSelection: boolean) => void;
   fabricRef?: React.MutableRefObject<fabric.Canvas | null>;
+  onCanvasInitialized?: (canvas: fabric.Canvas) => void;
 }
 
-const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabricRef }) => {
+const PdfCanvas: React.FC<PdfCanvasProps> = ({ 
+  pageUrl, 
+  onSelectionChange, 
+  fabricRef,
+  onCanvasInitialized 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
@@ -28,7 +33,16 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
 
   // Initialize Fabric canvas
   useEffect(() => {
-    if (!canvasRef.current || canvas) return;
+    if (!canvasRef.current) return;
+    
+    // Clean up existing canvas first
+    if (canvas) {
+      try {
+        canvas.dispose();
+      } catch (err) {
+        console.error("Error disposing canvas:", err);
+      }
+    }
     
     console.log("Initializing new Fabric canvas");
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
@@ -37,13 +51,18 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     
     setCanvas(fabricCanvas);
     
+    // Call the onCanvasInitialized callback if provided
+    if (onCanvasInitialized) {
+      onCanvasInitialized(fabricCanvas);
+    }
+    
     // Handle selection changes
     fabricCanvas.on('selection:created', () => onSelectionChange(true));
     fabricCanvas.on('selection:updated', () => onSelectionChange(true));
     fabricCanvas.on('selection:cleared', () => onSelectionChange(false));
     
     return () => {
-      console.log("Cleaning up Fabric canvas");
+      console.log("Cleaning up Fabric canvas in PdfCanvas");
       
       // First remove all event listeners
       try {
@@ -61,7 +80,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       
       setCanvas(null);
     };
-  }, []);
+  }, [canvasRef.current]);
 
   // Pass canvas reference to parent component if needed
   useEffect(() => {
@@ -88,6 +107,27 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       
       canvas.setWidth(containerWidth);
       canvas.setHeight(containerHeight);
+      
+      // If we have a background image, reposition it
+      if (canvas.backgroundImage) {
+        const img = canvas.backgroundImage;
+        const scale = Math.min(
+          (containerWidth * 0.85) / initialImgData.width,
+          (containerHeight * 0.85) / initialImgData.height
+        ) * zoomLevel;
+        
+        img.scale(scale);
+        
+        // Center the image
+        const leftPos = (containerWidth - img.getScaledWidth()) / 2;
+        const topPos = (containerHeight - img.getScaledHeight()) / 2;
+        
+        img.set({
+          left: leftPos,
+          top: topPos
+        });
+      }
+      
       canvas.renderAll();
     };
 
@@ -97,13 +137,13 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     return () => {
       window.removeEventListener('resize', updateCanvasSize);
     };
-  }, [canvas]);
+  }, [canvas, initialImgData]);
 
   // Display PDF when pageUrl changes
   useEffect(() => {
     if (!canvas || !pageUrl) return;
     
-    // Clear existing content
+    // Clear existing objects but keep the canvas
     canvas.clear();
     
     console.log("Loading PDF page with URL:", pageUrl);
@@ -117,12 +157,6 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       
       console.log("Container dimensions:", containerWidth, containerHeight);
       console.log("Image dimensions:", img.width, img.height);
-      
-      // Set canvas dimensions
-      canvas.setDimensions({
-        width: containerWidth,
-        height: containerHeight
-      });
       
       // Store initial image data for zooming
       setInitialImgData({
@@ -155,7 +189,7 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
       canvas.renderAll();
       console.log("PDF displayed with dimensions:", img.width, img.height, "at scale:", scale);
     }, { crossOrigin: 'anonymous' });
-  }, [pageUrl, canvas, zoomLevel]);
+  }, [pageUrl, canvas]);
 
   // Apply zoom when zoom level changes for existing background
   useEffect(() => {
@@ -218,17 +252,16 @@ const PdfCanvas: React.FC<PdfCanvasProps> = ({ pageUrl, onSelectionChange, fabri
     const handleMouseMove = (opt: fabric.IEvent) => {
       if (!isDragging || !isPanning || !canvas) return;
       
-      const bg = canvas.backgroundImage;
-      if (!bg) return;
+      if (!canvas.backgroundImage) return;
       
       const evt = opt.e as MouseEvent;
       const deltaX = evt.clientX - lastPosX;
       const deltaY = evt.clientY - lastPosY;
       
       // Move the background image
-      bg.set({
-        left: (bg.left || 0) + deltaX,
-        top: (bg.top || 0) + deltaY
+      canvas.backgroundImage.set({
+        left: (canvas.backgroundImage.left || 0) + deltaX,
+        top: (canvas.backgroundImage.top || 0) + deltaY
       });
       
       // Also move all objects on the canvas

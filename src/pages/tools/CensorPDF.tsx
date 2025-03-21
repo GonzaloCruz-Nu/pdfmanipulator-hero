@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, Upload, Download, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -23,18 +22,14 @@ const CensorPDF = () => {
   const [size, setSize] = useState(5);
   const [hasSelection, setHasSelection] = useState(false);
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
-  const [isChangingPage, setIsChangingPage] = useState(false);
-  const [canvasInitialized, setCanvasInitialized] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
   
   // References
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
-  const lastPosRef = useRef({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-  const pageLoadTimeoutRef = useRef<number | null>(null);
+  const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Hooks
   const {
@@ -45,10 +40,9 @@ const CensorPDF = () => {
     error,
     nextPage,
     prevPage,
-    renderPage,
+    renderThumbnail,
     pdfDocument,
-    reloadCurrentPage,
-    renderThumbnail
+    gotoPage
   } = usePdfRenderer(selectedFile);
 
   const {
@@ -60,36 +54,6 @@ const CensorPDF = () => {
     setActivePage,
     cleanupCanvas
   } = useCensorPDF({ file: selectedFile });
-
-  // Function to safely clear and recreate canvas
-  const recreateCanvas = () => {
-    // Clear any existing timeout
-    if (pageLoadTimeoutRef.current) {
-      window.clearTimeout(pageLoadTimeoutRef.current);
-      pageLoadTimeoutRef.current = null;
-    }
-
-    // Clean up existing canvas
-    if (fabricCanvasRef.current) {
-      try {
-        console.log("Cleaning up canvas before recreation");
-        fabricCanvasRef.current.off();
-        fabricCanvasRef.current.clear();
-        
-        try {
-          fabricCanvasRef.current.dispose();
-        } catch (error) {
-          console.error("Error disposing canvas:", error);
-        }
-        fabricCanvasRef.current = null;
-      } catch (error) {
-        console.error("Error during canvas cleanup:", error);
-        fabricCanvasRef.current = null;
-      }
-    }
-    
-    setCanvasInitialized(false);
-  };
 
   // Pass the fabricCanvas reference to the useCensorPDF hook
   useEffect(() => {
@@ -106,212 +70,27 @@ const CensorPDF = () => {
   // Cleanup canvas when component unmounts or file changes
   useEffect(() => {
     return () => {
-      console.log("Component unmounting or file changing, cleaning up canvas");
+      console.log("Component unmounting or file changing, cleaning up resources");
       
       // Clear any pending timeouts
-      if (pageLoadTimeoutRef.current) {
-        window.clearTimeout(pageLoadTimeoutRef.current);
-        pageLoadTimeoutRef.current = null;
+      if (pageChangeTimeoutRef.current) {
+        clearTimeout(pageChangeTimeoutRef.current);
+        pageChangeTimeoutRef.current = null;
       }
       
+      // Clean up canvas
       cleanupCanvas();
-      recreateCanvas();
+      
+      // Clear fabric canvas ref
+      fabricCanvasRef.current = null;
     };
   }, [cleanupCanvas, selectedFile]);
 
-  // Initialize Fabric canvas when the page URL changes
-  useEffect(() => {
-    if (!pageUrl || !canvasRef.current) {
-      return;
-    }
-
-    // Don't initialize if we're in the middle of a page change
-    if (isChangingPage) {
-      return;
-    }
-
-    console.log("Initializing Fabric canvas with new page URL");
-    
-    // Clear any existing timeout
-    if (pageLoadTimeoutRef.current) {
-      window.clearTimeout(pageLoadTimeoutRef.current);
-      pageLoadTimeoutRef.current = null;
-    }
-    
-    // Give a little time for DOM updates before initializing canvas
-    pageLoadTimeoutRef.current = window.setTimeout(() => {
-      try {
-        if (!canvasRef.current) {
-          console.error("Canvas reference lost");
-          return;
-        }
-        
-        // Create new canvas
-        console.log("Creating new Fabric canvas");
-        const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-          selection: true,
-        });
-
-        fabricCanvasRef.current = fabricCanvas;
-        
-        // Handle selection changes
-        fabricCanvas.on('selection:created', () => setHasSelection(true));
-        fabricCanvas.on('selection:updated', () => setHasSelection(true));
-        fabricCanvas.on('selection:cleared', () => setHasSelection(false));
-        
-        // Set container dimensions
-        if (canvasContainerRef.current) {
-          const containerWidth = canvasContainerRef.current.clientWidth;
-          const containerHeight = canvasContainerRef.current.clientHeight;
-          
-          fabricCanvas.setDimensions({
-            width: containerWidth,
-            height: containerHeight
-          });
-        }
-        
-        // Load the PDF page as background
-        fabric.Image.fromURL(pageUrl, (img) => {
-          if (!fabricCanvasRef.current || !canvasContainerRef.current) {
-            console.error("References lost while loading PDF image");
-            return;
-          }
-          
-          const containerWidth = canvasContainerRef.current.clientWidth;
-          const containerHeight = canvasContainerRef.current.clientHeight;
-          
-          // Calculate scale to fit PDF in the canvas
-          const scale = Math.min(
-            (containerWidth * 0.85) / img.width!,
-            (containerHeight * 0.85) / img.height!
-          ) * zoomLevel;
-          
-          // Apply scale
-          img.scale(scale);
-          
-          // Center the image in the canvas
-          const leftPos = (containerWidth - img.getScaledWidth()) / 2;
-          const topPos = (containerHeight - img.getScaledHeight()) / 2;
-          
-          // Set as background image
-          fabricCanvasRef.current.setBackgroundImage(img, fabricCanvasRef.current.renderAll.bind(fabricCanvasRef.current), {
-            originX: 'left',
-            originY: 'top',
-            left: leftPos,
-            top: topPos
-          });
-          
-          fabricCanvasRef.current.renderAll();
-          setCanvasInitialized(true);
-          console.log("Canvas initialized with page background");
-        }, { crossOrigin: 'anonymous' });
-        
-      } catch (error) {
-        console.error("Error initializing canvas:", error);
-        setCanvasInitialized(false);
-      }
-      
-      pageLoadTimeoutRef.current = null;
-    }, 100);
-    
-  }, [pageUrl, isChangingPage, zoomLevel]);
-
-  // Update canvas size on resize
-  useEffect(() => {
-    if (!fabricCanvasRef.current || !canvasContainerRef.current) return;
-    
-    const updateCanvasSize = () => {
-      if (fabricCanvasRef.current && canvasContainerRef.current) {
-        const containerWidth = canvasContainerRef.current.clientWidth;
-        const containerHeight = canvasContainerRef.current.clientHeight;
-        
-        fabricCanvasRef.current.setWidth(containerWidth);
-        fabricCanvasRef.current.setHeight(containerHeight);
-        fabricCanvasRef.current.renderAll();
-      }
-    };
-
-    // Initial size update
-    updateCanvasSize();
-    
-    // Add resize listener
-    window.addEventListener('resize', updateCanvasSize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-    };
-  }, [fabricCanvasRef.current, canvasContainerRef.current]);
-
-  // Setup panning functionality
-  useEffect(() => {
-    if (!fabricCanvasRef.current) return;
-
-    const handlePanningMouseDown = (opt: fabric.IEvent) => {
-      if (!isPanning) return;
-      
-      const evt = opt.e as MouseEvent;
-      isDraggingRef.current = true;
-      lastPosRef.current = { x: evt.clientX, y: evt.clientY };
-      
-      // Disable selection during panning
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.selection = false;
-        fabricCanvasRef.current.defaultCursor = 'grabbing';
-      }
-    };
-
-    const handlePanningMouseMove = (opt: fabric.IEvent) => {
-      if (!isDraggingRef.current || !isPanning || !fabricCanvasRef.current) return;
-      
-      const evt = opt.e as MouseEvent;
-      const deltaX = evt.clientX - lastPosRef.current.x;
-      const deltaY = evt.clientY - lastPosRef.current.y;
-      
-      // Move all objects including the background
-      const objects = fabricCanvasRef.current.getObjects();
-      objects.forEach(obj => {
-        obj.left! += deltaX;
-        obj.top! += deltaY;
-        obj.setCoords();
-      });
-      
-      // Move background if it exists
-      if (fabricCanvasRef.current.backgroundImage) {
-        const bg = fabricCanvasRef.current.backgroundImage;
-        bg.left! += deltaX;
-        bg.top! += deltaY;
-      }
-      
-      fabricCanvasRef.current.renderAll();
-      lastPosRef.current = { x: evt.clientX, y: evt.clientY };
-    };
-
-    const handlePanningMouseUp = () => {
-      isDraggingRef.current = false;
-      
-      // Re-enable selection after panning
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.selection = true;
-        fabricCanvasRef.current.defaultCursor = 'default';
-      }
-    };
-
-    // Add event listeners for panning
-    if (isPanning && fabricCanvasRef.current) {
-      fabricCanvasRef.current.on('mouse:down', handlePanningMouseDown);
-      fabricCanvasRef.current.on('mouse:move', handlePanningMouseMove);
-      fabricCanvasRef.current.on('mouse:up', handlePanningMouseUp);
-    }
-
-    return () => {
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.off('mouse:down', handlePanningMouseDown);
-        fabricCanvasRef.current.off('mouse:move', handlePanningMouseMove);
-        fabricCanvasRef.current.off('mouse:up', handlePanningMouseUp);
-      }
-    };
-  }, [isPanning, fabricCanvasRef.current]);
+  // Handle canvas initialization
+  const handleCanvasInitialized = (canvas: fabric.Canvas) => {
+    fabricCanvasRef.current = canvas;
+    censorCanvasRef.current = canvas;
+  };
 
   // Load thumbnails of all pages when PDF is loaded
   useEffect(() => {
@@ -337,7 +116,7 @@ const CensorPDF = () => {
     };
     
     loadAllPageThumbnails();
-  }, [pdfDocument, totalPages]);
+  }, [pdfDocument, totalPages, renderThumbnail]);
 
   // Handle file selection
   const handleFileSelected = (files: File[]) => {
@@ -345,30 +124,30 @@ const CensorPDF = () => {
       console.log("New file selected:", files[0].name);
       
       // Clear any pending timeouts
-      if (pageLoadTimeoutRef.current) {
-        window.clearTimeout(pageLoadTimeoutRef.current);
-        pageLoadTimeoutRef.current = null;
+      if (pageChangeTimeoutRef.current) {
+        clearTimeout(pageChangeTimeoutRef.current);
+        pageChangeTimeoutRef.current = null;
       }
       
-      // Reset state
-      setIsChangingPage(false);
-      setCanvasInitialized(false);
+      // Clean up resources
       cleanupCanvas();
-      recreateCanvas();
+      fabricCanvasRef.current = null;
       setPageRenderedUrls([]);
+      
+      // Set new file
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
-  // Handle page selection with improved error handling and state management
+  // Handle page selection with improved error handling
   const handlePageSelect = async (pageNum: number) => {
     if (pageNum === currentPage) {
       console.log(`Already on page ${pageNum}`);
       return;
     }
     
-    if (isChangingPage || isLoading) {
+    if (isLoading) {
       console.log("Page change in progress, ignoring request");
       return;
     }
@@ -379,30 +158,18 @@ const CensorPDF = () => {
     }
     
     try {
-      // Set page changing state
-      setIsChangingPage(true);
-      
       // Clean up canvas to prevent memory leaks
-      recreateCanvas();
+      cleanupCanvas();
+      fabricCanvasRef.current = null;
       
       console.log(`Starting page change to page ${pageNum}`);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
-      // Render the new page
-      const newPageUrl = await renderPage(pdfDocument, pageNum);
-      if (!newPageUrl) {
-        throw new Error("Failed to render page");
-      }
-      
-      // Wait for state updates to complete
-      window.setTimeout(() => {
-        setIsChangingPage(false);
-        console.log(`Page changed successfully to page ${pageNum}`);
-      }, 100);
+      // Use the gotoPage function from usePdfRenderer
+      await gotoPage(pageNum);
       
     } catch (error) {
       console.error("Error changing page:", error);
-      setIsChangingPage(false);
       toast.error("Error al cambiar de página. Intente de nuevo.");
     }
   };
@@ -574,18 +341,18 @@ const CensorPDF = () => {
                       pages={pageRenderedUrls}
                       currentPage={currentPage}
                       onPageSelect={handlePageSelect}
-                      isChangingPage={isChangingPage || isLoading}
+                      isChangingPage={isLoading}
                     />
                   </div>
                 )}
                 
                 {/* PDF content with censoring tools */}
                 <div className="flex-1 relative overflow-hidden">
-                  {isLoading || isChangingPage ? (
+                  {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {isChangingPage ? 'Cambiando página...' : 'Cargando PDF...'}
+                        Cargando PDF...
                       </p>
                     </div>
                   ) : error ? (
@@ -597,16 +364,28 @@ const CensorPDF = () => {
                       ref={canvasContainerRef}
                       className="w-full h-full flex justify-center items-center bg-gray-100 relative"
                     >
-                      <canvas ref={canvasRef} className="absolute inset-0" />
-                      
-                      {canvasInitialized && fabricCanvasRef.current && (
-                        <PdfCensorTools
-                          canvas={fabricCanvasRef.current}
-                          activeTool={activeTool}
-                          color={censorColor}
-                          size={size}
-                          onToolChange={setActiveTool}
-                        />
+                      {/* Use the updated PdfCanvas component with onCanvasInitialized */}
+                      {pageUrl && (
+                        <>
+                          <canvas ref={canvasRef} className="absolute inset-0" />
+                          
+                          <PdfCanvas 
+                            pageUrl={pageUrl}
+                            onSelectionChange={setHasSelection}
+                            fabricRef={fabricCanvasRef}
+                            onCanvasInitialized={handleCanvasInitialized}
+                          />
+                          
+                          {fabricCanvasRef.current && (
+                            <PdfCensorTools
+                              canvas={fabricCanvasRef.current}
+                              activeTool={activeTool}
+                              color={censorColor}
+                              size={size}
+                              onToolChange={setActiveTool}
+                            />
+                          )}
+                        </>
                       )}
                       
                       {/* Zoom and pan controls */}

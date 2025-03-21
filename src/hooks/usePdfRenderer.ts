@@ -17,6 +17,7 @@ interface UsePdfRendererReturn {
   nextPage: () => void;
   prevPage: () => void;
   reloadCurrentPage: (rotation?: number) => void;
+  gotoPage: (pageNum: number) => Promise<void>;
 }
 
 export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
@@ -104,9 +105,6 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     
     try {
       console.log("Rendering page", pageNum, "with rotation", rotation);
-      setIsChangingPage(true);
-      setIsLoading(true);
-      setCurrentRotation(rotation);
       
       // Get the page
       const page = await pdf.getPage(pageNum);
@@ -144,12 +142,6 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       console.error('Error rendering page:', error);
       setError('Could not render the PDF page.');
       return null;
-    } finally {
-      // Small delay to ensure UI updates properly
-      setTimeout(() => {
-        setIsLoading(false);
-        setIsChangingPage(false);
-      }, 150);
     }
   };
 
@@ -193,30 +185,49 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     }
   };
 
+  // Improved page change handling to go to a specific page
+  const gotoPage = async (pageNum: number): Promise<void> => {
+    if (pageNum === currentPage || !pdfDocument || isChangingPage || isLoading) {
+      return;
+    }
+    
+    if (pageNum < 1 || pageNum > totalPages) {
+      console.error(`Invalid page number: ${pageNum}`);
+      return;
+    }
+    
+    try {
+      setIsChangingPage(true);
+      setIsLoading(true);
+      
+      // Revoke old URL if exists
+      if (pageUrl) {
+        URL.revokeObjectURL(pageUrl);
+      }
+      
+      const newPageUrl = await renderPage(pdfDocument, pageNum, currentRotation);
+      
+      if (newPageUrl) {
+        setPageUrl(newPageUrl);
+        setCurrentPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Error changing to page:", error);
+      setError('Could not change to the requested page.');
+    } finally {
+      setIsLoading(false);
+      setIsChangingPage(false);
+    }
+  };
+
   const nextPage = async () => {
     if (isLoading || isChangingPage) {
       console.log("Page change in progress, ignoring request");
       return;
     }
     
-    if (currentPage < totalPages && pdfDocument) {
-      const nextPageNum = currentPage + 1;
-      
-      try {
-        const newPageUrl = await renderPage(pdfDocument, nextPageNum, currentRotation);
-        if (newPageUrl) {
-          // Small timeout to ensure state updates happen in the right order
-          setTimeout(() => {
-            setPageUrl(newPageUrl);
-            setCurrentPage(nextPageNum);
-            console.log(`Page changed to ${nextPageNum}`);
-          }, 50);
-        }
-      } catch (error) {
-        console.error("Error changing to next page:", error);
-        setIsLoading(false);
-        setIsChangingPage(false);
-      }
+    if (currentPage < totalPages) {
+      await gotoPage(currentPage + 1);
     }
   };
 
@@ -226,24 +237,8 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
       return;
     }
     
-    if (currentPage > 1 && pdfDocument) {
-      const prevPageNum = currentPage - 1;
-      
-      try {
-        const newPageUrl = await renderPage(pdfDocument, prevPageNum, currentRotation);
-        if (newPageUrl) {
-          // Small timeout to ensure state updates happen in the right order
-          setTimeout(() => {
-            setPageUrl(newPageUrl);
-            setCurrentPage(prevPageNum);
-            console.log(`Page changed to ${prevPageNum}`);
-          }, 50);
-        }
-      } catch (error) {
-        console.error("Error changing to previous page:", error);
-        setIsLoading(false);
-        setIsChangingPage(false);
-      }
+    if (currentPage > 1) {
+      await gotoPage(currentPage - 1);
     }
   };
   
@@ -255,16 +250,17 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     
     if (pdfDocument) {
       try {
+        setIsLoading(true);
+        setCurrentRotation(rotation);
+        
         const newPageUrl = await renderPage(pdfDocument, currentPage, rotation);
         if (newPageUrl) {
-          setTimeout(() => {
-            setPageUrl(newPageUrl);
-          }, 50);
+          setPageUrl(newPageUrl);
         }
       } catch (error) {
         console.error("Error reloading current page:", error);
+      } finally {
         setIsLoading(false);
-        setIsChangingPage(false);
       }
     }
   };
@@ -280,6 +276,7 @@ export const usePdfRenderer = (file: File | null): UsePdfRendererReturn => {
     renderThumbnail,
     nextPage,
     prevPage,
-    reloadCurrentPage
+    reloadCurrentPage,
+    gotoPage
   };
 };
