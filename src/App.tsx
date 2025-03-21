@@ -18,6 +18,7 @@ import ProtectPDF from "./pages/tools/ProtectPDF";
 import TranslatePDF from "./pages/tools/TranslatePDF";
 import WatermarkPDF from "./pages/tools/WatermarkPDF";
 import SortPDF from "./pages/tools/SortPDF";
+import CensorPDF from "./pages/tools/CensorPDF";
 import NotFound from "./pages/NotFound";
 import CompressPDFGuide from "./pages/wiki/CompressPDFGuide";
 import MergePDFGuide from "./pages/wiki/MergePDFGuide";
@@ -83,6 +84,7 @@ const App = () => {
             <Route path="/tools/translate" element={<TranslatePDF />} />
             <Route path="/tools/watermark" element={<WatermarkPDF />} />
             <Route path="/tools/sort" element={<SortPDF />} />
+            <Route path="/tools/censor" element={<CensorPDF />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

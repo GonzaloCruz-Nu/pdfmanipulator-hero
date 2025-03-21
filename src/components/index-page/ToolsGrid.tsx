@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCcw, Languages, 
-  Stamp, MoveVertical
+  Stamp, MoveVertical, EyeOff
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 
@@ -131,6 +131,16 @@ const ToolsGrid = () => {
             description="Añade texto como marca de agua a tu PDF"
             icon={Stamp}
             to="/tools/watermark"
+            className="h-full"
+          />
+        </motion.div>
+        
+        <motion.div variants={fadeInUp}>
+          <ToolCard
+            title="Censurar PDF"
+            description="Oculta información sensible en tus documentos"
+            icon={EyeOff}
+            to="/tools/censor"
             className="h-full"
           />
         </motion.div>
