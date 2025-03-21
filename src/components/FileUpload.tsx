@@ -12,6 +12,7 @@ interface FileUploadProps {
   maxFiles?: number;
   maxSize?: number;
   disabled?: boolean;
+  infoText?: string;  // Added this prop to fix the type error
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -23,6 +24,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   maxFiles = 10,
   maxSize = 15,
   disabled = false,
+  infoText = "Drag files here or click to browse", // Add default value
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -102,7 +104,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </div>
           <div className="space-y-1 text-center">
             <p className="text-sm font-medium text-gray-800">
-              {isDragging ? "Suelta aquí" : "Arrastra archivos o haz clic aquí"}
+              {isDragging ? "Suelta aquí" : infoText}
             </p>
             <p className="text-xs text-gray-600">
               {multiple ? `PDF (máx. ${maxFiles})` : "PDF"}
