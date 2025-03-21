@@ -13,6 +13,7 @@ import CompressPDF from "./pages/tools/CompressPDF";
 import UnlockPDF from "./pages/tools/UnlockPDF";
 import EditPDF from "./pages/tools/EditPDF";
 import ConvertPDF from "./pages/tools/ConvertPDF";
+import TranslatePDF from "./pages/tools/TranslatePDF";
 import NotFound from "./pages/NotFound";
 import CompressPDFGuide from "./pages/wiki/CompressPDFGuide";
 import MergePDFGuide from "./pages/wiki/MergePDFGuide";
@@ -68,6 +69,7 @@ const App = () => {
             <Route path="/tools/ocr" element={<ConvertPDF />} />
             <Route path="/tools/convert" element={<ConvertPDF />} />
             <Route path="/tools/protect" element={<UnlockPDF />} />
+            <Route path="/tools/translate" element={<TranslatePDF />} />
             {/* Ruta catchall para páginas no encontradas */}
             <Route path="*" element={<NotFound />} />
           </Routes>

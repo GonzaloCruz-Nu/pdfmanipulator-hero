@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock } from 'lucide-react';
+import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import ToolCard from '@/components/ToolCard';
@@ -106,6 +106,16 @@ const Tools = () => {
               description="Extrae texto de imágenes y documentos escaneados"
               icon={FileSearch}
               to="/tools/ocr"
+              className="h-full"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
+            <ToolCard
+              title="Traducir PDF"
+              description="Traduce documentos PDF del español al inglés con IA"
+              icon={Languages}
+              to="/tools/translate"
               className="h-full"
             />
           </motion.div>
