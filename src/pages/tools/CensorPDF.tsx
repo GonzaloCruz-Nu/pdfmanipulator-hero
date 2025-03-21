@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Upload, Download } from 'lucide-react';
+import { FileText, Upload, Download, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -25,11 +25,15 @@ const CensorPDF = () => {
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
   const [isChangingPage, setIsChangingPage] = useState(false);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
   
   // References
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const lastPosRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
 
   // Hooks
   const {
@@ -179,6 +183,76 @@ const CensorPDF = () => {
     };
   }, [fabricCanvasRef.current, canvasContainerRef.current]);
 
+  // Setup panning functionality
+  useEffect(() => {
+    if (!fabricCanvasRef.current) return;
+
+    const handlePanningMouseDown = (opt: fabric.IEvent) => {
+      if (!isPanning) return;
+      
+      const evt = opt.e as MouseEvent;
+      isDraggingRef.current = true;
+      lastPosRef.current = { x: evt.clientX, y: evt.clientY };
+      
+      // Disable selection during panning
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.selection = false;
+        fabricCanvasRef.current.defaultCursor = 'grabbing';
+      }
+    };
+
+    const handlePanningMouseMove = (opt: fabric.IEvent) => {
+      if (!isDraggingRef.current || !isPanning || !fabricCanvasRef.current) return;
+      
+      const evt = opt.e as MouseEvent;
+      const deltaX = evt.clientX - lastPosRef.current.x;
+      const deltaY = evt.clientY - lastPosRef.current.y;
+      
+      // Move all objects including the background
+      const objects = fabricCanvasRef.current.getObjects();
+      objects.forEach(obj => {
+        obj.left! += deltaX;
+        obj.top! += deltaY;
+        obj.setCoords();
+      });
+      
+      // Move background if it exists
+      if (fabricCanvasRef.current.backgroundImage) {
+        const bg = fabricCanvasRef.current.backgroundImage;
+        bg.left! += deltaX;
+        bg.top! += deltaY;
+      }
+      
+      fabricCanvasRef.current.renderAll();
+      lastPosRef.current = { x: evt.clientX, y: evt.clientY };
+    };
+
+    const handlePanningMouseUp = () => {
+      isDraggingRef.current = false;
+      
+      // Re-enable selection after panning
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.selection = true;
+        fabricCanvasRef.current.defaultCursor = 'default';
+      }
+    };
+
+    // Add event listeners for panning
+    if (isPanning && fabricCanvasRef.current) {
+      fabricCanvasRef.current.on('mouse:down', handlePanningMouseDown);
+      fabricCanvasRef.current.on('mouse:move', handlePanningMouseMove);
+      fabricCanvasRef.current.on('mouse:up', handlePanningMouseUp);
+    }
+
+    return () => {
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.off('mouse:down', handlePanningMouseDown);
+        fabricCanvasRef.current.off('mouse:move', handlePanningMouseMove);
+        fabricCanvasRef.current.off('mouse:up', handlePanningMouseUp);
+      }
+    };
+  }, [isPanning, fabricCanvasRef.current]);
+
   // Load PDF in the canvas when the page URL changes
   useEffect(() => {
     if (!fabricCanvasRef.current || !pageUrl) return;
@@ -208,11 +282,11 @@ const CensorPDF = () => {
           height: containerHeight
         });
         
-        // Calculate scale to fit PDF in the canvas
+        // Calculate scale to fit PDF in the canvas, accounting for zoom level
         const scale = Math.min(
           (containerWidth * 0.85) / img.width!,
           (containerHeight * 0.85) / img.height!
-        );
+        ) * zoomLevel;
         
         // Apply scale
         img.scale(scale);
@@ -236,7 +310,7 @@ const CensorPDF = () => {
       console.error("Error loading PDF image:", error);
       setIsChangingPage(false);
     }
-  }, [pageUrl, currentPage]);
+  }, [pageUrl, currentPage, zoomLevel]);
 
   // Load thumbnails of all pages when PDF is loaded
   useEffect(() => {
@@ -412,6 +486,23 @@ const CensorPDF = () => {
     }
   };
 
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Minimum zoom 50%
+  };
+
+  // Toggle panning mode
+  const togglePanMode = () => {
+    setIsPanning(!isPanning);
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.defaultCursor = !isPanning ? 'grab' : 'default';
+    }
+  };
+
   return (
     <Layout>
       <Header />
@@ -548,6 +639,43 @@ const CensorPDF = () => {
                           size={size}
                           onToolChange={setActiveTool}
                         />
+                      )}
+                      
+                      {/* Zoom and pan controls */}
+                      <div className="absolute bottom-16 right-4 flex gap-2 z-10">
+                        <Button 
+                          variant={isPanning ? "default" : "secondary"} 
+                          size="sm" 
+                          onClick={togglePanMode} 
+                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                          title={isPanning ? "Desactivar modo movimiento" : "Activar modo movimiento"}
+                        >
+                          <Move className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={handleZoomIn} 
+                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                          title="Acercar"
+                        >
+                          <ZoomIn className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={handleZoomOut} 
+                          className="rounded-full h-8 w-8 p-0 flex items-center justify-center"
+                          title="Alejar"
+                        >
+                          <ZoomOut className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {isPanning && (
+                        <div className="absolute top-4 left-4 bg-primary/80 text-white px-3 py-1.5 rounded-md text-xs font-medium">
+                          Modo movimiento: haz clic y arrastra para mover
+                        </div>
                       )}
                       
                       <PdfNavigation

@@ -25,6 +25,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   const sizeRef = useRef(size);
   const onToolChangeRef = useRef(onToolChange);
   const isDrawingRef = useRef(false);
+  const mouseDownHandlerRef = useRef<((e: fabric.IEvent) => void) | null>(null);
   
   // Update refs when props change
   useEffect(() => {
@@ -156,8 +157,9 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     
     console.log("Setting up canvas events for tool:", activeTool);
     
-    // Add mouse down event listener for rectangle drawing
+    // Store the handler in the ref
     if (activeTool === 'rectangle') {
+      mouseDownHandlerRef.current = handleRectangleDrawing;
       canvas.on('mouse:down', handleRectangleDrawing);
     }
     
@@ -166,7 +168,10 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       if (!canvas) return;
       
       console.log("Removing canvas events for tool:", activeTool);
-      canvas.off('mouse:down', handleRectangleDrawing);
+      if (mouseDownHandlerRef.current) {
+        canvas.off('mouse:down', mouseDownHandlerRef.current);
+        mouseDownHandlerRef.current = null;
+      }
     };
   }, [canvas, activeTool, handleRectangleDrawing]);
 

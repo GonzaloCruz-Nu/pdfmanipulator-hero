@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
@@ -130,20 +131,28 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       canvasRef.current.off();
       
       // Check if canvas is in the DOM before disposing
-      if (canvasRef.current.lowerCanvasEl) {
+      if (canvasRef.current.lowerCanvasEl && canvasRef.current.lowerCanvasEl.parentNode) {
         const canvasElement = canvasRef.current.lowerCanvasEl;
-        console.log("Checking if canvas is in DOM before disposal");
+        console.log("Canvas is in DOM, proceeding with disposal");
         
         try {
           // We need to be extremely careful about the disposal process
-          // as it can cause issues if the canvas is no longer in the DOM
           canvasRef.current.dispose();
           console.log("Canvas disposed successfully");
         } catch (error) {
           console.error("Error disposing canvas:", error);
+          // Try to manually remove it from DOM if dispose fails
+          try {
+            if (canvasElement.parentNode) {
+              canvasElement.parentNode.removeChild(canvasElement);
+              console.log("Canvas element manually removed from DOM");
+            }
+          } catch (removeError) {
+            console.error("Error manually removing canvas from DOM:", removeError);
+          }
         }
       } else {
-        console.log("Canvas element not found in DOM, skipping disposal");
+        console.log("Canvas element not found in DOM or already detached, skipping disposal");
       }
       
       // Always null the reference
