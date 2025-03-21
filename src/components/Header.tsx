@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -11,7 +11,7 @@ const Header: React.FC = () => {
       <div className="container flex flex-col items-center justify-center">
         <Link to="/" className="flex items-center space-x-3 text-foreground mb-6">
           <div className="rounded-full bg-naranja/10 p-3">
-            <FileText className="h-8 w-8 text-naranja" />
+            <Sparkles className="h-8 w-8 text-naranja" />
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-bold">PDFmanager</span>

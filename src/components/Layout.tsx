@@ -15,11 +15,11 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 flex flex-col">
       <Header />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex-1">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex-1">
         <div className={cn("page-transition", className)}>
           {children}
         </div>
-      </main>
+      </div>
       <Footer />
     </div>
   );
