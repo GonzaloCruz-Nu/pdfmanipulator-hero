@@ -142,6 +142,7 @@ const ToolsGrid = () => {
             icon={EyeOff}
             to="/tools/censor"
             className="h-full"
+            maintenance={false}
           />
         </motion.div>
         
