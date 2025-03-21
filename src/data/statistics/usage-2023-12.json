@@ -1,0 +1,53 @@
+
+{
+  "month": "Diciembre 2023",
+  "totalUses": 1247,
+  "toolUsage": [
+    { "name": "Unir PDFs", "count": 423, "percentage": 33.9 },
+    { "name": "Comprimir PDF", "count": 312, "percentage": 25.0 },
+    { "name": "Dividir PDF", "count": 189, "percentage": 15.2 },
+    { "name": "Desbloquear PDF", "count": 156, "percentage": 12.5 },
+    { "name": "Rotar PDF", "count": 85, "percentage": 6.8 },
+    { "name": "Editar PDF", "count": 42, "percentage": 3.4 },
+    { "name": "OCR PDF", "count": 40, "percentage": 3.2 }
+  ],
+  "dailyUsage": [
+    { "day": "01", "count": 35 },
+    { "day": "02", "count": 42 },
+    { "day": "03", "count": 38 },
+    { "day": "04", "count": 30 },
+    { "day": "05", "count": 45 },
+    { "day": "06", "count": 55 },
+    { "day": "07", "count": 48 },
+    { "day": "08", "count": 37 },
+    { "day": "09", "count": 41 },
+    { "day": "10", "count": 52 },
+    { "day": "11", "count": 49 },
+    { "day": "12", "count": 38 },
+    { "day": "13", "count": 42 },
+    { "day": "14", "count": 36 },
+    { "day": "15", "count": 40 },
+    { "day": "16", "count": 45 },
+    { "day": "17", "count": 50 },
+    { "day": "18", "count": 43 },
+    { "day": "19", "count": 38 },
+    { "day": "20", "count": 35 },
+    { "day": "21", "count": 40 },
+    { "day": "22", "count": 48 },
+    { "day": "23", "count": 52 },
+    { "day": "24", "count": 43 },
+    { "day": "25", "count": 32 },
+    { "day": "26", "count": 38 },
+    { "day": "27", "count": 42 },
+    { "day": "28", "count": 46 },
+    { "day": "29", "count": 49 },
+    { "day": "30", "count": 45 },
+    { "day": "31", "count": 43 }
+  ],
+  "categoryUsage": [
+    { "category": "Básicas", "count": 1009, "percentage": 80.9 },
+    { "category": "Edición", "count": 82, "percentage": 6.6 },
+    { "category": "Seguridad", "count": 156, "percentage": 12.5 },
+    { "category": "Avanzadas", "count": 0, "percentage": 0 }
+  ]
+}

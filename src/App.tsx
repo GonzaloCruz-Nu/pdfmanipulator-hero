@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Tools from "./pages/Tools";
 import About from "./pages/About";
 import Wiki from "./pages/Wiki";
+import Statistics from "./pages/Statistics";
 import HistorialPDF from "./pages/HistorialPDF";
 import MergePDF from "./pages/tools/MergePDF";
 import SplitPDF from "./pages/tools/SplitPDF";
@@ -75,6 +76,7 @@ const App = () => {
             <Route path="/wiki/watermark" element={<WatermarkPDFGuide />} />
             <Route path="/wiki/sort" element={<SortPDFGuide />} />
             <Route path="/about" element={<About />} />
+            <Route path="/statistics" element={<Statistics />} />
             <Route path="/historial" element={<HistorialPDF />} />
             <Route path="/tools/merge" element={<MergePDF />} />
             <Route path="/tools/split" element={<SplitPDF />} />
