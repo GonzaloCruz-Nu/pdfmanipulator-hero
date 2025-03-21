@@ -4,8 +4,7 @@ import {
   EyeOff, 
   Eraser, 
   Square, 
-  Trash2, 
-  Save,
+  Trash2,
   Move
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -60,20 +59,29 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
   hasSelection,
   isProcessing
 }) => {
+  // Safe handler for tool change
+  const handleToolChange = (value: string) => {
+    if (value && ['select', 'rectangle', 'eraser'].includes(value)) {
+      console.log(`Toolbar: Changing tool to ${value}`);
+      onToolChange(value as CensorToolType);
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2 p-2 bg-gray-50 border-b">
       <ToggleGroup 
         type="single" 
         value={activeTool} 
-        onValueChange={(value) => value && onToolChange(value as CensorToolType)}
+        onValueChange={handleToolChange}
+        className="flex gap-1"
       >
-        <ToggleGroupItem value="select" aria-label="Seleccionar">
+        <ToggleGroupItem value="select" aria-label="Seleccionar" className="h-9 px-3">
           <Move size={18} />
         </ToggleGroupItem>
-        <ToggleGroupItem value="rectangle" aria-label="Censurar área">
+        <ToggleGroupItem value="rectangle" aria-label="Censurar área" className="h-9 px-3">
           <Square size={18} />
         </ToggleGroupItem>
-        <ToggleGroupItem value="eraser" aria-label="Borrador">
+        <ToggleGroupItem value="eraser" aria-label="Borrador" className="h-9 px-3">
           <Eraser size={18} />
         </ToggleGroupItem>
       </ToggleGroup>
@@ -85,7 +93,7 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         <PopoverTrigger asChild>
           <Button 
             variant="outline" 
-            className="h-9 px-2 border-2"
+            className="h-9 px-3 border-2"
             style={{ borderColor: censorColor }}
           >
             <div 
@@ -127,7 +135,7 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
       {/* Size slider */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-9 px-2">
+          <Button variant="outline" className="h-9 px-3">
             <span className="text-xs">Grosor</span>
           </Button>
         </PopoverTrigger>
@@ -156,7 +164,7 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         size="sm" 
         onClick={onDeleteSelected}
         disabled={!hasSelection}
-        className="h-9"
+        className="h-9 px-3"
       >
         <Trash2 size={16} className="mr-1" />
         <span className="text-xs">Eliminar seleccionado</span>
@@ -166,7 +174,7 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         variant="outline" 
         size="sm" 
         onClick={onClearAll}
-        className="h-9"
+        className="h-9 px-3"
       >
         <Trash2 size={16} className="mr-1" />
         <span className="text-xs">Limpiar todo</span>
@@ -177,7 +185,7 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
         variant="default" 
         size="sm" 
         onClick={onApplyCensors}
-        className="h-9 ml-auto"
+        className="h-9 px-3 ml-auto bg-orange-500 hover:bg-orange-600"
         disabled={isProcessing}
       >
         {isProcessing ? (

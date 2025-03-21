@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, Upload, Download } from 'lucide-react';
+import { FileText, Upload } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -83,6 +82,7 @@ const CensorPDF = () => {
 
   const handleCanvasInitialized = useCallback((canvas: fabric.Canvas) => {
     console.log("Canvas initialized in CensorPDF component");
+    
     fabricCanvasRef.current = canvas;
     
     setCanvasReference(canvas);
@@ -91,9 +91,9 @@ const CensorPDF = () => {
     setActiveTool('rectangle');
     console.log("Canvas reference set and initialization complete");
     
-    // Force canvas re-render after a small delay to ensure everything is set up
     setTimeout(() => {
       if (canvas) {
+        console.log("Forcing canvas render after initialization");
         canvas.renderAll();
       }
     }, 200);
@@ -138,6 +138,7 @@ const CensorPDF = () => {
       
       cleanupCanvas();
       fabricCanvasRef.current = null;
+      
       setPageRenderedUrls([]);
       thumbnailsLoadedRef.current = false;
       
@@ -167,9 +168,6 @@ const CensorPDF = () => {
       setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
-      // Save the current canvas reference before cleanup
-      const currentCanvas = fabricCanvasRef.current;
-      
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
@@ -195,6 +193,7 @@ const CensorPDF = () => {
     
     try {
       const bgImage = fabricCanvasRef.current.backgroundImage;
+      
       fabricCanvasRef.current.remove(...fabricCanvasRef.current.getObjects());
       
       if (bgImage) {
@@ -228,38 +227,30 @@ const CensorPDF = () => {
   const handleApplyCensors = useCallback(() => {
     console.log("Applying redactions, canvas ref:", fabricCanvasRef.current ? "Canvas available" : "Canvas null");
     
-    // Sync the canvas references for maximum reliability
     if (fabricCanvasRef.current) {
       setCanvasReference(fabricCanvasRef.current);
-    }
-    
-    // Double-check if canvas is really available before proceeding
-    if (!hasValidCanvas()) {
-      console.error("Canvas not available for applying censors");
-      toast.error('No se pudo aplicar las censuras. No hay lienzo disponible. Intenta dibujar un nuevo rectángulo.');
-      return;
-    }
-    
-    if (fabricCanvasRef.current) {
-      // Make sure all objects are selectable for capture
+      
+      const objectCount = fabricCanvasRef.current.getObjects().length;
+      
+      if (objectCount === 0) {
+        toast.warning('No hay áreas de censura para aplicar');
+        return;
+      }
+      
       fabricCanvasRef.current.forEachObject(obj => {
-        obj.selectable = true;
         obj.visible = true;
       });
       
-      // Render everything before applying censors
       fabricCanvasRef.current.renderAll();
       
-      // Small delay to ensure canvas rendering is complete
       setTimeout(() => {
-        // Apply censors after ensuring canvas is ready
         applyRedactions();
-      }, 500);
+      }, 300);
     } else {
       console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
     }
-  }, [applyRedactions, setCanvasReference, hasValidCanvas]);
+  }, [applyRedactions, setCanvasReference]);
 
   return (
     <Layout>
@@ -339,7 +330,6 @@ const CensorPDF = () => {
                   console.log("Tool changed to:", tool);
                   setActiveTool(tool);
                   
-                  // Ensure objects are selectable when select tool is chosen
                   if (tool === 'select' && fabricCanvasRef.current) {
                     fabricCanvasRef.current.forEachObject(obj => {
                       obj.selectable = true;
@@ -427,8 +417,7 @@ const CensorPDF = () => {
                   onClick={downloadCensoredPDF}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
-                  <Download className="h-5 w-5 mr-2" />
-                  Descargar PDF censurado
+                  <span className="mr-2">Descargar PDF censurado</span>
                 </Button>
               )}
             </div>

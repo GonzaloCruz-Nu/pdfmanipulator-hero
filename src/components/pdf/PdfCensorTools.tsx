@@ -46,7 +46,11 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       
       // Apply tool settings immediately when canvas changes
       applyToolSettings();
-      setupEventListeners();
+      
+      // Set up event listeners after a brief delay to ensure canvas is ready
+      setTimeout(() => {
+        setupEventListeners();
+      }, 100);
     }
     
     return () => {
@@ -60,8 +64,10 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
 
     console.log("Applying censor tool settings:", toolRef.current, "with color:", colorRef.current);
 
-    // Clear any existing drawing mode
+    // Reset default canvas settings
     canvasRef.current.isDrawingMode = false;
+    canvasRef.current.selection = false;
+    canvasRef.current.defaultCursor = 'default';
 
     // Reset canvas selection options based on active tool
     switch (toolRef.current) {
@@ -76,8 +82,8 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       case 'rectangle':
         canvasRef.current.selection = false;
         canvasRef.current.defaultCursor = 'crosshair';
+        // Make objects non-selectable during rectangle drawing
         canvasRef.current.forEachObject(obj => {
-          // Make objects non-selectable during rectangle drawing
           obj.selectable = false;
           obj.evented = false;
         });
@@ -100,12 +106,16 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     if (!canvasRef.current) return;
     
     console.log("Tool changed to:", activeTool);
-    applyToolSettings();
     
     // Cleanup existing listeners before adding new ones
     cleanupEventListeners();
+    
+    // Apply tool settings
+    applyToolSettings();
+    
+    // Setup new event listeners
     setupEventListeners();
-  }, [activeTool, color, size, applyToolSettings]);
+  }, [activeTool, color, size]);
 
   // Single function for rectangle drawing
   const handleRectangleDrawing = useCallback((e: fabric.IEvent) => {
@@ -180,16 +190,19 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
           hasBorders: true
         });
         
-        // Switch to selection tool after drawing
-        onToolChangeRef.current('select');
-        
-        // Make all objects selectable again
+        // Ensure all objects are selectable again
         canvasRef.current.forEachObject(obj => {
           obj.selectable = true;
           obj.evented = true;
         });
         
+        // Switch to selection tool after drawing
+        if (onToolChangeRef.current) {
+          onToolChangeRef.current('select');
+        }
+        
         try {
+          // Select the created rectangle
           canvasRef.current.setActiveObject(rect);
           console.log("Rectangle completed, switched to select tool");
         } catch (error) {
@@ -207,11 +220,20 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
 
   // Set up event listeners
   const setupEventListeners = useCallback(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {
+      console.log("No canvas available for event setup");
+      return;
+    }
     
     console.log("Setting up canvas events for tool:", toolRef.current);
     
-    // Store the handler in the ref
+    // Remove any existing mouse down handler to prevent duplicates
+    if (mouseDownHandlerRef.current) {
+      canvasRef.current.off('mouse:down', mouseDownHandlerRef.current);
+      mouseDownHandlerRef.current = null;
+    }
+    
+    // Store the handler in the ref and attach it
     if (toolRef.current === 'rectangle') {
       mouseDownHandlerRef.current = handleRectangleDrawing;
       canvasRef.current.on('mouse:down', handleRectangleDrawing);

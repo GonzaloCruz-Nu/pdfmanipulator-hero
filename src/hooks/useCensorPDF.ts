@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
@@ -182,7 +181,8 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       }
     } else {
       console.log("Received null canvas reference");
-      canvasInitializedRef.current = false;
+      // Don't set the ref to null here, we want to keep the last valid reference
+      // canvasInitializedRef.current = false;
     }
   }, []);
 
