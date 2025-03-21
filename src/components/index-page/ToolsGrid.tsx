@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -9,6 +8,16 @@ import {
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface Tool {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  to: string;
+  category: string;
+  maintenance?: boolean;
+  isNew?: boolean;
+}
 
 const ToolsGrid = () => {
   const fadeInUp = {
@@ -55,7 +64,7 @@ const ToolsGrid = () => {
   ];
 
   // Herramientas categorizadas
-  const basicTools = [
+  const basicTools: Tool[] = [
     {
       title: "Unir PDFs",
       description: "Combina múltiples documentos PDF en uno",
@@ -86,7 +95,7 @@ const ToolsGrid = () => {
     }
   ];
 
-  const editTools = [
+  const editTools: Tool[] = [
     {
       title: "Editar PDF",
       description: "Edita el contenido de tus documentos",
@@ -125,7 +134,7 @@ const ToolsGrid = () => {
     }
   ];
 
-  const securityTools = [
+  const securityTools: Tool[] = [
     {
       title: "Desbloquear PDF",
       description: "Elimina contraseñas de PDFs protegidos",
@@ -144,7 +153,7 @@ const ToolsGrid = () => {
     }
   ];
 
-  const advancedTools = [
+  const advancedTools: Tool[] = [
     {
       title: "Traducir PDF",
       description: "Traduce PDF de español a inglés con IA",
@@ -157,7 +166,7 @@ const ToolsGrid = () => {
   ];
 
   // Combinar todas las herramientas
-  const allTools = [...basicTools, ...editTools, ...securityTools, ...advancedTools];
+  const allTools: Tool[] = [...basicTools, ...editTools, ...securityTools, ...advancedTools];
 
   return (
     <>
