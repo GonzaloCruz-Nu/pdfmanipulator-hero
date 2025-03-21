@@ -34,14 +34,20 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
               ? (fileSize / (1024 * 1024)).toFixed(2) + ' MB' 
               : (fileSize / 1024).toFixed(2) + ' KB';
             
+            // Calcular la proporción del tamaño respecto al original
             const conversionRatio = originalFile 
               ? ((convertedFile.size / originalFile.size) * 100).toFixed(1) + '%'
               : 'N/A';
             
+            const isVerySmall = originalFile && (convertedFile.size / originalFile.size) < 0.05;
+            
             return (
-              <li key={index} className="flex items-center justify-between rounded-md bg-gray-100 p-3 text-sm">
+              <li 
+                key={index} 
+                className={`flex items-center justify-between rounded-md ${isVerySmall ? 'bg-amber-50' : 'bg-gray-100'} p-3 text-sm`}
+              >
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-[rgb(246,141,46)]" />
+                  <FileText className={`h-4 w-4 ${isVerySmall ? 'text-amber-500' : 'text-[rgb(246,141,46)]'}`} />
                   <span className="truncate max-w-[200px]">{convertedFile.name}</span>
                   <span className="text-xs text-muted-foreground">
                     ({fileSizeFormatted})
@@ -66,24 +72,19 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
         </Button>
         
         {/* Advertencia mejorada para archivos muy pequeños */}
-        {convertedFiles[0]?.size < 20000 && originalFile && originalFile.size > 200000 && (
+        {originalFile && convertedFiles[0] && convertedFiles[0].size < originalFile.size * 0.1 && originalFile.size > 200000 && (
           <Alert className="mt-2 bg-amber-50 border-amber-200">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-xs text-amber-800">
-              <p className="font-semibold">Documento Word muy pequeño detectado:</p>
+              <p className="font-semibold">El documento Word es considerablemente más pequeño que el PDF original:</p>
               <ul className="list-disc pl-4 mt-1 space-y-1">
                 <li>PDF original: {(originalFile.size / (1024 * 1024)).toFixed(2)} MB</li>
                 <li>Word generado: {(convertedFiles[0].size / 1024).toFixed(2)} KB</li>
                 <li>Porcentaje del tamaño original: {((convertedFiles[0].size / originalFile.size) * 100).toFixed(2)}%</li>
               </ul>
               <p className="mt-2">
-                El PDF puede contener principalmente imágenes, gráficos o texto no extraíble.
+                Algunas imágenes o elementos complejos pueden no haberse convertido. El PDF puede contener principalmente imágenes, gráficos o texto no extraíble.
               </p>
-              <div className="mt-2">
-                <Link to="/tools/ocr" className="text-[rgb(246,141,46)] flex items-center">
-                  <Scan className="h-3 w-3 mr-1" /> Prueba nuestra herramienta OCR para documentos escaneados
-                </Link>
-              </div>
             </AlertDescription>
           </Alert>
         )}
@@ -91,17 +92,14 @@ const ConversionResults: React.FC<ConversionResultsProps> = ({
     );
   }
   
-  if (conversionStarted && !isProcessing && convertedFiles.length === 0) {
+  // Mostrar error si la conversión falló
+  if (errorMessage && conversionStarted && !isProcessing && convertedFiles.length === 0) {
     return (
       <Alert variant="destructive" className="mt-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          {errorMessage || 'No se pudo generar el documento Word. El archivo PDF puede estar protegido o contener sólo imágenes.'}
-          <div className="mt-2">
-            <Link to="/tools/ocr" className="text-white/90 hover:text-white flex items-center">
-              <Scan className="h-3 w-3 mr-1" /> Prueba con la herramienta OCR para documentos escaneados
-            </Link>
-          </div>
+          <p className="font-medium">Error en la conversión:</p>
+          <p>{errorMessage || 'No se pudo generar el documento Word. El archivo PDF puede estar protegido o contener sólo imágenes.'}</p>
         </AlertDescription>
       </Alert>
     );

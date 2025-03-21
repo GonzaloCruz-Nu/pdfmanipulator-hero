@@ -15,7 +15,7 @@ const ConvertPDF = () => {
   const [file, setFile] = useState<File | null>(null);
   const [conversionStarted, setConversionStarted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('simple'); // Default to simple mode for now
+  const [conversionMode, setConversionMode] = useState<'standard' | 'simple'>('standard'); // Cambiado a standard por defecto
   
   const { 
     convertPDF, 
@@ -64,6 +64,8 @@ const ConvertPDF = () => {
           result = await convertPDF(file, 'docx');
         }
         
+        console.log('Resultado de conversión:', result);
+        
         if (result.success) {
           // Mostrar tamaño en KB para archivos pequeños
           const fileSize = result.files[0].size;
@@ -80,14 +82,15 @@ const ConvertPDF = () => {
           }
           console.log('Conversión completada correctamente, resultado:', result);
         } else {
-          setErrorMessage(result.message);
+          setErrorMessage(result.message || 'Error desconocido en la conversión');
           toast.error(result.message || 'Error al convertir PDF');
           console.error('Error de conversión:', result.message);
         }
       } catch (error) {
         console.error('Error de conversión:', error);
-        setErrorMessage(error instanceof Error ? error.message : 'Error desconocido durante la conversión');
-        toast.error('Error al convertir PDF a Word');
+        const errorMsg = error instanceof Error ? error.message : 'Error desconocido durante la conversión';
+        setErrorMessage(errorMsg);
+        toast.error('Error al convertir PDF a Word: ' + errorMsg);
       }
     } else {
       toast.error('Por favor selecciona un archivo PDF');
