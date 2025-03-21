@@ -32,10 +32,11 @@ export const rotatePdfPage = async (
         // Convertir ángulo a múltiplos de 90 (pdf-lib solo acepta 0, 90, 180, 270)
         const normalizedAngle = (Math.round(angle / 90) * 90) % 360;
         
-        // Establecer la rotación
+        // Establecer la rotación - pdf-lib acepta 'degrees' como tipo, pero debemos usar un tipo válido
         page.setRotation({
           angle: normalizedAngle,
-          type: 'degrees',
+          // La biblioteca pdf-lib espera 'degrees' como string literal, no como un enum
+          type: 'degrees' as any, // Using type assertion to fix the TypeScript error
         });
         
         console.log(`Rotated page ${pageIndex + 1} by ${normalizedAngle} degrees`);
