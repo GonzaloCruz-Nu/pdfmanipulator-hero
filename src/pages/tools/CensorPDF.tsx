@@ -13,6 +13,7 @@ import { fabric } from 'fabric';
 import PdfCensorToolbar, { CensorToolType } from '@/components/pdf/PdfCensorToolbar';
 import PdfCensorTools from '@/components/pdf/PdfCensorTools';
 import PdfNavigation from '@/components/pdf/PdfNavigation';
+import PdfCanvas from '@/components/pdf/PdfCanvas';
 
 const CensorPDF = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,13 +26,11 @@ const CensorPDF = () => {
   const [isPanning, setIsPanning] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   
-  // References
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const pageChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Hooks
   const {
     currentPage,
     totalPages,
@@ -55,44 +54,36 @@ const CensorPDF = () => {
     cleanupCanvas
   } = useCensorPDF({ file: selectedFile });
 
-  // Pass the fabricCanvas reference to the useCensorPDF hook
   useEffect(() => {
     if (fabricCanvasRef.current) {
       censorCanvasRef.current = fabricCanvasRef.current;
     }
   }, [fabricCanvasRef.current]);
 
-  // Update active page in useCensorPDF when current page changes
   useEffect(() => {
     setActivePage(currentPage);
   }, [currentPage, setActivePage]);
 
-  // Cleanup canvas when component unmounts or file changes
   useEffect(() => {
     return () => {
       console.log("Component unmounting or file changing, cleaning up resources");
       
-      // Clear any pending timeouts
       if (pageChangeTimeoutRef.current) {
         clearTimeout(pageChangeTimeoutRef.current);
         pageChangeTimeoutRef.current = null;
       }
       
-      // Clean up canvas
       cleanupCanvas();
       
-      // Clear fabric canvas ref
       fabricCanvasRef.current = null;
     };
   }, [cleanupCanvas, selectedFile]);
 
-  // Handle canvas initialization
   const handleCanvasInitialized = (canvas: fabric.Canvas) => {
     fabricCanvasRef.current = canvas;
     censorCanvasRef.current = canvas;
   };
 
-  // Load thumbnails of all pages when PDF is loaded
   useEffect(() => {
     const loadAllPageThumbnails = async () => {
       if (!pdfDocument || totalPages === 0) return;
@@ -118,29 +109,24 @@ const CensorPDF = () => {
     loadAllPageThumbnails();
   }, [pdfDocument, totalPages, renderThumbnail]);
 
-  // Handle file selection
   const handleFileSelected = (files: File[]) => {
     if (files.length > 0) {
       console.log("New file selected:", files[0].name);
       
-      // Clear any pending timeouts
       if (pageChangeTimeoutRef.current) {
         clearTimeout(pageChangeTimeoutRef.current);
         pageChangeTimeoutRef.current = null;
       }
       
-      // Clean up resources
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setPageRenderedUrls([]);
       
-      // Set new file
       setSelectedFile(files[0]);
       toast.success(`PDF cargado: ${files[0].name}`);
     }
   };
 
-  // Handle page selection with improved error handling
   const handlePageSelect = async (pageNum: number) => {
     if (pageNum === currentPage) {
       console.log(`Already on page ${pageNum}`);
@@ -158,14 +144,12 @@ const CensorPDF = () => {
     }
     
     try {
-      // Clean up canvas to prevent memory leaks
       cleanupCanvas();
       fabricCanvasRef.current = null;
       
       console.log(`Starting page change to page ${pageNum}`);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
-      // Use the gotoPage function from usePdfRenderer
       await gotoPage(pageNum);
       
     } catch (error) {
@@ -174,12 +158,10 @@ const CensorPDF = () => {
     }
   };
 
-  // Handle clear all objects
   const handleClearAll = () => {
     if (!fabricCanvasRef.current) return;
     
     try {
-      // Keep only the background image (PDF)
       const bgImage = fabricCanvasRef.current.backgroundImage;
       fabricCanvasRef.current.clear();
       
@@ -195,7 +177,6 @@ const CensorPDF = () => {
     }
   };
 
-  // Handle delete selected object
   const handleDeleteSelected = () => {
     if (!fabricCanvasRef.current) return;
     
@@ -212,7 +193,6 @@ const CensorPDF = () => {
     }
   };
 
-  // Handle apply censors
   const handleApplyCensors = () => {
     if (fabricCanvasRef.current) {
       applyRedactions();
@@ -221,16 +201,14 @@ const CensorPDF = () => {
     }
   };
 
-  // Zoom handlers
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 3)); // Maximum zoom 300%
+    setZoomLevel(prev => Math.min(prev + 0.2, 3));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); // Minimum zoom 50%
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
   };
 
-  // Toggle panning mode
   const togglePanMode = () => {
     setIsPanning(!isPanning);
     if (fabricCanvasRef.current) {
@@ -273,7 +251,6 @@ const CensorPDF = () => {
           </div>
         ) : (
           <div className="flex flex-col space-y-4">
-            {/* Action buttons */}
             <div className="flex justify-between items-center">
               <Button 
                 variant="outline" 
@@ -302,14 +279,12 @@ const CensorPDF = () => {
               </div>
             </div>
             
-            {/* Info alert */}
             <Alert className="bg-blue-50 border-blue-200">
               <AlertDescription className="text-blue-800">
                 Dibuja rectángulos sobre la información que deseas ocultar y luego haz clic en "Aplicar censuras".
               </AlertDescription>
             </Alert>
             
-            {/* PDF editor */}
             <div className="h-[700px] rounded-xl overflow-hidden border shadow-md flex flex-col bg-white">
               <div className="p-3 border-b bg-gray-50">
                 <h2 className="text-sm font-medium truncate max-w-lg mx-auto text-center">
@@ -317,7 +292,6 @@ const CensorPDF = () => {
                 </h2>
               </div>
               
-              {/* PDF editor toolbar */}
               <PdfCensorToolbar
                 activeTool={activeTool}
                 onToolChange={setActiveTool}
@@ -332,9 +306,7 @@ const CensorPDF = () => {
                 isProcessing={isProcessing}
               />
               
-              {/* Main content area */}
               <div className="flex-1 flex overflow-hidden">
-                {/* Thumbnails sidebar */}
                 {showSidebar && (
                   <div className="w-[150px] border-r shrink-0 overflow-y-auto">
                     <PdfThumbnailList 
@@ -346,7 +318,6 @@ const CensorPDF = () => {
                   </div>
                 )}
                 
-                {/* PDF content with censoring tools */}
                 <div className="flex-1 relative overflow-hidden">
                   {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-full">
@@ -364,7 +335,6 @@ const CensorPDF = () => {
                       ref={canvasContainerRef}
                       className="w-full h-full flex justify-center items-center bg-gray-100 relative"
                     >
-                      {/* Use the updated PdfCanvas component with onCanvasInitialized */}
                       {pageUrl && (
                         <>
                           <canvas ref={canvasRef} className="absolute inset-0" />
@@ -388,7 +358,6 @@ const CensorPDF = () => {
                         </>
                       )}
                       
-                      {/* Zoom and pan controls */}
                       <div className="absolute bottom-16 right-4 flex gap-2 z-10">
                         <Button 
                           variant={isPanning ? "default" : "secondary"} 
