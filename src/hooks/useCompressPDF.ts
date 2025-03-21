@@ -56,7 +56,7 @@ export const useCompressPDF = () => {
   ): Promise<File | null> {
     try {
       // Obtener configuración según nivel
-      const { imageQuality, scaleFactor } = COMPRESSION_FACTORS[level];
+      const { imageQuality, scaleFactor, colorReduction } = COMPRESSION_FACTORS[level];
       
       // Cargar el documento con PDF.js
       const fileArrayBuffer = await file.arrayBuffer();
@@ -66,15 +66,27 @@ export const useCompressPDF = () => {
       // Crear un nuevo documento PDF
       const newPdfDoc = await PDFDocument.create();
       
-      // Para nivel bajo, conservamos más metadatos para mantener mejor calidad
+      // Para nivel bajo, preservamos algunos metadatos pero aplicamos compresión básica
       if (level !== 'low') {
-        // Eliminar metadatos
+        // Eliminar metadatos para niveles medio y alto
         newPdfDoc.setTitle("");
         newPdfDoc.setAuthor("");
         newPdfDoc.setSubject("");
         newPdfDoc.setKeywords([]);
         newPdfDoc.setProducer("");
         newPdfDoc.setCreator("");
+      } else {
+        // Para nivel bajo, podemos preservar algunos metadatos importantes
+        try {
+          // Intentar copiar metadatos del PDF original
+          const originalDoc = await PDFDocument.load(await file.arrayBuffer());
+          newPdfDoc.setTitle(originalDoc.getTitle() || "");
+          newPdfDoc.setAuthor(originalDoc.getAuthor() || "");
+          newPdfDoc.setSubject(originalDoc.getSubject() || "");
+          newPdfDoc.setCreator("PDF Compressor - Nivel Bajo");
+        } catch (e) {
+          console.log("No se pudieron copiar los metadatos originales");
+        }
       }
       
       // Procesar cada página
@@ -102,10 +114,10 @@ export const useCompressPDF = () => {
           ctx.imageSmoothingQuality = 'high';
         }
         
-        // Renderizar la página en el canvas con mejor calidad
+        // Renderizar la página en el canvas con factor de escala adecuado
         await renderPageToCanvas(pdfPage, canvas, scaleFactor);
         
-        // Para nivel bajo, usar mejor calidad JPEG para preservar detalles
+        // Aplicar compresión JPEG con calidad adecuada según el nivel
         const jpegDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
         
         // Extraer la base64
@@ -121,15 +133,17 @@ export const useCompressPDF = () => {
         // Insertar la imagen JPEG en el nuevo PDF
         const jpgImage = await newPdfDoc.embedJpg(bytes);
         
-        // Agregar una nueva página con las dimensiones originales
-        const newPage = newPdfDoc.addPage([width, height]);
+        // Agregar una nueva página con las dimensiones originales ajustadas
+        const pageWidth = level === 'low' ? width : width * colorReduction;
+        const pageHeight = level === 'low' ? height : height * colorReduction;
+        const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
         
         // Dibujar la imagen en la página
         newPage.drawImage(jpgImage, {
           x: 0,
           y: 0,
-          width: width,
-          height: height
+          width: pageWidth,
+          height: pageHeight
         });
       }
       
@@ -139,7 +153,8 @@ export const useCompressPDF = () => {
       // Ajustar opciones de guardado según el nivel
       const saveOptions = {
         useObjectStreams: level !== 'low', // Para nivel bajo, no usar object streams para mejor calidad
-        addDefaultPage: false
+        addDefaultPage: false,
+        objectsPerTick: level === 'low' ? 50 : 100 // Menos objetos por tick para nivel bajo = mejor calidad
       };
       
       // Guardar el documento comprimido con opciones óptimas
@@ -201,15 +216,18 @@ export const useCompressPDF = () => {
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
         
-        // Usar un umbral dinámico basado en el nivel de compresión
-        // Para nivel bajo, aceptamos una compresión mínima (incluso 0.01%)
-        const minReduction = compressionLevel === 'low' ? MIN_SIZE_REDUCTION : 0.5; // 0.01% para baja, 0.5% para el resto
-        
-        // Para nivel bajo, siempre aceptamos el resultado para evitar errores
-        if (compressionLevel === 'low' || compressionResult.savedPercentage > minReduction) {
+        // Para nivel bajo, aceptamos el resultado incluso si el tamaño no se reduce significativamente
+        // o incluso si aumenta ligeramente, para evitar errores de usuario
+        if (compressionLevel === 'low' || compressionResult.savedPercentage > 0) {
           setCompressedFile(compressedFile);
           setCompressionInfo(compressionResult);
-          toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
+          
+          // Mensaje personalizado según resultado
+          if (compressionResult.savedPercentage <= 0) {
+            toast.info('PDF procesado sin reducción de tamaño significativa.');
+          } else {
+            toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
+          }
         } else {
           setCompressionError('No se pudo comprimir significativamente el PDF. Es posible que ya esté optimizado.');
           toast.error('No se pudo comprimir significativamente el PDF.');

@@ -36,26 +36,47 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
     <div className="mt-6">
       {compressionInfo && compressedFile && (
         <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <h3 className="text-green-800 font-medium mb-2">Compresión completada</h3>
+          <div className={`${compressionInfo.savedPercentage > 0 ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-md p-4`}>
+            <h3 className={`${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium mb-2`}>
+              {compressionInfo.savedPercentage > 0 ? 'Compresión completada' : 'Procesamiento completado'}
+            </h3>
             <div className="space-y-1 text-sm">
               <div className="flex items-start">
-                <span className="text-green-800">Tamaño original:</span>
-                <span className="ml-auto text-green-800 font-medium">{formatFileSize(compressionInfo.originalSize)}</span>
+                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>Tamaño original:</span>
+                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                  {formatFileSize(compressionInfo.originalSize)}
+                </span>
               </div>
               <div className="flex items-start">
-                <span className="text-green-800">Tamaño comprimido:</span>
-                <span className="ml-auto text-green-800 font-medium">{formatFileSize(compressionInfo.compressedSize)}</span>
+                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>Tamaño procesado:</span>
+                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                  {formatFileSize(compressionInfo.compressedSize)}
+                </span>
               </div>
               <div className="flex items-start">
-                <span className="text-green-800">Reducción:</span>
-                <span className="ml-auto text-green-800 font-medium">{compressionInfo.savedPercentage.toFixed(1)}%</span>
+                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>
+                  {compressionInfo.savedPercentage > 0 ? 'Reducción:' : 'Cambio:'}
+                </span>
+                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                  {compressionInfo.savedPercentage.toFixed(1)}%
+                </span>
               </div>
-              <div className="flex items-start text-xs text-green-700 mt-2">
-                <span>Ahorro de espacio:</span>
-                <span className="ml-auto">{formatFileSize(compressionInfo.originalSize - compressionInfo.compressedSize)}</span>
+              <div className="flex items-start text-xs mt-2">
+                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-700' : 'text-blue-700'}>
+                  {compressionInfo.savedPercentage > 0 ? 'Ahorro de espacio:' : 'Cambio de tamaño:'}
+                </span>
+                <span className="ml-auto">
+                  {formatFileSize(Math.abs(compressionInfo.originalSize - compressionInfo.compressedSize))}
+                  {compressionInfo.originalSize < compressionInfo.compressedSize && ' (aumentó)'}
+                </span>
               </div>
             </div>
+            
+            {compressionInfo.savedPercentage <= 0 && (
+              <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-2 rounded">
+                <strong>Nota:</strong> Con nivel de compresión "Baja", se prioriza la calidad máxima sobre la reducción de tamaño.
+              </div>
+            )}
           </div>
           
           <Button
@@ -64,7 +85,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             className="w-full py-5 border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
           >
             <Download className="h-5 w-5 mr-2" />
-            Descargar PDF comprimido
+            Descargar PDF procesado
           </Button>
         </div>
       )}

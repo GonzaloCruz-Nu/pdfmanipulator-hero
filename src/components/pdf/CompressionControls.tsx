@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
-        <p>Usando técnicas de compresión tipo GhostScript para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño).</p>
+        <p>Usando técnicas de compresión tipo GhostScript para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño). Nivel bajo proporciona mínima compresión con calidad óptima.</p>
       </div>
 
       <Button
