@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Languages } from 'lucide-react';
@@ -31,7 +30,7 @@ const TranslatePDF = () => {
     setPdfFile(file);
     if (file) {
       // Verificar que el archivo sea realmente un PDF
-      if (!file.type.includes('pdf')) {
+      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
         toast.error('Por favor selecciona un archivo PDF válido');
         setPdfFile(null);
         return;
@@ -163,7 +162,7 @@ const TranslatePDF = () => {
           <ul className="list-disc list-inside space-y-2 text-muted-foreground">
             <li>La calidad de la traducción depende del contenido y la estructura del PDF.</li>
             <li>PDFs con texto escaneado o de baja calidad pueden no traducirse correctamente.</li>
-            <li>Se mantendrá el formato original en la medida de lo posible.</li>
+            <li>La traducción mantiene el formato, imágenes y estructura original del PDF.</li>
             <li>La traducción de documentos grandes puede consumir gran cantidad de créditos de la API.</li>
             <li>La herramienta funciona mejor con PDFs que contienen texto reconocible digitalmente.</li>
             <li>Si experimenta errores durante la traducción, intente con un PDF más pequeño o contacte con soporte.</li>

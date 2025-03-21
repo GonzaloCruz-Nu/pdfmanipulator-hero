@@ -1,9 +1,12 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { extractTextFromPDF } from '@/utils/pdf/pdfTextExtractor';
 import { saveAs } from 'file-saver';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Ensure PDF.js worker is set
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface TranslationResult {
   success: boolean;
@@ -99,7 +102,7 @@ export const useTranslatePDF = () => {
           messages: [
             {
               role: 'system',
-              content: 'Eres un traductor profesional de español a inglés. Traduce el siguiente texto manteniendo el formato exacto, incluyendo saltos de línea, viñetas, espacios y formateo. No agregues ni omitas información. No añadas notas o clarificaciones. Mantén todos los números, símbolos y caracteres especiales exactamente como están en el original.'
+              content: 'Eres un traductor profesional de español a inglés. Traduce el siguiente texto manteniendo el formato exacto, incluyendo saltos de línea, viñetas, espacios y formateo. No agregues ni omitas información. No añades notas o clarificaciones. Mantén todos los números, símbolos y caracteres especiales exactamente como están en el original.'
             },
             {
               role: 'user',
@@ -139,6 +142,12 @@ export const useTranslatePDF = () => {
     if (!file) {
       toast.error('Por favor selecciona un archivo PDF');
       return { success: false, file: null, message: 'No se seleccionó ningún archivo' };
+    }
+
+    // Validate file type
+    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('El archivo seleccionado no es un PDF válido');
+      return { success: false, file: null, message: 'El archivo no es un PDF válido' };
     }
 
     try {
@@ -212,48 +221,66 @@ export const useTranslatePDF = () => {
       
       console.log('Traducción completada, procesando documento final...');
       
+      // ---- IMPROVED PDF GENERATION APPROACH ----
       try {
-        // Cargar el PDF original para mantener el formato exacto
+        // Use pdf-lib to load the original PDF
         const pdfDoc = await PDFDocument.load(pdfData);
         
-        // Crear un nuevo PDF para la traducción
+        // Create a new PDF document that will contain the translated content
         const newPdfDoc = await PDFDocument.create();
         
-        // Copiar todas las páginas del PDF original al nuevo documento
-        const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
-        for (const page of copiedPages) {
-          newPdfDoc.addPage(page);
-        }
+        // Copy all pages from the original PDF to maintain all elements
+        const copiedPages = await newPdfDoc.copyPages(pdfDoc, [...Array(pdfDoc.getPageCount())].map((_, i) => i));
+        copiedPages.forEach(page => newPdfDoc.addPage(page));
         
-        // Obtener las fuentes del PDF original
+        // Load font for adding translated text
         const helveticaFont = await newPdfDoc.embedFont('Helvetica');
         
-        // Agregar texto traducido a cada página
-        for (let i = 0; i < translatedTextsByPage.length; i++) {
-          if (!translatedTextsByPage[i].trim()) continue;
+        // Get text positions from original PDF for proper text placement
+        for (let i = 0; i < translatedTextsByPage.length && i < newPdfDoc.getPageCount(); i++) {
+          const translatedText = translatedTextsByPage[i];
+          if (!translatedText.trim()) continue;
           
-          // Obtener la página actual
-          const page = newPdfDoc.getPage(i);
-          
-          // Agregar el texto traducido manteniendo el formato
-          page.drawText(translatedTextsByPage[i], {
-            x: 50,
-            y: page.getHeight() - 50,
-            size: 12,
-            font: helveticaFont,
-            color: rgb(0, 0, 0), // Usamos la función rgb del pdf-lib para crear el color correctamente
-            opacity: 1,
-            lineHeight: 16,
-            maxWidth: page.getWidth() - 100
-          });
+          try {
+            // Get current page from new document
+            const page = newPdfDoc.getPage(i);
+            
+            // Add text overlay with translation in a semi-transparent white box
+            // First draw a semi-transparent white background for better readability
+            page.drawRectangle({
+              x: 50,
+              y: 50,
+              width: page.getWidth() - 100,
+              height: page.getHeight() - 100,
+              color: rgb(1, 1, 1, 0.4),  // White with 40% opacity
+              opacity: 0.4,
+              borderColor: rgb(0, 0, 0),
+              borderWidth: 0,
+            });
+            
+            // Add translated text
+            page.drawText(translatedText, {
+              x: 60,
+              y: page.getHeight() - 60,
+              size: 10,
+              font: helveticaFont,
+              color: rgb(0, 0, 0),  // Black text
+              opacity: 1,
+              lineHeight: 14,
+              maxWidth: page.getWidth() - 120,
+            });
+          } catch (pageError) {
+            console.error(`Error al procesar la página ${i} para traducción:`, pageError);
+            // Continue with other pages if one fails
+          }
         }
         
-        // Guardar documento PDF
+        // Save the new PDF document
         const pdfBytes = await newPdfDoc.save();
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
         
-        // Crear archivo para descarga
-        const translatedFileName = file.name.replace('.pdf', '_translated.pdf');
+        // Create file for download
+        const translatedFileName = file.name.replace(/.pdf$/i, '_translated.pdf');
         const translatedFile = new File([pdfBlob], translatedFileName, { type: 'application/pdf' });
         
         setTranslatedFile(translatedFile);
