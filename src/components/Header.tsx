@@ -15,7 +15,10 @@ const Header: React.FC = () => {
         
         <Link to="/" className="flex items-center space-x-2 text-foreground mb-4 md:mb-0">
           <FileText className="h-8 w-8 text-naranja" />
-          <span className="text-xl font-medium">PDFmanager</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-medium">PDFmanager</span>
+            <span className="text-xs text-muted-foreground">by CoHispania</span>
+          </div>
         </Link>
         
         <nav className="flex-1">

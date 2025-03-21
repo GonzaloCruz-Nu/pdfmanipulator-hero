@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
       <div className="container flex flex-col md:flex-row items-center justify-between">
         <div className="flex items-center space-x-1 text-sm text-muted-foreground">
           <span>© {currentYear}</span>
-          <span className="font-medium">CoHispania 2025</span>
+          <span className="font-medium">CoHispania</span>
         </div>
         
         <div className="flex items-center mt-4 md:mt-0">
