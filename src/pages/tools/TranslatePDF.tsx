@@ -30,7 +30,8 @@ const TranslatePDF = () => {
     setApiKeyError(null);
   };
 
-  const handleFileSelected = (file: File | null) => {
+  const handleFileSelected = (files: File[]) => {
+    const file = files[0] || null;
     setPdfFile(file);
     if (file) {
       toast.success(`Archivo seleccionado: ${file.name}`);
@@ -118,11 +119,9 @@ const TranslatePDF = () => {
             
             <TabsContent value="upload" className="pt-4">
               <FileUpload
-                onFileSelected={handleFileSelected}
+                onFilesSelected={handleFileSelected}
                 accept="application/pdf"
-                maxSize={10}
-                label="Arrastra y suelta tu PDF aquí, o haz clic para seleccionar"
-                fileTypes={['PDF']}
+                multiple={false}
               />
             </TabsContent>
             
