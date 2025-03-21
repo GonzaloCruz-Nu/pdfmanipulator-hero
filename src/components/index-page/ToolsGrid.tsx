@@ -122,7 +122,6 @@ const ToolsGrid = () => {
             icon={MoveVertical}
             to="/tools/sort"
             className="h-full"
-            isNew={true}
           />
         </motion.div>
         
@@ -133,7 +132,6 @@ const ToolsGrid = () => {
             icon={Stamp}
             to="/tools/watermark"
             className="h-full"
-            isNew={true}
           />
         </motion.div>
         

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Merge, Scissors, Zap, FileCog, FileSearch, FileLock, Unlock, Languages, RotateCw, Stamp, MoveVertical } from 'lucide-react';
@@ -126,7 +127,6 @@ const Tools = () => {
               icon={MoveVertical}
               to="/tools/sort"
               className="h-full"
-              isNew={true}
             />
           </motion.div>
           
@@ -137,7 +137,6 @@ const Tools = () => {
               icon={Stamp}
               to="/tools/watermark"
               className="h-full"
-              isNew={true}
             />
           </motion.div>
 
