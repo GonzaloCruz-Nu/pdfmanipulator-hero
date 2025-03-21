@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -5,7 +6,7 @@ import {
   FileSearch, FileLock, RotateCcw, Languages, 
   Stamp, MoveVertical, EyeOff, FolderCog, 
   FileEdit, FileOutput, FileLockIcon,
-  LucideIcon
+  LucideIcon, Images, FileDiff, History
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -130,6 +131,15 @@ const ToolsGrid = () => {
       to: "/tools/censor",
       maintenance: false,
       category: "edicion"
+    },
+    {
+      title: "Extraer Imágenes",
+      description: "Extrae todas las imágenes incluidas en el PDF",
+      icon: Images,
+      to: "/tools/extract-images",
+      maintenance: true,
+      isNew: true,
+      category: "edicion"
     }
   ];
 
@@ -159,6 +169,24 @@ const ToolsGrid = () => {
       icon: Languages,
       to: "/tools/translate",
       maintenance: false,
+      isNew: true,
+      category: "avanzadas"
+    },
+    {
+      title: "Comparar PDFs",
+      description: "Compara y resalta diferencias entre documentos",
+      icon: FileDiff,
+      to: "/tools/compare",
+      maintenance: true,
+      isNew: true,
+      category: "avanzadas"
+    },
+    {
+      title: "Historial de PDFs",
+      description: "Accede a tus PDFs procesados recientemente",
+      icon: History,
+      to: "/tools/history",
+      maintenance: true,
       isNew: true,
       category: "avanzadas"
     }
