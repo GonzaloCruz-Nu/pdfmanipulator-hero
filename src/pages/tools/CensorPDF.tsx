@@ -52,7 +52,8 @@ const CensorPDF = () => {
     downloadCensoredPDF,
     setCanvasReference,
     setActivePage,
-    cleanupCanvas
+    cleanupCanvas,
+    hasValidCanvas
   } = useCensorPDF({ file: selectedFile });
 
   useEffect(() => {
@@ -227,10 +228,19 @@ const CensorPDF = () => {
   const handleApplyCensors = useCallback(() => {
     console.log("Applying redactions, canvas ref:", fabricCanvasRef.current ? "Canvas available" : "Canvas null");
     
+    // Sync the canvas references for maximum reliability
     if (fabricCanvasRef.current) {
-      // Ensure we're using the latest canvas
       setCanvasReference(fabricCanvasRef.current);
-      
+    }
+    
+    // Double-check if canvas is really available before proceeding
+    if (!hasValidCanvas()) {
+      console.error("Canvas not available for applying censors");
+      toast.error('No se pudo aplicar las censuras. No hay lienzo disponible. Intenta dibujar un nuevo rectángulo.');
+      return;
+    }
+    
+    if (fabricCanvasRef.current) {
       // Make sure all objects are selectable for capture
       fabricCanvasRef.current.forEachObject(obj => {
         obj.selectable = true;
@@ -249,7 +259,7 @@ const CensorPDF = () => {
       console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
     }
-  }, [applyRedactions, setCanvasReference]);
+  }, [applyRedactions, setCanvasReference, hasValidCanvas]);
 
   return (
     <Layout>
@@ -312,7 +322,7 @@ const CensorPDF = () => {
             
             <Alert className="bg-blue-50 border-blue-200">
               <AlertDescription className="text-blue-800">
-                Dibuja rectángulos sobre la información que deseas ocultar y luego haz clic en "Aplicar censuras".
+                Dibuja rectángulos sobre la información que deseas ocultar y luego haz clic en "Aplicar censuras" en la barra superior.
               </AlertDescription>
             </Alert>
             
@@ -411,15 +421,6 @@ const CensorPDF = () => {
             </div>
             
             <div className="flex justify-center mt-4">
-              <Button 
-                size="lg"
-                onClick={handleApplyCensors}
-                disabled={isProcessing}
-                className="bg-orange-500 hover:bg-orange-600 mr-4 text-white font-bold text-lg py-6 px-8"
-              >
-                {isProcessing ? 'Aplicando censuras...' : 'Aplicar censuras'}
-              </Button>
-              
               {censoredFile && (
                 <Button 
                   size="lg"

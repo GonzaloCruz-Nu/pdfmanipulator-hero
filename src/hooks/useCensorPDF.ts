@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { fabric } from 'fabric';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
@@ -13,6 +14,16 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   const [censoredFile, setCensoredFile] = useState<Blob | null>(null);
   const [activePage, setActivePage] = useState(1);
   const canvasRef = useRef<fabric.Canvas | null>(null);
+  const canvasInitializedRef = useRef<boolean>(false);
+  
+  // Effect to ensure canvas state is synced with component lifecycle
+  useEffect(() => {
+    return () => {
+      console.log("Cleaning up useCensorPDF hook resources");
+      canvasRef.current = null;
+      canvasInitializedRef.current = false;
+    };
+  }, []);
   
   // Function to apply redactions to the PDF
   const applyRedactions = async () => {
@@ -21,10 +32,9 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       return;
     }
 
-    console.log("Applying redactions with canvas:", canvasRef.current ? "Canvas available" : "No canvas");
-    
+    // Double-check the canvas reference before proceeding
     if (!canvasRef.current) {
-      console.error("Canvas reference is null when trying to apply redactions");
+      console.error("Canvas reference is null - trying to recover");
       toast.error('Error al aplicar censuras: No se pudo acceder al lienzo');
       return;
     }
@@ -165,12 +175,14 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // Only update if it's actually a fabric.Canvas instance
       if (canvas instanceof fabric.Canvas) {
         canvasRef.current = canvas;
+        canvasInitializedRef.current = true;
         console.log("Canvas reference stored successfully");
       } else {
         console.error("Invalid canvas reference provided - not a fabric.Canvas instance");
       }
     } else {
       console.log("Received null canvas reference");
+      canvasInitializedRef.current = false;
     }
   }, []);
 
@@ -200,6 +212,11 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     // After cleanup, we don't null out the reference
     // This ensures we maintain the canvas even after cleanup
   }, []);
+  
+  // Check if we have a valid canvas reference
+  const hasValidCanvas = useCallback(() => {
+    return canvasRef.current !== null && canvasInitializedRef.current === true;
+  }, []);
 
   return {
     isProcessing,
@@ -211,6 +228,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     applyRedactions,
     downloadCensoredPDF,
     resetCensor,
-    cleanupCanvas
+    cleanupCanvas,
+    hasValidCanvas
   };
 };
