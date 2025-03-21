@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback, useRef } from 'react';
 import { fabric } from 'fabric';
 import { CensorToolType } from './PdfCensorToolbar';
@@ -26,6 +25,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   const onToolChangeRef = useRef(onToolChange);
   const isDrawingRef = useRef(false);
   const mouseDownHandlerRef = useRef<((e: fabric.IEvent) => void) | null>(null);
+  const canvasRef = useRef<fabric.Canvas | null>(null);
   
   // Update refs when props change
   useEffect(() => {
@@ -35,6 +35,11 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
     onToolChangeRef.current = onToolChange;
   }, [activeTool, color, size, onToolChange]);
 
+  // Keep track of canvas changes
+  useEffect(() => {
+    canvasRef.current = canvas;
+  }, [canvas]);
+
   // Reset drawing state when canvas changes (like on page change)
   useEffect(() => {
     if (canvas) {
@@ -43,76 +48,64 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       
       // Explicitly apply tool settings to the new canvas
       applyToolSettings();
+      
+      // Force reattach event listeners
+      setupEventListeners();
     }
+    
+    return () => {
+      cleanupEventListeners();
+    };
   }, [canvas]);
 
   // Apply tool settings based on current active tool
   const applyToolSettings = useCallback(() => {
-    if (!canvas) return;
+    if (!canvasRef.current) return;
 
     console.log("Applying censor tool settings:", activeTool, "with color:", color);
 
     // Clear any existing drawing mode
-    canvas.isDrawingMode = false;
+    canvasRef.current.isDrawingMode = false;
 
     // Reset canvas selection options based on active tool
     switch (activeTool) {
       case 'select':
-        canvas.selection = true;
-        canvas.defaultCursor = 'default';
-        canvas.forEachObject(obj => {
+        canvasRef.current.selection = true;
+        canvasRef.current.defaultCursor = 'default';
+        canvasRef.current.forEachObject(obj => {
           obj.selectable = true;
           obj.evented = true;
         });
         break;
       case 'rectangle':
-        canvas.selection = false;
-        canvas.defaultCursor = 'crosshair';
-        canvas.forEachObject(obj => {
+        canvasRef.current.selection = false;
+        canvasRef.current.defaultCursor = 'crosshair';
+        canvasRef.current.forEachObject(obj => {
           obj.selectable = false;
           obj.evented = false;
         });
         break;
       case 'eraser':
-        canvas.isDrawingMode = true;
+        canvasRef.current.isDrawingMode = true;
         // Configure eraser
-        if (canvas.freeDrawingBrush) {
-          canvas.freeDrawingBrush.color = 'white';
-          canvas.freeDrawingBrush.width = size * 2;
+        if (canvasRef.current.freeDrawingBrush) {
+          canvasRef.current.freeDrawingBrush.color = 'white';
+          canvasRef.current.freeDrawingBrush.width = size * 2;
         }
         break;
     }
     
-    canvas.renderAll();
-  }, [canvas, activeTool, color, size]);
-
-  // Handle tool changes
-  useEffect(() => {
-    if (!canvas) return;
-    
-    applyToolSettings();
-
-    return () => {
-      // Cleanup on tool change
-      if (canvas && canvas.lowerCanvasEl) {
-        try {
-          console.log("Cleaning up tool:", activeTool);
-          isDrawingRef.current = false;
-        } catch (error) {
-          console.error("Error cleaning up tool:", error);
-        }
-      }
-    };
-  }, [activeTool, color, size, canvas, applyToolSettings]);
+    canvasRef.current.renderAll();
+  }, [activeTool, color, size]);
 
   // Single function for rectangle drawing
   const handleRectangleDrawing = useCallback((e: fabric.IEvent) => {
-    if (!canvas || toolRef.current !== 'rectangle' || isDrawingRef.current) return;
+    if (!canvasRef.current || toolRef.current !== 'rectangle' || isDrawingRef.current) return;
     
     console.log("Starting rectangle drawing");
     isDrawingRef.current = true;
     
-    const pointer = canvas.getPointer(e.e);
+    const pointer = canvasRef.current.getPointer(e.e);
     const startX = pointer.x;
     const startY = pointer.y;
 
@@ -130,12 +123,12 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       evented: true
     });
     
-    canvas.add(rect);
+    canvasRef.current.add(rect);
     
     const handleMouseMove = (moveEvent: fabric.IEvent) => {
-      if (!canvas) return;
+      if (!canvasRef.current) return;
       
-      const movePointer = canvas.getPointer(moveEvent.e);
+      const movePointer = canvasRef.current.getPointer(moveEvent.e);
       
       const width = Math.abs(movePointer.x - startX);
       const height = Math.abs(movePointer.y - startY);
@@ -148,22 +141,22 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
       });
       
       rect.setCoords();
-      canvas.renderAll();
+      canvasRef.current.renderAll();
     };
     
     const handleMouseUp = () => {
       console.log("Finishing rectangle drawing");
       isDrawingRef.current = false;
       
-      if (!canvas) return;
+      if (!canvasRef.current) return;
       
       // Remove the event handlers
-      canvas.off('mouse:move', handleMouseMove);
-      canvas.off('mouse:up', handleMouseUp);
+      canvasRef.current.off('mouse:move', handleMouseMove);
+      canvasRef.current.off('mouse:up', handleMouseUp);
       
       // If the rectangle is too small, remove it
       if (rect.width! < 5 || rect.height! < 5) {
-        canvas.remove(rect);
+        canvasRef.current.remove(rect);
         console.log("Rectangle too small, removed");
       } else {
         // Make sure rectangle is selectable
@@ -174,51 +167,54 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
         onToolChangeRef.current('select');
         
         // Make all objects selectable again
-        canvas.forEachObject(obj => {
+        canvasRef.current.forEachObject(obj => {
           obj.selectable = true;
           obj.evented = true;
         });
         
-        canvas.setActiveObject(rect);
+        canvasRef.current.setActiveObject(rect);
         console.log("Rectangle completed, switched to select tool");
       }
       
-      canvas.renderAll();
+      canvasRef.current.renderAll();
     };
     
-    canvas.on('mouse:move', handleMouseMove);
-    canvas.on('mouse:up', handleMouseUp);
-  }, [canvas]);
+    canvasRef.current.on('mouse:move', handleMouseMove);
+    canvasRef.current.on('mouse:up', handleMouseUp);
+  }, []);
 
-  // Set up and clean up event handlers
-  useEffect(() => {
-    if (!canvas) return;
+  // Set up event listeners
+  const setupEventListeners = useCallback(() => {
+    if (!canvasRef.current) return;
     
     console.log("Setting up canvas events for tool:", activeTool);
     
-    // Clear any previous handlers to avoid duplicates
-    if (mouseDownHandlerRef.current) {
-      canvas.off('mouse:down', mouseDownHandlerRef.current);
-      mouseDownHandlerRef.current = null;
-    }
+    // Clear any previous handlers
+    cleanupEventListeners();
     
     // Store the handler in the ref
     if (activeTool === 'rectangle') {
       mouseDownHandlerRef.current = handleRectangleDrawing;
-      canvas.on('mouse:down', handleRectangleDrawing);
+      canvasRef.current.on('mouse:down', handleRectangleDrawing);
     }
+  }, [activeTool, handleRectangleDrawing]);
+
+  // Clean up event listeners
+  const cleanupEventListeners = useCallback(() => {
+    if (!canvasRef.current || !mouseDownHandlerRef.current) return;
     
-    // Return cleanup function
-    return () => {
-      if (!canvas) return;
-      
-      console.log("Removing canvas events for tool:", activeTool);
-      if (mouseDownHandlerRef.current) {
-        canvas.off('mouse:down', mouseDownHandlerRef.current);
-        mouseDownHandlerRef.current = null;
-      }
-    };
-  }, [canvas, activeTool, handleRectangleDrawing]);
+    console.log("Removing canvas events");
+    canvasRef.current.off('mouse:down', mouseDownHandlerRef.current);
+    mouseDownHandlerRef.current = null;
+  }, []);
+
+  // Handle tool changes
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    
+    applyToolSettings();
+    setupEventListeners();
+  }, [activeTool, color, size, applyToolSettings, setupEventListeners]);
 
   return null;
 };

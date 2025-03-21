@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -65,6 +66,7 @@ const CensorPDF = () => {
   }, [fabricCanvasRef.current]);
 
   useEffect(() => {
+    console.log("Setting active page to:", currentPage);
     setActivePage(currentPage);
   }, [currentPage, setActivePage]);
 
@@ -159,12 +161,18 @@ const CensorPDF = () => {
       setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
+      // First clean up the current canvas to avoid state conflicts
+      cleanupCanvas();
+      fabricCanvasRef.current = null;
+      setCanvasInitialized(false);
+      
       await gotoPage(pageNum);
       
+      // Reset tool to rectangle after page change
       setActiveTool('rectangle');
+      setHasSelection(false);
       
       setTimeout(() => {
-        setHasSelection(false);
         setCurrentlyChangingPage(false);
       }, 200);
       
@@ -173,7 +181,7 @@ const CensorPDF = () => {
       toast.error("Error al cambiar de página. Intente de nuevo.");
       setCurrentlyChangingPage(false);
     }
-  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage]);
+  }, [currentPage, isLoading, pdfDocument, totalPages, gotoPage, currentlyChangingPage, cleanupCanvas]);
 
   const handleClearAll = useCallback(() => {
     if (!fabricCanvasRef.current) return;
@@ -212,8 +220,10 @@ const CensorPDF = () => {
 
   const handleApplyCensors = useCallback(() => {
     if (fabricCanvasRef.current) {
+      console.log("Applying redactions...");
       applyRedactions();
     } else {
+      console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras');
     }
   }, [applyRedactions]);
@@ -278,6 +288,7 @@ const CensorPDF = () => {
                 {censoredFile && (
                   <Button 
                     onClick={downloadCensoredPDF}
+                    className="bg-green-600 hover:bg-green-700"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Descargar PDF censurado
@@ -302,6 +313,7 @@ const CensorPDF = () => {
               <PdfCensorToolbar
                 activeTool={activeTool}
                 onToolChange={(tool) => {
+                  console.log("Tool changed to:", tool);
                   setActiveTool(tool);
                   if (tool === 'select' && fabricCanvasRef.current) {
                     fabricCanvasRef.current.forEachObject(obj => {
@@ -382,6 +394,20 @@ const CensorPDF = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Add a prominent download button at the bottom */}
+            {censoredFile && (
+              <div className="flex justify-center mt-4">
+                <Button 
+                  size="lg"
+                  onClick={downloadCensoredPDF}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Download className="h-5 w-5 mr-2" />
+                  Descargar PDF censurado
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -29,11 +29,17 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // Get the current canvas with redaction areas
       const canvas = canvasRef.current;
       
+      // Ensure all objects are rendered properly before capturing
+      canvas.renderAll();
+      
       // Create an image of the page with applied redactions
       const censoredPageDataUrl = canvas.toDataURL({
         format: 'jpeg',
         quality: 0.95
       });
+      
+      // Log for debugging
+      console.log(`Generated censored page image for page ${activePage}`);
       
       // Load the original file as ArrayBuffer
       const originalPdfBytes = await file.arrayBuffer();
@@ -69,6 +75,8 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
         height: height,
       });
       
+      console.log(`Successfully applied censor to page ${activePage}`);
+      
       // Serialize the modified PDF
       const pdfBytes = await pdfDoc.save();
       
@@ -88,7 +96,10 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
   };
   
   const downloadCensoredPDF = () => {
-    if (!censoredFile || !file) return;
+    if (!censoredFile || !file) {
+      toast.error('No hay PDF censurado para descargar');
+      return;
+    }
     
     const fileName = file.name.replace('.pdf', '_censurado.pdf');
     saveAs(censoredFile, fileName);
