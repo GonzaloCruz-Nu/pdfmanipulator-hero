@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { PDFDocument, StandardFonts, PDFSecurityOptions } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { toast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
 
@@ -44,7 +44,7 @@ export const useProtectPDF = () => {
       setProgress(50);
 
       // Create the permissions object correctly based on pdf-lib expected format
-      const permissions: PDFSecurityOptions = {
+      const permissions = {
         printing: options.canPrint ? 'highResolution' : 'none',
         modifying: options.canModify,
         copying: options.canCopy,
@@ -56,16 +56,19 @@ export const useProtectPDF = () => {
       
       // Apply password protection - using the correct method for pdf-lib
       if (options.userPassword) {
-        await pdfDoc.encrypt({
-          userPassword: options.userPassword,
-          ownerPassword: options.ownerPassword || options.userPassword,
-          permissions,
-        } as PDFSecurityOptions);
+        // Using the correct signature for PDF encryption in pdf-lib
+        pdfDoc.setPassword(
+          options.userPassword, 
+          options.ownerPassword || options.userPassword,
+          permissions
+        );
       } else if (options.ownerPassword) {
-        await pdfDoc.encrypt({
-          ownerPassword: options.ownerPassword,
-          permissions,
-        } as PDFSecurityOptions);
+        // Owner password only
+        pdfDoc.setPassword(
+          undefined,
+          options.ownerPassword,
+          permissions
+        );
       }
       
       setProgress(70);
