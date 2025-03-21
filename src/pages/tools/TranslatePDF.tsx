@@ -5,7 +5,6 @@ import { Languages } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,10 +12,11 @@ import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import { useTranslatePDF } from '@/hooks/useTranslatePDF';
 
+// API Key proporcionada por CoHispania - Nota: normalmente esto debería estar en una variable de entorno segura
+const OPENAI_API_KEY = "your_openai_api_key_here"; // Replace this with your actual OpenAI API key
+
 const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const { 
     translatePDF, 
     isProcessing, 
@@ -24,11 +24,6 @@ const TranslatePDF = () => {
     translatedFile,
     downloadTranslatedFile
   } = useTranslatePDF();
-
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiKey(e.target.value);
-    setApiKeyError(null);
-  };
 
   const handleFileSelected = (files: File[]) => {
     const file = files[0] || null;
@@ -44,18 +39,8 @@ const TranslatePDF = () => {
       return;
     }
 
-    if (!apiKey || apiKey.trim() === '') {
-      setApiKeyError('Por favor ingresa tu clave de API de OpenAI');
-      return;
-    }
-
-    if (!apiKey.startsWith('sk-')) {
-      setApiKeyError('La clave de API de OpenAI debe comenzar con "sk-"');
-      return;
-    }
-
     try {
-      await translatePDF(pdfFile, apiKey);
+      await translatePDF(pdfFile, OPENAI_API_KEY);
     } catch (error) {
       console.error('Error en la traducción:', error);
       toast.error('Error al traducir el PDF');
@@ -89,26 +74,6 @@ const TranslatePDF = () => {
             Esta herramienta utiliza la API de OpenAI para traducir documentos PDF del español al inglés,
             manteniendo el formato original en la medida de lo posible.
           </p>
-          
-          <div className="mb-6">
-            <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
-              Clave de API de OpenAI
-            </label>
-            <Input
-              id="apiKey"
-              type="password"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={handleApiKeyChange}
-              className={apiKeyError ? "border-red-500" : ""}
-            />
-            {apiKeyError && (
-              <p className="text-sm text-red-500 mt-1">{apiKeyError}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Tu clave API nunca se almacena en nuestros servidores. Todo el procesamiento se realiza en tu navegador.
-            </p>
-          </div>
           
           <Tabs defaultValue="upload" className="w-full">
             <TabsList className="mb-4">
@@ -162,7 +127,7 @@ const TranslatePDF = () => {
             <div className="mt-6">
               <Button 
                 onClick={handleTranslate} 
-                disabled={!pdfFile || !apiKey || isProcessing}
+                disabled={!pdfFile || isProcessing}
                 className="w-full"
               >
                 {isProcessing ? 'Procesando...' : 'Traducir PDF'}
