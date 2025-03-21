@@ -17,6 +17,7 @@ const OPENAI_API_KEY = "sk-proj-OMf4daHUQZc1xGPFYMAnQxYE4U_ZFSE5Jh03Yi0rA6QQgioV
 
 const TranslatePDF = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState("upload");
   const { 
     translatePDF, 
     isProcessing, 
@@ -40,10 +41,17 @@ const TranslatePDF = () => {
     }
 
     try {
-      await translatePDF(pdfFile, OPENAI_API_KEY);
+      const result = await translatePDF(pdfFile, OPENAI_API_KEY);
+      
+      if (result.success && result.file) {
+        setActiveTab("result");
+        toast.success('Traducción completada con éxito');
+      } else {
+        toast.error(result.message || 'Error durante la traducción');
+      }
     } catch (error) {
       console.error('Error en la traducción:', error);
-      toast.error('Error al traducir el PDF');
+      toast.error('Error al traducir el PDF. Por favor intente de nuevo más tarde.');
     }
   };
 
@@ -75,7 +83,7 @@ const TranslatePDF = () => {
             manteniendo el formato original en la medida de lo posible.
           </p>
           
-          <Tabs defaultValue="upload" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="upload">Subir PDF</TabsTrigger>
               <TabsTrigger value="preview" disabled={!pdfFile}>Vista previa</TabsTrigger>
@@ -144,6 +152,7 @@ const TranslatePDF = () => {
             <li>Se mantendrá el formato original en la medida de lo posible.</li>
             <li>La traducción de documentos grandes puede consumir gran cantidad de créditos de la API.</li>
             <li>La herramienta funciona mejor con PDFs que contienen texto reconocible digitalmente.</li>
+            <li>Si experimenta errores durante la traducción, intente con un PDF más pequeño o contacte con soporte.</li>
           </ul>
         </div>
       </motion.div>

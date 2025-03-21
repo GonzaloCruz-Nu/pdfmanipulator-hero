@@ -81,9 +81,12 @@ export const useTranslatePDF = () => {
   };
 
   /**
-   * Traduce texto utilizando la API de OpenAI
+   * Traduce texto utilizando la API de OpenAI con lógica de reintento
    */
-  const translateTextWithOpenAI = async (text: string, apiKey: string): Promise<string> => {
+  const translateTextWithOpenAI = async (text: string, apiKey: string, retryCount = 0): Promise<string> => {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second delay between retries
+    
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -116,7 +119,15 @@ export const useTranslatePDF = () => {
       const data = await response.json();
       return data.choices[0].message.content.trim();
     } catch (error) {
-      console.error('Error en traducción con OpenAI:', error);
+      console.error(`Error en traducción con OpenAI (intento ${retryCount + 1}/${maxRetries + 1}):`, error);
+      
+      // Implementar lógica de reintento
+      if (retryCount < maxRetries) {
+        console.log(`Reintentando en ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return translateTextWithOpenAI(text, apiKey, retryCount + 1);
+      }
+      
       throw error;
     }
   };
@@ -164,14 +175,29 @@ export const useTranslatePDF = () => {
       const textChunks = splitTextIntoChunks(combinedText);
       console.log(`Texto dividido en ${textChunks.length} fragmentos para traducción`);
       
-      // Traducir cada fragmento de texto
+      // Traducir cada fragmento de texto con manejo de errores mejorado
       const translatedChunks: string[] = [];
+      let failedChunks = 0;
+      
       for (let i = 0; i < textChunks.length; i++) {
         const chunk = textChunks[i];
         console.log(`Traduciendo fragmento ${i + 1} de ${textChunks.length}: ${chunk.length} caracteres`);
         
-        const translatedChunk = await translateTextWithOpenAI(chunk, apiKey);
-        translatedChunks.push(translatedChunk);
+        try {
+          const translatedChunk = await translateTextWithOpenAI(chunk, apiKey);
+          translatedChunks.push(translatedChunk);
+        } catch (error) {
+          console.error(`Error al traducir fragmento ${i + 1}:`, error);
+          failedChunks++;
+          
+          // Si fallan más de 3 fragmentos consecutivos, abortar
+          if (failedChunks >= 3) {
+            throw new Error('Demasiados errores consecutivos en la traducción. Por favor, inténtelo de nuevo más tarde.');
+          }
+          
+          // Si un fragmento falla, agregamos un marcador de error
+          translatedChunks.push(`[Error de traducción en este fragmento] ${chunk}`);
+        }
         
         // Actualizar progreso basado en la cantidad de fragmentos procesados
         const chunkProgress = 50 + Math.floor(((i + 1) / textChunks.length) * 40);
@@ -187,7 +213,7 @@ export const useTranslatePDF = () => {
       const helveticaFont = await pdfDoc.embedFont('Helvetica');
       
       // Dividir el texto traducido de nuevo en páginas
-      const translatedPages = translatedText.split('--- NUEVA PÁGINA ---');
+      const translatedPages = translatedText.split('--- NEW PAGE ---');
       
       for (const pageText of translatedPages) {
         const page = pdfDoc.addPage([595, 842]); // A4 size
