@@ -30,7 +30,7 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
   useEffect(() => {
     toolRef.current = activeTool;
     colorRef.current = color;
-    sizeRef.useRef = size;
+    sizeRef.current = size; // Fixed: changed useRef to current
     onToolChangeRef.current = onToolChange;
   }, [activeTool, color, size, onToolChange]);
 
