@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FileText, Upload, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -88,6 +89,13 @@ const CensorPDF = () => {
     
     setActiveTool('rectangle');
     console.log("Canvas reference set and initialization complete");
+    
+    // Force canvas re-render after a small delay to ensure everything is set up
+    setTimeout(() => {
+      if (canvas) {
+        canvas.renderAll();
+      }
+    }, 200);
   }, [setCanvasReference]);
 
   useEffect(() => {
@@ -158,6 +166,9 @@ const CensorPDF = () => {
       setCurrentlyChangingPage(true);
       toast.info(`Cambiando a la página ${pageNum}...`);
       
+      // Save the current canvas reference before cleanup
+      const currentCanvas = fabricCanvasRef.current;
+      
       cleanupCanvas();
       fabricCanvasRef.current = null;
       setCanvasInitialized(false);
@@ -214,14 +225,26 @@ const CensorPDF = () => {
   }, []);
 
   const handleApplyCensors = useCallback(() => {
-    console.log("Applying redactions, canvas ref:", fabricCanvasRef.current);
+    console.log("Applying redactions, canvas ref:", fabricCanvasRef.current ? "Canvas available" : "Canvas null");
     
     if (fabricCanvasRef.current) {
+      // Ensure we're using the latest canvas
       setCanvasReference(fabricCanvasRef.current);
       
+      // Make sure all objects are selectable for capture
+      fabricCanvasRef.current.forEachObject(obj => {
+        obj.selectable = true;
+        obj.visible = true;
+      });
+      
+      // Render everything before applying censors
+      fabricCanvasRef.current.renderAll();
+      
+      // Small delay to ensure canvas rendering is complete
       setTimeout(() => {
+        // Apply censors after ensuring canvas is ready
         applyRedactions();
-      }, 300);
+      }, 500);
     } else {
       console.error("No canvas reference available");
       toast.error('No se pudo aplicar las censuras. No hay lienzo disponible.');
@@ -305,6 +328,8 @@ const CensorPDF = () => {
                 onToolChange={(tool) => {
                   console.log("Tool changed to:", tool);
                   setActiveTool(tool);
+                  
+                  // Ensure objects are selectable when select tool is chosen
                   if (tool === 'select' && fabricCanvasRef.current) {
                     fabricCanvasRef.current.forEachObject(obj => {
                       obj.selectable = true;
@@ -390,7 +415,7 @@ const CensorPDF = () => {
                 size="lg"
                 onClick={handleApplyCensors}
                 disabled={isProcessing}
-                className="bg-orange-500 hover:bg-orange-600 mr-4 text-white"
+                className="bg-orange-500 hover:bg-orange-600 mr-4 text-white font-bold text-lg py-6 px-8"
               >
                 {isProcessing ? 'Aplicando censuras...' : 'Aplicar censuras'}
               </Button>

@@ -21,7 +21,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       return;
     }
 
-    console.log("Canvas reference when applying redactions:", canvasRef.current);
+    console.log("Applying redactions with canvas:", canvasRef.current ? "Canvas available" : "No canvas");
     
     if (!canvasRef.current) {
       console.error("Canvas reference is null when trying to apply redactions");
@@ -37,7 +37,14 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       const canvas = canvasRef.current;
       
       // Log canvas objects to see if we have any censoring rectangles
-      console.log("Canvas objects to apply:", canvas.getObjects().length);
+      const objectCount = canvas.getObjects().length;
+      console.log(`Canvas objects to apply: ${objectCount}`);
+      
+      if (objectCount === 0) {
+        toast.warning('No hay áreas de censura para aplicar');
+        setIsProcessing(false);
+        return;
+      }
       
       // Make sure all redaction objects are visible and rendered
       canvas.forEachObject(obj => {
@@ -48,7 +55,7 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       canvas.renderAll();
       
       // Small delay to ensure rendering is complete
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Create an image of the page with applied redactions
       const censoredPageDataUrl = canvas.toDataURL({
@@ -149,14 +156,19 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     }
   };
 
-  // Update canvas reference
+  // Update canvas reference with better tracking
   const setCanvasReference = useCallback((canvas: fabric.Canvas | null) => {
     console.log("Setting canvas reference in useCensorPDF", canvas ? "canvas provided" : "null canvas");
     
-    // Store the canvas reference
+    // Store the canvas reference with extra validation
     if (canvas) {
-      canvasRef.current = canvas;
-      console.log("Canvas reference stored successfully");
+      // Only update if it's actually a fabric.Canvas instance
+      if (canvas instanceof fabric.Canvas) {
+        canvasRef.current = canvas;
+        console.log("Canvas reference stored successfully");
+      } else {
+        console.error("Invalid canvas reference provided - not a fabric.Canvas instance");
+      }
     } else {
       console.log("Received null canvas reference");
     }
@@ -180,14 +192,13 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
       // Clear any objects from the canvas
       canvasRef.current.clear();
       
-      // Null out the reference
-      canvasRef.current = null;
       console.log("Canvas reference cleared");
     } catch (error) {
       console.error("Error during canvas cleanup:", error);
-      // Still null the reference even if errors occur
-      canvasRef.current = null;
     }
+    
+    // After cleanup, we don't null out the reference
+    // This ensures we maintain the canvas even after cleanup
   }, []);
 
   return {
@@ -203,4 +214,3 @@ export const useCensorPDF = ({ file }: UseCensorPDFProps = { file: null }) => {
     cleanupCanvas
   };
 };
-

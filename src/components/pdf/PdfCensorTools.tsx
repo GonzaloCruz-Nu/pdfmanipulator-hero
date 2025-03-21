@@ -1,3 +1,4 @@
+
 import React, { useEffect, useCallback, useRef } from 'react';
 import { fabric } from 'fabric';
 import { CensorToolType } from './PdfCensorToolbar';
@@ -175,6 +176,8 @@ const PdfCensorTools: React.FC<PdfCensorToolsProps> = ({
         rect.set({
           selectable: true,
           evented: true,
+          hasControls: true,
+          hasBorders: true
         });
         
         // Switch to selection tool after drawing
