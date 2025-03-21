@@ -40,6 +40,14 @@ const Header: React.FC = () => {
             </li>
             <li>
               <Link 
+                to="/statistics" 
+                className={`${location.pathname === '/statistics' ? 'text-foreground font-medium' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
+              >
+                Estadísticas
+              </Link>
+            </li>
+            <li>
+              <Link 
                 to="/about" 
                 className={`${location.pathname === '/about' ? 'text-foreground font-medium' : 'text-muted-foreground'} hover:text-foreground transition-colors`}
               >
