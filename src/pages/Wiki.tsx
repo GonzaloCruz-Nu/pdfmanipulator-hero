@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCcw } from 'lucide-react';
+import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCw, Stamp } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
@@ -97,13 +97,26 @@ const Wiki = () => {
                 
                 <li>
                   <h3 className="text-lg font-medium mb-2 flex items-center">
-                    <RotateCcw className="h-5 w-5 mr-2 text-primary" />
+                    <RotateCw className="h-5 w-5 mr-2 text-primary" />
                     Rotar PDF
                   </h3>
                   <p className="text-muted-foreground text-sm mb-2">
                     Cambia la orientación de páginas específicas o documentos completos.
                   </p>
                   <Link to="/wiki/rotate" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+                
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <Stamp className="h-5 w-5 mr-2 text-primary" />
+                    Marca de Agua
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Añade texto como marca de agua a tus documentos PDF.
+                  </p>
+                  <Link to="/wiki/watermark" className="text-primary text-sm hover:underline">
                     Leer guía completa →
                   </Link>
                 </li>

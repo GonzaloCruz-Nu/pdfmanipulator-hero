@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,9 +23,9 @@ import SplitPDFGuide from "./pages/wiki/SplitPDFGuide";
 import UnlockPDFGuide from "./pages/wiki/UnlockPDFGuide";
 import ConvertPDFGuide from "./pages/wiki/ConvertPDFGuide";
 import RotatePDFGuide from "./pages/wiki/RotatePDFGuide";
+import WatermarkPDFGuide from "./pages/wiki/WatermarkPDFGuide";
 import { useEffect } from "react";
 
-// Create a new QueryClient instance with retry settings to avoid infinite error loops
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,7 +35,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Log navigation for debugging
 const RouteLogger = () => {
   useEffect(() => {
     console.log('Aplicación iniciada, navegación activa');
@@ -67,6 +65,7 @@ const App = () => {
             <Route path="/wiki/unlock" element={<UnlockPDFGuide />} />
             <Route path="/wiki/convert" element={<ConvertPDFGuide />} />
             <Route path="/wiki/rotate" element={<RotatePDFGuide />} />
+            <Route path="/wiki/watermark" element={<WatermarkPDFGuide />} />
             <Route path="/about" element={<About />} />
             <Route path="/tools/merge" element={<MergePDF />} />
             <Route path="/tools/split" element={<SplitPDF />} />
@@ -79,7 +78,6 @@ const App = () => {
             <Route path="/tools/rotate" element={<RotatePDF />} />
             <Route path="/tools/translate" element={<TranslatePDF />} />
             <Route path="/tools/watermark" element={<WatermarkPDF />} />
-            {/* Ruta catchall para páginas no encontradas */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
