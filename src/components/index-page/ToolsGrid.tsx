@@ -1,14 +1,15 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Merge, Scissors, Zap, Unlock, FileCog, 
-  FileSearch, FileLock, RotateCcw, Languages, 
-  Stamp, MoveVertical, EyeOff, FolderCog, 
-  FileEdit, FileOutput, FileLockIcon,
-  LucideIcon
+  FileSearch, FileLock, RotateCw, Languages, 
+  Stamp, MoveVertical, EyeOff, ImagePlus,
+  Files, ClockRewind
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { LucideIcon } from 'lucide-react';
 
 interface Tool {
   title: string;
@@ -88,7 +89,7 @@ const ToolsGrid = () => {
     {
       title: "Rotar PDF",
       description: "Cambia la orientación de las páginas",
-      icon: RotateCcw,
+      icon: RotateCw,
       to: "/tools/rotate",
       category: "basicas"
     }
@@ -128,7 +129,15 @@ const ToolsGrid = () => {
       description: "Oculta información sensible en tus documentos",
       icon: EyeOff,
       to: "/tools/censor",
-      maintenance: false,
+      category: "edicion"
+    },
+    {
+      title: "Extraer Imágenes",
+      description: "Extrae todas las imágenes de un PDF",
+      icon: ImagePlus,
+      to: "/tools/extract-images",
+      maintenance: true,
+      isNew: true,
       category: "edicion"
     }
   ];
@@ -146,8 +155,6 @@ const ToolsGrid = () => {
       description: "Añade contraseñas a tus PDFs",
       icon: FileLock,
       to: "/tools/protect",
-      maintenance: false,
-      isNew: true,
       category: "seguridad"
     }
   ];
@@ -158,7 +165,22 @@ const ToolsGrid = () => {
       description: "Traduce PDF de español a inglés con IA",
       icon: Languages,
       to: "/tools/translate",
-      maintenance: false,
+      category: "avanzadas"
+    },
+    {
+      title: "Comparar PDFs",
+      description: "Compara dos documentos PDF y encuentra diferencias",
+      icon: Files,
+      to: "/tools/compare",
+      maintenance: true,
+      isNew: true,
+      category: "avanzadas"
+    },
+    {
+      title: "Historial PDF",
+      description: "Accede a tus PDFs procesados recientemente",
+      icon: ClockRewind,
+      to: "/historial",
       isNew: true,
       category: "avanzadas"
     }
@@ -178,7 +200,7 @@ const ToolsGrid = () => {
       </motion.h2>
 
       <Tabs defaultValue="todas" className="mb-8">
-        <TabsList className="grid grid-cols-5 mb-6">
+        <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-5 mb-6">
           {categories.map((category) => (
             <TabsTrigger 
               key={category.id} 
@@ -192,7 +214,7 @@ const ToolsGrid = () => {
         
         <TabsContent value="todas">
           <motion.div 
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10"
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
@@ -216,7 +238,7 @@ const ToolsGrid = () => {
         {categories.slice(1).map((category) => (
           <TabsContent key={category.id} value={category.id}>
             <motion.div 
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-10"
               variants={staggerContainer}
               initial="hidden"
               animate="visible"

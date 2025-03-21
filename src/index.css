@@ -36,6 +36,36 @@
     --radius: 0.6rem;
   }
 
+  .dark {
+    --background: 225 15% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 228 9% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 228 9% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 29 91% 57%;  /* Mantenemos el naranja corporativo */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 27% 25%;  /* Versión más clara del azul corporativo para dark mode */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 228 9% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 29 50% 20%; /* Versión oscura del naranja */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 14% 16%;
+    --input: 215 14% 16%;
+    --ring: 29 91% 57%;  /* Mantenemos el naranja corporativo */
+  }
+
   * {
     @apply border-border;
     -webkit-font-smoothing: antialiased;
@@ -53,21 +83,22 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-secondary/50;
+    background-color: hsl(var(--secondary) / 0.5);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full transition-colors;
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    @apply rounded-full transition-colors;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    background-color: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-glass;
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-glass dark:bg-black/40 dark:border-white/10;
   }
   
   .btn-primary {
@@ -79,17 +110,17 @@
   }
   
   .input-file {
-    @apply relative flex h-60 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-gray-200/50 px-4 py-6 text-center transition;
+    @apply relative flex h-60 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-gray-200/50 px-4 py-6 text-center transition dark:bg-gray-800/30;
   }
   
   /* Asegurarnos que el hover sea más claro para mejor contraste con el texto */
   .input-file:hover {
-    @apply bg-gray-100 border-naranja/30;
+    @apply bg-gray-100 dark:bg-gray-700/30 border-naranja/30;
   }
   
   /* Estilo para cuando se está arrastrando un archivo */
   .input-file-dragging {
-    @apply border-naranja/50 bg-naranja/5;
+    @apply border-naranja/50 bg-naranja/5 dark:bg-naranja/10;
   }
   
   .page-transition {
@@ -97,7 +128,6 @@
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1 dark:bg-card dark:border-white/5 dark:hover:border-primary/20;
   }
 }
-
