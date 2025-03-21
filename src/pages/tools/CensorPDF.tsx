@@ -20,6 +20,7 @@ const CensorPDF = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeTool, setActiveTool] = useState<CensorToolType>('rectangle');
   const [censorStyle, setCensorStyle] = useState<CensorStyleType>('black');
+  const [zoomLevel, setZoomLevel] = useState(1);
   
   // Canvas related states and refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -227,6 +228,15 @@ const CensorPDF = () => {
     applyRedactions(censorStyle);
   };
 
+  // Handle zoom controls
+  const handleZoomIn = () => {
+    setZoomLevel(prevZoom => Math.min(prevZoom + 0.1, 3)); // Max zoom: 300%
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prevZoom => Math.max(prevZoom - 0.1, 0.5)); // Min zoom: 50%
+  };
+
   // Load thumbnails when file is selected
   const [pageRenderedUrls, setPageRenderedUrls] = useState<string[]>([]);
   useEffect(() => {
@@ -328,6 +338,9 @@ const CensorPDF = () => {
                 onClearAll={handleClearAll}
                 onApplyCensors={handleApplyCensors}
                 isProcessing={isProcessing}
+                zoomLevel={zoomLevel}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
               />
               
               <div className="flex-1 flex overflow-hidden">
@@ -363,6 +376,7 @@ const CensorPDF = () => {
                           canvas={fabricCanvas.current}
                           activeTool={activeTool}
                           censorStyle={censorStyle}
+                          zoomLevel={zoomLevel}
                         />
                       )}
                       

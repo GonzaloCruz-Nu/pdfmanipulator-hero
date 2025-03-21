@@ -4,7 +4,9 @@ import {
   Square, 
   Trash2,
   GridIcon,
-  EyeOff
+  EyeOff,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,9 @@ interface PdfCensorToolbarProps {
   onClearAll: () => void;
   onApplyCensors: () => void;
   isProcessing: boolean;
+  zoomLevel: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }
 
 const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
@@ -31,7 +36,10 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
   onStyleChange,
   onClearAll,
   onApplyCensors,
-  isProcessing
+  isProcessing,
+  zoomLevel,
+  onZoomIn,
+  onZoomOut
 }) => {
   console.log("Toolbar rendering with activeTool:", activeTool, "style:", censorStyle);
   
@@ -76,6 +84,28 @@ const PdfCensorToolbar: React.FC<PdfCensorToolbarProps> = ({
             <Label htmlFor="pixelated" className="text-xs">Pixelado</Label>
           </div>
         </RadioGroup>
+      </div>
+
+      <div className="h-6 w-px bg-gray-300 mx-1"></div>
+
+      <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onZoomOut}
+          className="h-9 w-9 p-0 flex items-center justify-center"
+        >
+          <ZoomOut size={18} />
+        </Button>
+        <span className="text-xs font-medium">{Math.round(zoomLevel * 100)}%</span>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onZoomIn}
+          className="h-9 w-9 p-0 flex items-center justify-center"
+        >
+          <ZoomIn size={18} />
+        </Button>
       </div>
 
       <div className="h-6 w-px bg-gray-300 mx-1"></div>
