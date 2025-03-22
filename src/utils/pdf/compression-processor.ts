@@ -1,4 +1,3 @@
-
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -71,7 +70,7 @@ export async function compressPDFWithCanvas(
     console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
     console.info(`- Calidad JPEG: ${jpegQuality}`);
     console.info(`- WebAssembly: ${wasmSupported ? 'Disponible' : 'No disponible'}`);
-    console.info(`- Modo de texto: ${textMode || 'display'}`);
+    console.info(`- Modo de texto: ${textMode}`);
     console.info(`- Preservar calidad texto: ${preserveTextQuality}`);
     console.info(`- Alta calidad: ${useHighQualityFormat}`);
     

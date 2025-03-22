@@ -34,7 +34,8 @@ export const COMPRESSION_FACTORS = {
     useJpegFormat: true, // Usar JPEG para compresión
     jpegQuality: 0.65, // Calidad JPEG más baja pero manteniendo legibilidad
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.65 // Calidad WebP si se usa
+    webpQuality: 0.65, // Calidad WebP si se usa
+    textMode: 'display' // Modo de renderizado para alta compresión
   }
 };
 
