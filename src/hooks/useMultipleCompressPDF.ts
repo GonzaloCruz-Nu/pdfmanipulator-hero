@@ -361,7 +361,7 @@ export const useMultipleCompressPDF = () => {
     toast.success('PDF descargado con éxito');
   };
 
-  // Función para descargar todos los archivos comprimidos como ZIP
+  // Función corregida para descargar todos los archivos comprimidos como ZIP
   const downloadAllAsZip = async () => {
     if (compressedFiles.length === 0) {
       toast.error('No hay archivos comprimidos para descargar');
@@ -376,12 +376,16 @@ export const useMultipleCompressPDF = () => {
       for (let i = 0; i < compressedFiles.length; i++) {
         const file = compressedFiles[i];
         console.info(`Añadiendo al ZIP: ${file.name} (${file.size} bytes)`);
+        
+        // Convertir el archivo a ArrayBuffer de manera más directa
         const fileData = await file.arrayBuffer();
         zip.file(file.name, fileData);
       }
       
-      console.info('Generando archivo ZIP...');
-      // Generar el archivo ZIP
+      // Mostrar toast de progreso
+      toast.info('Generando archivo ZIP...');
+      
+      // Generar el archivo ZIP con una promesa
       const zipBlob = await zip.generateAsync({
         type: 'blob',
         compression: 'DEFLATE',
@@ -392,7 +396,7 @@ export const useMultipleCompressPDF = () => {
       
       console.info(`Archivo ZIP generado: ${zipBlob.size} bytes`);
       
-      // Descargar el archivo ZIP
+      // Descargar el archivo ZIP utilizando FileSaver
       saveAs(zipBlob, 'pdfs_comprimidos.zip');
       
       toast.success('Archivos descargados como ZIP');

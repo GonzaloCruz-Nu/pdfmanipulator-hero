@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, FileDown, FileCheck, Archive, Cpu } from 'lucide-react';
@@ -13,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Verificar compatibilidad con WebAssembly
 const isWasmSupported = (): boolean => {
   try {
     return typeof WebAssembly === 'object' && 
@@ -45,12 +43,10 @@ const CompressPDF = () => {
   } = useMultipleCompressPDF();
 
   useEffect(() => {
-    // Verificar soporte de WebAssembly al cargar el componente
     setWasmSupported(isWasmSupported());
   }, []);
 
   useEffect(() => {
-    // Resetear el índice seleccionado cuando cambia el número de archivos comprimidos
     if (compressedFiles.length > 0 && selectedFileIndex >= compressedFiles.length) {
       setSelectedFileIndex(compressedFiles.length - 1);
     }
@@ -71,7 +67,6 @@ const CompressPDF = () => {
     compressMultiplePDFs(files, compressionLevel);
   };
 
-  // Determine which file to preview
   const previewFile = selectedFileIndex < compressedFiles.length ? 
                       compressedFiles[selectedFileIndex] : 
                       (files.length > 0 ? files[selectedFileIndex] : null);
@@ -138,12 +133,11 @@ const CompressPDF = () => {
                 </Alert>
               )}
 
-              {files.length > 1 && compressedFiles.length > 0 && (
+              {files.length > 1 && compressedFiles.length > 1 && (
                 <div className="mt-4 flex justify-center">
                   <Button
                     onClick={downloadAllAsZip}
-                    variant="outline"
-                    className="border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
+                    className="bg-naranja text-white hover:bg-naranja/90 flex items-center justify-center"
                   >
                     <Archive className="h-5 w-5 mr-2" />
                     Descargar todos como ZIP ({compressedFiles.length} archivos)
