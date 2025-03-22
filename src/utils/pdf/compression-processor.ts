@@ -92,9 +92,10 @@ export async function compressPDFWithCanvas(
       let imageBytes: Uint8Array;
       
       // Verificar si WebP está soportado y configurado para este nivel
-      const isWebPSupported = typeof canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+      // Fix: Corregimos la verificación de soporte WebP comparando con indexOf !== -1 en lugar de === 0
+      const webpSupported = canvas.toDataURL('image/webp').indexOf('data:image/webp') !== -1;
       
-      if (useWebP && isWebPSupported) {
+      if (useWebP && webpSupported) {
         // Usar WebP para mejor calidad y compresión
         imageDataUrl = canvas.toDataURL('image/webp', webpQuality);
       } else if (useHighQualityFormat) {
@@ -117,7 +118,7 @@ export async function compressPDFWithCanvas(
       
       // Verificar si usamos WebP o formato tradicional
       let pdfImage;
-      if (useWebP && isWebPSupported) {
+      if (useWebP && webpSupported) {
         // Insertar la imagen WebP en el nuevo PDF
         pdfImage = await newPdfDoc.embedPng(imageBytes); // PDF-lib no soporta WebP directamente, pero funciona como PNG
       } else if (useHighQualityFormat) {
