@@ -95,19 +95,19 @@ export async function compressPDFWithCanvas(
       let imageDataUrl: string;
       let imageBytes: Uint8Array;
       
-      // Verificar si WebP está soportado y configurado para este nivel
-      // Fix: Corregimos la verificación de soporte WebP comparando con indexOf !== -1 en lugar de === 0
-      const webpSupported = canvas.toDataURL('image/webp').indexOf('data:image/webp') !== -1;
+      // Verificar si WebP está soportado por el navegador
+      const testWebP = canvas.toDataURL('image/webp');
+      const webpSupported = testWebP.indexOf('data:image/webp') !== -1;
       
-      if (useWebP && webpSupported) {
-        // Usar WebP para mejor calidad y compresión
-        imageDataUrl = canvas.toDataURL('image/webp', webpQuality);
-      } else if (useHighQualityFormat) {
-        // Usar PNG para máxima calidad si está configurado
-        imageDataUrl = canvas.toDataURL('image/png');
-      } else {
-        // Usar JPEG como opción predeterminada con calidad ajustable
+      // CORREGIDO: Usamos siempre PNG para asegurar compatibilidad en niveles bajo y medio
+      if (level === 'high') {
+        // Para nivel alto, usar JPEG para máxima compresión
         imageDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
+        console.info(`Usando formato JPEG para nivel alto con calidad ${imageQuality}`);
+      } else {
+        // Para niveles bajo y medio, usar siempre PNG para asegurar la calidad
+        imageDataUrl = canvas.toDataURL('image/png');
+        console.info(`Usando formato PNG para nivel ${level} para asegurar máxima calidad`);
       }
       
       // Extraer la base64 desde la URL de datos
@@ -120,17 +120,14 @@ export async function compressPDFWithCanvas(
         imageBytes[j] = binaryString.charCodeAt(j);
       }
       
-      // Verificar si usamos WebP o formato tradicional
+      // Insertar imagen en el PDF según formato
       let pdfImage;
-      if (useWebP && webpSupported) {
-        // Insertar la imagen WebP en el nuevo PDF
-        pdfImage = await newPdfDoc.embedPng(imageBytes); // PDF-lib no soporta WebP directamente, pero funciona como PNG
-      } else if (useHighQualityFormat) {
-        // Insertar imagen PNG para alta calidad
-        pdfImage = await newPdfDoc.embedPng(imageBytes);
-      } else {
-        // Insertar JPEG para compresión estándar
+      if (level === 'high') {
+        // Insertar JPEG para alta compresión en nivel alto
         pdfImage = await newPdfDoc.embedJpg(imageBytes);
+      } else {
+        // Usar PNG para niveles bajo y medio para asegurar calidad
+        pdfImage = await newPdfDoc.embedPng(imageBytes);
       }
       
       // Ajustar dimensiones según colorReduction si no es nivel bajo
