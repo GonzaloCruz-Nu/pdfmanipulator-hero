@@ -2,27 +2,27 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { 
-    imageQuality: 0.85, // Mayor calidad JPEG para mejor legibilidad
-    scaleFactor: 0.95, // Reducción mínima para mantener excelente calidad
-    colorReduction: 0.98, // Casi sin reducción de color
+    imageQuality: 0.92, // Mayor calidad JPEG para mejor legibilidad (aumentada)
+    scaleFactor: 0.98, // Reducción mínima para mantener excelente calidad (aumentada)
+    colorReduction: 0.99, // Casi sin reducción de color (aumentada)
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.90, // Alta calidad JPEG para nivel bajo
+    jpegQuality: 0.95, // Alta calidad JPEG para nivel bajo (aumentada)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.90, // Calidad WebP si se usa
+    webpQuality: 0.95, // Calidad WebP si se usa (aumentada)
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   medium: { 
-    imageQuality: 0.75, // Mayor calidad JPEG para mejor legibilidad
-    scaleFactor: 0.85, // Reducción moderada pero preservando legibilidad
-    colorReduction: 0.90, // Reducción de color menor
+    imageQuality: 0.85, // Mayor calidad JPEG para nivel medio (aumentada)
+    scaleFactor: 0.90, // Reducción moderada pero preservando mejor legibilidad (aumentada)
+    colorReduction: 0.95, // Reducción de color menor (aumentada)
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.80, // Mayor calidad JPEG para nivel medio
+    jpegQuality: 0.88, // Mayor calidad JPEG para nivel medio (aumentada)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.80, // Calidad WebP si se usa
+    webpQuality: 0.88, // Calidad WebP si se usa (aumentada)
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   high: { 

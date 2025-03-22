@@ -1,3 +1,4 @@
+
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -124,9 +125,13 @@ export async function compressPDFWithCanvas(
       let imageDataUrl;
       let imageQualityToUse = jpegQuality;
       
-      if (wasmSupported) {
-        // Aumentar ligeramente la calidad con WASM para compensar optimizaciones
-        imageQualityToUse = Math.min(jpegQuality + 0.05, 0.95);
+      // Para niveles de baja compresión, aumentar calidad siempre
+      if (level === 'low') {
+        // Aumentar ligeramente la calidad para compresión baja
+        imageQualityToUse = Math.min(jpegQuality + 0.03, 0.98);
+      } else if (level === 'medium' && wasmSupported) {
+        // Para nivel medio con WASM, mejorar la calidad
+        imageQualityToUse = Math.min(jpegQuality + 0.04, 0.95);
       }
       
       // Siempre usar JPEG para mejor compresión
@@ -161,8 +166,8 @@ export async function compressPDFWithCanvas(
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
         // Si falla, intentar con JPEG de calidad más baja como último recurso
-        // Pero no tan baja que se vuelva ilegible (mínimo 0.6)
-        const fallbackQuality = Math.max(0.6, jpegQuality * 0.75);
+        // Pero no tan baja que se vuelva ilegible (mínimo 0.7 para mantener legibilidad)
+        const fallbackQuality = Math.max(0.7, jpegQuality * 0.85);
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBinaryString = atob(jpegBase64);
@@ -174,8 +179,18 @@ export async function compressPDFWithCanvas(
       }
       
       // Aplicar reducción de dimensiones según nivel de compresión
-      const pageWidth = width * colorReduction;
-      const pageHeight = height * colorReduction;
+      // Para niveles bajo y medio, preservar más las dimensiones originales
+      let pageWidth = width;
+      let pageHeight = height;
+      
+      if (level === 'high') {
+        pageWidth = width * colorReduction;
+        pageHeight = height * colorReduction;
+      } else {
+        // Para niveles bajo y medio, reducción mínima de tamaño
+        pageWidth = width * Math.max(0.98, colorReduction);
+        pageHeight = height * Math.max(0.98, colorReduction);
+      }
       
       // Agregar página al nuevo documento
       const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
