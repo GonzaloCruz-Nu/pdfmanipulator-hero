@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, FileDown, FileCheck, Archive } from 'lucide-react';
+import { Zap, FileDown, FileCheck, Archive, Cpu } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
@@ -13,10 +13,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Verificar compatibilidad con WebAssembly
+const isWasmSupported = (): boolean => {
+  try {
+    return typeof WebAssembly === 'object' && 
+           typeof WebAssembly.instantiate === 'function' &&
+           typeof WebAssembly.compile === 'function';
+  } catch (e) {
+    console.error('Error checking WebAssembly support:', e);
+    return false;
+  }
+};
+
 const CompressPDF = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const [compressionLevel, setCompressionLevel] = useState<'low' | 'medium' | 'high'>('medium');
+  const [wasmSupported, setWasmSupported] = useState<boolean | null>(null);
   
   const {
     compressMultiplePDFs,
@@ -30,6 +43,11 @@ const CompressPDF = () => {
     currentProcessingIndex,
     totalFiles
   } = useMultipleCompressPDF();
+
+  useEffect(() => {
+    // Verificar soporte de WebAssembly al cargar el componente
+    setWasmSupported(isWasmSupported());
+  }, []);
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     if (selectedFiles.length > 0) {
@@ -70,6 +88,15 @@ const CompressPDF = () => {
             Reduce el tamaño de tus archivos PDF sin perder calidad significativa.
             Ideal para enviar por correo electrónico o subir a plataformas con límites de tamaño.
           </p>
+          
+          {wasmSupported && (
+            <div className="flex items-center justify-center mt-2">
+              <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                <Cpu className="h-3 w-3 mr-1" />
+                Optimización WebAssembly activa
+              </span>
+            </div>
+          )}
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

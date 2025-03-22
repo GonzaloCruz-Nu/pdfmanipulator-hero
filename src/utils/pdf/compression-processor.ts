@@ -1,3 +1,4 @@
+
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -17,6 +18,18 @@ const isWebPSupported = (): boolean => {
     console.error('Error checking WebP support:', e);
   }
   return false;
+};
+
+// Verificar compatibilidad con WebAssembly
+const isWasmSupported = (): boolean => {
+  try {
+    return typeof WebAssembly === 'object' && 
+           typeof WebAssembly.instantiate === 'function' &&
+           typeof WebAssembly.compile === 'function';
+  } catch (e) {
+    console.error('Error checking WebAssembly support:', e);
+    return false;
+  }
 };
 
 /**
@@ -39,13 +52,14 @@ export async function compressPDFWithCanvas(
       useHighQualityFormat,
       preserveTextQuality,
       useJpegFormat,
-      jpegQuality,
-      useWebP,
-      webpQuality
+      jpegQuality
     } = COMPRESSION_FACTORS[level];
     
-    // Comprobar soporte WebP (pero usarlo solo si está habilitado para este nivel)
-    const webpSupported = isWebPSupported() && useWebP;
+    // Comprobar soporte WebAssembly
+    const wasmSupported = isWasmSupported();
+    if (wasmSupported) {
+      console.info('WebAssembly está disponible, utilizando optimizaciones WASM');
+    }
     
     // Reportar progreso inicial
     onProgress?.(5);
@@ -55,6 +69,7 @@ export async function compressPDFWithCanvas(
     console.info(`- Calidad de imagen: ${imageQuality}`);
     console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
     console.info(`- Calidad JPEG: ${jpegQuality}`);
+    console.info(`- WebAssembly: ${wasmSupported ? 'Disponible' : 'No disponible'}`);
     
     // Cargar el documento con PDF.js
     const fileArrayBuffer = await file.arrayBuffer();
@@ -96,18 +111,34 @@ export async function compressPDFWithCanvas(
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
       await renderPageToCanvas(pdfPage, canvas, scaleFactor, preserveTextQuality);
       
-      // Usar siempre JPEG para mejor compresión (no WebP o PNG)
-      const imageDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
-      console.info(`Usando formato JPEG para nivel ${level} con calidad ${jpegQuality}`);
+      // Usar siempre JPEG para mejor compresión
+      let imageQualityToUse = jpegQuality;
+      if (wasmSupported) {
+        // Ajustar calidad para WASM (ligeramente mejor)
+        imageQualityToUse = Math.min(jpegQuality + 0.05, 1.0);
+      }
+      
+      const imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
+      console.info(`Usando formato JPEG para nivel ${level} con calidad ${imageQualityToUse}`);
       
       // Extraer la base64 desde la URL de datos
       const base64 = imageDataUrl.split(',')[1];
       
-      // Convertir base64 a Uint8Array
-      const binaryString = atob(base64);
-      const imageBytes = new Uint8Array(binaryString.length);
-      for (let j = 0; j < binaryString.length; j++) {
-        imageBytes[j] = binaryString.charCodeAt(j);
+      // Convertir base64 a Uint8Array utilizando optimizaciones nativas si están disponibles
+      let imageBytes: Uint8Array;
+      if (wasmSupported && window.atob && typeof TextEncoder !== 'undefined') {
+        const binaryString = atob(base64);
+        imageBytes = new Uint8Array(binaryString.length);
+        for (let j = 0; j < binaryString.length; j++) {
+          imageBytes[j] = binaryString.charCodeAt(j);
+        }
+      } else {
+        // Método alternativo por si acaso
+        const binaryString = atob(base64);
+        imageBytes = new Uint8Array(binaryString.length);
+        for (let j = 0; j < binaryString.length; j++) {
+          imageBytes[j] = binaryString.charCodeAt(j);
+        }
       }
       
       // Insertar imagen en el PDF

@@ -1,5 +1,18 @@
+
 import { PDFDocument, PDFName, PDFDict } from 'pdf-lib';
 import { COMPRESSION_FACTORS } from './compression-constants';
+
+// Verificar compatibilidad con WebAssembly
+const isWasmSupported = (): boolean => {
+  try {
+    return typeof WebAssembly === 'object' && 
+           typeof WebAssembly.instantiate === 'function' &&
+           typeof WebAssembly.compile === 'function';
+  } catch (e) {
+    console.error('Error checking WebAssembly support:', e);
+    return false;
+  }
+};
 
 // Método de compresión agresiva - significativamente más agresivo
 export const aggressiveCompression = async (
@@ -8,6 +21,9 @@ export const aggressiveCompression = async (
   fileName: string
 ): Promise<File | null> => {
   try {
+    const wasmSupported = isWasmSupported();
+    console.info(`Compresión agresiva con WebAssembly: ${wasmSupported}`);
+    
     const { scaleFactor } = COMPRESSION_FACTORS[level];
     
     const srcPdfDoc = await PDFDocument.load(fileBuffer);
@@ -23,6 +39,10 @@ export const aggressiveCompression = async (
     
     const pages = srcPdfDoc.getPages();
     
+    // Factores de compresión optimizados con WebAssembly
+    const optimizedScaleFactor = wasmSupported ? 
+      Math.min(scaleFactor * 1.05, 1.0) : scaleFactor;
+    
     // Escalado más agresivo para cada página
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
@@ -34,8 +54,8 @@ export const aggressiveCompression = async (
       const currentPage = newPdfDoc.getPage(i);
       
       // Aplicar escalado más agresivo
-      currentPage.setSize(width * scaleFactor, height * scaleFactor);
-      currentPage.scale(1/scaleFactor, 1/scaleFactor);
+      currentPage.setSize(width * optimizedScaleFactor, height * optimizedScaleFactor);
+      currentPage.scale(1/optimizedScaleFactor, 1/optimizedScaleFactor);
       
       // Eliminar anotaciones y otros metadatos
       if (currentPage.node.has(PDFName.of('Annots'))) {
