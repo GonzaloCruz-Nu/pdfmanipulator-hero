@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, ArrowDownCircle, ShieldCheck, FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
@@ -44,8 +44,11 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <span className="block font-medium">Baja</span>
-          <span className="block text-xs mt-1">Calidad óptima, compresión mínima</span>
+          <div className="flex items-center justify-center mb-1">
+            <ShieldCheck className="h-4 w-4 mr-1" />
+            <span className="font-medium">Baja</span>
+          </div>
+          <span className="block text-xs">Calidad óptima, compresión ligera</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -55,8 +58,11 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <span className="block font-medium">Media</span>
-          <span className="block text-xs mt-1">Alta calidad, compresión moderada</span>
+          <div className="flex items-center justify-center mb-1">
+            <ArrowDownCircle className="h-4 w-4 mr-1" />
+            <span className="font-medium">Media</span>
+          </div>
+          <span className="block text-xs">Buena calidad, compresión moderada</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -66,13 +72,21 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <span className="block font-medium">Alta</span>
-          <span className="block text-xs mt-1">Menor calidad, máxima compresión</span>
+          <div className="flex items-center justify-center mb-1">
+            <FileUp className="h-4 w-4 mr-1" />
+            <span className="font-medium">Alta</span>
+          </div>
+          <span className="block text-xs">Calidad reducida, máxima compresión</span>
         </button>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
-        <p>Hemos mejorado significativamente la legibilidad en todos los niveles usando tecnología WebP o PNG según disponibilidad. Para <strong>documentos con texto</strong>, recomendamos usar nivel <strong>BAJO</strong> o <strong>MEDIO</strong> para asegurar legibilidad perfecta. El nivel alto es ideal para fotos o imágenes donde el texto no es crucial.</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-6 text-sm text-blue-800">
+        <p className="font-medium mb-1">Recomendaciones:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Nivel BAJO:</strong> Para documentos importantes donde la calidad es primordial</li>
+          <li><strong>Nivel MEDIO:</strong> Para uso general, buen balance entre tamaño y calidad</li>
+          <li><strong>Nivel ALTO:</strong> Para archivos grandes que necesitas compartir por email o subir a plataformas con límites de tamaño</li>
+        </ul>
       </div>
 
       <Button
@@ -92,7 +106,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
         ) : (
           <>
             <Zap className="h-5 w-5 mr-2" />
-            Procesar PDF{totalFiles > 1 ? 's' : ''}
+            Comprimir PDF{totalFiles > 1 ? 's' : ''}
           </>
         )}
       </Button>

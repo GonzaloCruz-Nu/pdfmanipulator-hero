@@ -25,10 +25,10 @@ export async function renderPageToCanvas(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    // Para niveles de baja y media compresión, usar un DPI más bajo pero controlado
+    // Para niveles de baja y media compresión, usar un DPI ajustado
     if (useHighQualityRendering) {
       // Usar un DPI moderado para equilibrar calidad y tamaño
-      const dpr = 1.5; // Reducido de 2 a 1.5 para controlar tamaño
+      const dpr = window.devicePixelRatio || 1; // Usar DPR nativo del dispositivo
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -44,14 +44,15 @@ export async function renderPageToCanvas(
     }
     
     // Configurar calidad de renderizado
-    if (useHighQualityRendering && ctx) {
+    if (useHighQualityRendering) {
       // Aplicar configuraciones para mejorar la calidad visual
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'medium'; // Cambiado de 'high' a 'medium' para mejor compresión
+      ctx.imageSmoothingQuality = 'medium';
       
       // Si estamos usando DPI escalado, ajustar el contexto
-      const dpr = 1.5; // Reducido de 2 a 1.5 para controlar tamaño
-      ctx.scale(dpr, dpr);
+      if (window.devicePixelRatio > 1) {
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
     }
     
     // Fondo blanco para eliminar transparencia y mejorar compresión
@@ -63,8 +64,8 @@ export async function renderPageToCanvas(
       canvasContext: ctx,
       viewport: viewport,
       // Optimizaciones para texto
-      intent: useHighQualityRendering ? 'display' : 'display', // Cambiado de 'print' a 'display' para mejor compresión
-      renderInteractiveForms: false, // Cambiado a false para mejorar compresión
+      intent: useHighQualityRendering ? 'display' : 'display',
+      renderInteractiveForms: false,
       canvasFactory: undefined,
       textLayer: null,
       annotationStorage: undefined,

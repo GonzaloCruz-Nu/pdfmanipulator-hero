@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Check, Download, AlertCircle, Info } from 'lucide-react';
+import { Check, Download, AlertCircle, Info, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatFileSize } from '@/utils/pdf/compression-utils';
+import { Link } from 'react-router-dom';
 
 interface CompressionInfo {
   originalSize: number;
@@ -102,7 +103,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
                       ? 'text-blue-800' 
                       : 'text-amber-800'
                 } font-medium`}>
-                  {compressionInfo.savedPercentage.toFixed(1)}%
+                  {Math.abs(compressionInfo.savedPercentage).toFixed(1)}%
                   {compressionInfo.savedPercentage < 0 && ' (aumentó)'}
                 </span>
               </div>
@@ -122,10 +123,13 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
               </div>
             </div>
             
-            {compressionInfo.savedPercentage <= 0 && (
-              <div className="mt-3 text-xs bg-blue-100 p-2 rounded">
-                <strong>Nota:</strong> Con nivel de compresión "Baja" o "Media", se prioriza la calidad máxima sobre la reducción de tamaño.
-                {compressionInfo.savedPercentage < 0 && ' El documento procesado tiene mejor calidad visual pero puede ser ligeramente más grande.'}
+            {compressionInfo.savedPercentage < 0 && (
+              <div className="mt-3 text-xs bg-red-100 p-2 rounded">
+                <strong>Atención:</strong> El archivo procesado es más grande que el original. Recomendamos:
+                <ul className="list-disc pl-4 mt-1">
+                  <li>Intenta con nivel "Alto" de compresión</li>
+                  <li>Si necesitas mantener alta calidad visual, considera usar el archivo original</li>
+                </ul>
               </div>
             )}
           </div>
