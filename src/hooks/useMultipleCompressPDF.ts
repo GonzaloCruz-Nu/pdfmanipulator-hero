@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -361,7 +362,7 @@ export const useMultipleCompressPDF = () => {
     toast.success('PDF descargado con éxito');
   };
 
-  // Función corregida para descargar todos los archivos comprimidos como ZIP
+  // Función mejorada para descargar todos los archivos comprimidos como ZIP
   const downloadAllAsZip = async () => {
     if (compressedFiles.length === 0) {
       toast.error('No hay archivos comprimidos para descargar');
@@ -370,38 +371,60 @@ export const useMultipleCompressPDF = () => {
     
     try {
       console.info(`Creando archivo ZIP con ${compressedFiles.length} archivos`);
+      
+      // Mostrar toast de progreso inicial
+      toast.loading('Preparando archivos para comprimir...', { id: 'zip-creation' });
+      
       const zip = new JSZip();
       
       // Añadir todos los archivos comprimidos al ZIP
       for (let i = 0; i < compressedFiles.length; i++) {
         const file = compressedFiles[i];
-        console.info(`Añadiendo al ZIP: ${file.name} (${file.size} bytes)`);
+        console.info(`Añadiendo al ZIP (${i+1}/${compressedFiles.length}): ${file.name} (${file.size} bytes)`);
         
-        // Convertir el archivo a ArrayBuffer de manera más directa
-        const fileData = await file.arrayBuffer();
-        zip.file(file.name, fileData);
+        // Actualizar el toast de progreso
+        toast.loading(`Añadiendo archivo ${i+1} de ${compressedFiles.length}...`, { id: 'zip-creation' });
+        
+        // Convertir el archivo a ArrayBuffer de manera más directa y segura
+        try {
+          const fileData = await file.arrayBuffer();
+          zip.file(file.name, fileData);
+          console.info(`Archivo ${i+1} añadido correctamente`);
+        } catch (fileError) {
+          console.error(`Error al procesar el archivo ${file.name}:`, fileError);
+          toast.error(`Error al procesar el archivo ${file.name}`);
+        }
       }
       
-      // Mostrar toast de progreso
-      toast.info('Generando archivo ZIP...');
+      // Actualizar toast de progreso
+      toast.loading('Generando archivo ZIP...', { id: 'zip-creation' });
       
-      // Generar el archivo ZIP con una promesa
-      const zipBlob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 6 // Nivel medio de compresión para el ZIP
-        }
-      });
+      console.info('Generando archivo ZIP final...');
       
-      console.info(`Archivo ZIP generado: ${zipBlob.size} bytes`);
-      
-      // Descargar el archivo ZIP utilizando FileSaver
-      saveAs(zipBlob, 'pdfs_comprimidos.zip');
-      
-      toast.success('Archivos descargados como ZIP');
+      // Generar el archivo ZIP con una promesa y manejo de errores mejorado
+      try {
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: {
+            level: 6 // Nivel medio de compresión para el ZIP
+          }
+        });
+        
+        console.info(`Archivo ZIP generado correctamente: ${zipBlob.size} bytes`);
+        
+        // Descargar el archivo ZIP utilizando FileSaver
+        saveAs(zipBlob, 'pdfs_comprimidos.zip');
+        
+        // Marcar como completado el proceso
+        toast.success('Archivos descargados como ZIP', { id: 'zip-creation' });
+      } catch (zipError) {
+        console.error('Error al generar el archivo ZIP:', zipError);
+        toast.error('Error al generar el archivo ZIP', { id: 'zip-creation' });
+        throw zipError; // Re-lanzar para el manejador de errores principal
+      }
     } catch (error) {
-      console.error('Error al crear ZIP:', error);
+      console.error('Error general al crear ZIP:', error);
       toast.error('Error al crear el archivo ZIP');
     }
   };

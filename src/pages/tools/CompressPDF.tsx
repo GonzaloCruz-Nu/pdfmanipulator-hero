@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, FileDown, FileCheck, Archive, Cpu } from 'lucide-react';
@@ -133,11 +134,11 @@ const CompressPDF = () => {
                 </Alert>
               )}
 
-              {files.length > 1 && compressedFiles.length > 1 && (
+              {files.length > 0 && compressedFiles.length > 1 && (
                 <div className="mt-4 flex justify-center">
                   <Button
                     onClick={downloadAllAsZip}
-                    className="bg-naranja text-white hover:bg-naranja/90 flex items-center justify-center"
+                    className="bg-naranja text-white hover:bg-naranja/90 flex items-center justify-center py-2 px-4 w-full"
                   >
                     <Archive className="h-5 w-5 mr-2" />
                     Descargar todos como ZIP ({compressedFiles.length} archivos)
