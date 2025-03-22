@@ -12,8 +12,8 @@ export const COMPRESSION_FACTORS = {
   },
   medium: { 
     imageQuality: 0.90, 
-    scaleFactor: 0.98, // Reducción mínima de escala para mantener legibilidad
-    colorReduction: 0.98, // Reducción mínima de color
+    scaleFactor: 0.95, // Aumentamos ligeramente la calidad respecto a 0.98
+    colorReduction: 0.98, // Mantenemos la reducción mínima de color
     useHighQualityFormat: true,  // Usar formato alta calidad
     preserveTextQuality: true,    // Preservar calidad de texto
     useWebP: true,                // Usar WebP para mejor compresión manteniendo calidad

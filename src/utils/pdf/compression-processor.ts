@@ -30,6 +30,10 @@ export async function compressPDFWithCanvas(
       webpQuality
     } = COMPRESSION_FACTORS[level];
     
+    // Registrar el nivel de compresión y formato usado para diagnóstico
+    const formatoUsado = useWebP ? 'WebP' : (useHighQualityFormat ? 'PNG' : 'JPEG');
+    console.info(`Usando formato ${formatoUsado} para nivel ${level} con calidad ${imageQuality}`);
+    
     // Reportar progreso inicial
     onProgress?.(5);
     
