@@ -7,6 +7,15 @@ import { renderPageToCanvas, loadPdfDocument } from './pdf-renderer';
 // Tipos de compresión
 export type CompressionLevel = 'low' | 'medium' | 'high';
 
+// Verificar compatibilidad con WebP
+const isWebPSupported = (): boolean => {
+  const canvas = document.createElement('canvas');
+  if (canvas && canvas.getContext('2d')) {
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  }
+  return false;
+};
+
 /**
  * Comprime un PDF usando la técnica de renderizado a canvas y recompresión de imágenes
  * @param file Archivo PDF a comprimir
@@ -27,8 +36,13 @@ export async function compressPDFWithCanvas(
       useHighQualityFormat,
       preserveTextQuality,
       useJpegFormat,
-      jpegQuality
+      jpegQuality,
+      useWebP,
+      webpQuality
     } = COMPRESSION_FACTORS[level];
+    
+    // Comprobar soporte WebP
+    const webpSupported = isWebPSupported() && useWebP;
     
     // Reportar progreso inicial
     onProgress?.(5);
@@ -36,8 +50,8 @@ export async function compressPDFWithCanvas(
     console.info(`Iniciando compresión con nivel ${level}:`);
     console.info(`- Factor de escala: ${scaleFactor}`);
     console.info(`- Calidad de imagen: ${imageQuality}`);
-    console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
-    console.info(`- Calidad JPEG: ${jpegQuality}`);
+    console.info(`- Formato: ${webpSupported ? 'WebP' : (useJpegFormat ? 'JPEG' : 'PNG')}`);
+    console.info(`- Calidad JPEG/WebP: ${webpSupported ? webpQuality : jpegQuality}`);
     
     // Cargar el documento con PDF.js
     const fileArrayBuffer = await file.arrayBuffer();
@@ -79,10 +93,15 @@ export async function compressPDFWithCanvas(
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
       await renderPageToCanvas(pdfPage, canvas, scaleFactor, preserveTextQuality);
       
-      // Siempre usar JPEG para mejor compresión
+      // Seleccionar formato según configuración y soporte
       let imageDataUrl: string;
       
-      if (useJpegFormat) {
+      if (webpSupported) {
+        // Usar WebP para mejor compresión cuando esté disponible y configurado
+        imageDataUrl = canvas.toDataURL('image/webp', webpQuality);
+        console.info(`Usando formato WebP para nivel ${level} con calidad ${webpQuality}`);
+      } else if (useJpegFormat) {
+        // Usar JPEG como formato preferido para compresión
         imageDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
         console.info(`Usando formato JPEG para nivel ${level} con calidad ${jpegQuality}`);
       } else {
@@ -105,7 +124,7 @@ export async function compressPDFWithCanvas(
       let pdfImage;
       
       try {
-        if (useJpegFormat) {
+        if (webpSupported || useJpegFormat) {
           pdfImage = await newPdfDoc.embedJpg(imageBytes);
         } else {
           pdfImage = await newPdfDoc.embedPng(imageBytes);

@@ -135,12 +135,14 @@ export const useMultipleCompressPDF = () => {
         colorReduction, 
         useHighQualityFormat,
         preserveTextQuality,
+        useJpegFormat,
+        jpegQuality,
         useWebP,
         webpQuality 
       } = COMPRESSION_FACTORS[level];
       
       // Verificar si WebP está soportado
-      const webpSupported = isWebPSupported();
+      const webpSupported = isWebPSupported() && useWebP;
       
       // Cargar el documento con PDF.js
       const fileArrayBuffer = await file.arrayBuffer();
@@ -199,7 +201,7 @@ export const useMultipleCompressPDF = () => {
         let dataUrl: string;
         const isLowOrMedium = level === 'low' || level === 'medium';
         
-        if (useWebP && webpSupported) {
+        if (webpSupported) {
           // Usar WebP para mejor relación calidad/compresión cuando esté disponible
           dataUrl = canvas.toDataURL('image/webp', webpQuality);
           console.log(`Usando formato WebP para nivel ${level} con calidad ${webpQuality}`);
@@ -209,8 +211,8 @@ export const useMultipleCompressPDF = () => {
           console.log(`Usando formato PNG para nivel ${level}`);
         } else {
           // Para nivel alto o cuando las opciones anteriores no aplican, usar JPEG
-          dataUrl = canvas.toDataURL('image/jpeg', imageQuality);
-          console.log(`Usando formato JPEG para nivel ${level} con calidad ${imageQuality}`);
+          dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+          console.log(`Usando formato JPEG para nivel ${level} con calidad ${jpegQuality}`);
         }
         
         // Extraer la base64

@@ -8,7 +8,9 @@ export const COMPRESSION_FACTORS = {
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Siempre usar JPEG para mejor compresión
-    jpegQuality: 0.92 // Alta calidad JPEG para nivel bajo
+    jpegQuality: 0.92, // Alta calidad JPEG para nivel bajo
+    useWebP: false, // No usar WebP por defecto
+    webpQuality: 0.9 // Calidad WebP si se usa
   },
   medium: { 
     imageQuality: 0.75, // Calidad JPEG media
@@ -17,7 +19,9 @@ export const COMPRESSION_FACTORS = {
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Siempre usar JPEG para mejor compresión
-    jpegQuality: 0.85 // Calidad JPEG moderada
+    jpegQuality: 0.85, // Calidad JPEG moderada
+    useWebP: false, // No usar WebP por defecto
+    webpQuality: 0.8 // Calidad WebP si se usa
   },
   high: { 
     imageQuality: 0.6, // Calidad JPEG más baja
@@ -26,7 +30,9 @@ export const COMPRESSION_FACTORS = {
     useHighQualityFormat: false, // No usar formato de alta calidad
     preserveTextQuality: false, // No preservar calidad de texto para máxima compresión
     useJpegFormat: true, // Siempre usar JPEG para mejor compresión
-    jpegQuality: 0.65 // Calidad JPEG más baja para compresión alta
+    jpegQuality: 0.65, // Calidad JPEG más baja para compresión alta
+    useWebP: true, // Usar WebP para nivel alto de compresión
+    webpQuality: 0.7 // Calidad WebP baja para máxima compresión
   }
 };
 

@@ -12,5 +12,14 @@ export { calculateCompression } from './compression-utils';
 export { canvasBasedCompression } from './canvas-compression';
 export { standardCompression } from './standard-compression';
 
+// Verificar compatibilidad con WebP
+export const isWebPSupported = (): boolean => {
+  const canvas = document.createElement('canvas');
+  if (canvas && canvas.getContext('2d')) {
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  }
+  return false;
+};
+
 // Configure PDF.js worker for any other methods that might need it
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
