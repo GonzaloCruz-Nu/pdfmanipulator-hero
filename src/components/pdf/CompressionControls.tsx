@@ -45,7 +45,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Baja</span>
-          <span className="block text-xs mt-1">Calidad máxima, compresión mínima</span>
+          <span className="block text-xs mt-1">Calidad óptima, compresión mínima</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -72,7 +72,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
-        <p>Hemos mejorado la calidad de imagen en todos los niveles. Para <strong>documentos con texto</strong>, recomendamos usar nivel <strong>BAJO</strong> o <strong>MEDIO</strong> para asegurar legibilidad. El nivel alto es ideal para fotos o imágenes donde el texto no es crucial.</p>
+        <p>Hemos mejorado significativamente la legibilidad en todos los niveles usando tecnología WebP o PNG según disponibilidad. Para <strong>documentos con texto</strong>, recomendamos usar nivel <strong>BAJO</strong> o <strong>MEDIO</strong> para asegurar legibilidad perfecta. El nivel alto es ideal para fotos o imágenes donde el texto no es crucial.</p>
       </div>
 
       <Button

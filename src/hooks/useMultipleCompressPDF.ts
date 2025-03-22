@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -27,61 +28,99 @@ export const useMultipleCompressPDF = () => {
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
 
-  // Función auxiliar mejorada para renderizar página PDF a canvas con calidad optimizada
+  // Verificar compatibilidad con WebP
+  const isWebPSupported = () => {
+    const canvas = document.createElement('canvas');
+    if (canvas && canvas.getContext('2d')) {
+      return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    }
+    return false;
+  };
+
+  // Función mejorada para renderizar página PDF a canvas con calidad óptima
   async function renderPageToCanvas(
     pdfPage: pdfjsLib.PDFPageProxy, 
     canvas: HTMLCanvasElement, 
     scaleFactor: number,
-    useHighQualityFormat: boolean
+    useHighQualityFormat: boolean,
+    preserveTextQuality: boolean
   ): Promise<void> {
-    const viewport = pdfPage.getViewport({ scale: 1.0 }); // Primero obtenemos viewport a escala 1 para cálculos
-    
-    // Calculamos dimensiones reales considerando DPI para mejor calidad
+    // Usamos alta resolución para capturar todos los detalles del texto
     const pixelRatio = window.devicePixelRatio || 1;
-    const realScaleFactor = useHighQualityFormat ? Math.max(scaleFactor, 0.9) : scaleFactor; // Mayor calidad para formatos de alta calidad
     
-    // Calculamos dimensiones del canvas para alta calidad
-    const canvasWidth = Math.floor(viewport.width * realScaleFactor * pixelRatio);
-    const canvasHeight = Math.floor(viewport.height * realScaleFactor * pixelRatio);
+    // Para texto, usamos escala mínima de 1.5 para asegurar legibilidad
+    let textOptimizedScaleFactor = preserveTextQuality ? Math.max(scaleFactor, 0.95) : scaleFactor;
+    
+    // Para formatos de alta calidad, usamos DPI más alto
+    const dpiMultiplier = useHighQualityFormat ? 1.5 : 1;
+    
+    // Calculamos dimensiones para asegurar legibilidad del texto
+    const viewport = pdfPage.getViewport({ scale: 1.0 });
+    
+    // Calculamos dimensiones del canvas optimizadas para texto
+    const canvasWidth = Math.floor(viewport.width * textOptimizedScaleFactor * pixelRatio * dpiMultiplier);
+    const canvasHeight = Math.floor(viewport.height * textOptimizedScaleFactor * pixelRatio * dpiMultiplier);
     
     // Configuramos canvas para renderizado de alta calidad
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
-    canvas.style.width = `${viewport.width * realScaleFactor}px`;
-    canvas.style.height = `${viewport.height * realScaleFactor}px`;
+    canvas.style.width = `${viewport.width * textOptimizedScaleFactor}px`;
+    canvas.style.height = `${viewport.height * textOptimizedScaleFactor}px`;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       throw new Error('No se pudo obtener el contexto 2D del canvas');
     }
     
-    // Ampliamos el canvas considerando el ratio de píxeles para mayor nitidez
-    ctx.scale(pixelRatio, pixelRatio);
+    // Aplicamos configuración avanzada para renderizado de texto
+    ctx.scale(pixelRatio * dpiMultiplier, pixelRatio * dpiMultiplier);
     
-    // Configuración mejorada para calidad
+    // Configuración optimizada para texto
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high'; // Siempre usamos alta calidad de suavizado
+    ctx.imageSmoothingQuality = 'high';
     
-    // Fondo blanco para eliminar transparencia 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Configuración especial para mejorar legibilidad de texto
+    if (preserveTextQuality) {
+      // Fondo blanco para mejorar contraste de texto
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Aplicamos antialiasing optimizado para texto
+      try {
+        // @ts-ignore - Esta propiedad puede no estar disponible en todos los navegadores
+        ctx.textRendering = 'optimizeLegibility';
+      } catch (e) {
+        // Ignorar si no está soportado
+      }
+    } else {
+      // Para niveles sin prioridad en texto, usamos fondo blanco simple
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     
-    // Ajustar viewport al tamaño correcto
-    const adjustedViewport = pdfPage.getViewport({ scale: realScaleFactor });
+    // Ajustar viewport con escala optimizada para texto
+    const adjustedViewport = pdfPage.getViewport({ 
+      scale: textOptimizedScaleFactor
+    });
     
+    // Opciones de renderizado optimizadas para texto
     const renderContext = {
       canvasContext: ctx,
       viewport: adjustedViewport,
-      intent: 'print', // Siempre usar 'print' para mejor calidad
-      antialiasing: true, // Habilitar antialiasing
-      useHighQualityRenderer: true // Forzar renderizado de alta calidad
+      intent: preserveTextQuality ? 'print' : 'display',
+      renderInteractiveForms: true,
+      canvasFactory: undefined,
+      background: undefined,
+      transform: undefined,
+      annotationStorage: undefined,
+      annotationMode: undefined
     };
     
-    // Renderizamos la página con la configuración optimizada
+    // Renderizamos la página con configuración optimizada
     await pdfPage.render(renderContext).promise;
   }
 
-  // Método de compresión basado en canvas con optimizaciones para evitar aumento de tamaño
+  // Método de compresión con soporte WebP y optimizaciones para legibilidad de texto
   async function compressPDFWithCanvas(
     file: File,
     level: CompressionLevel,
@@ -95,8 +134,13 @@ export const useMultipleCompressPDF = () => {
         scaleFactor, 
         colorReduction, 
         useHighQualityFormat,
-        preserveTextQuality 
+        preserveTextQuality,
+        useWebP,
+        webpQuality 
       } = COMPRESSION_FACTORS[level];
+      
+      // Verificar si WebP está soportado
+      const webpSupported = isWebPSupported();
       
       // Cargar el documento con PDF.js
       const fileArrayBuffer = await file.arrayBuffer();
@@ -106,7 +150,7 @@ export const useMultipleCompressPDF = () => {
       // Crear un nuevo documento PDF
       const newPdfDoc = await PDFDocument.create();
       
-      // Preservar metadatos para nivel bajo y medio para mejor compatibilidad
+      // Preservar metadatos para nivel bajo y medio
       if (level !== 'high') {
         try {
           // Intentar copiar metadatos del PDF original
@@ -148,34 +192,25 @@ export const useMultipleCompressPDF = () => {
         // Crear un canvas con configuración de alta calidad
         const canvas = document.createElement('canvas');
         
-        // Renderizar la página en el canvas con factor de escala y calidad mejorados
-        await renderPageToCanvas(pdfPage, canvas, scaleFactor, useHighQualityFormat);
+        // Renderizar la página con configuración optimizada para texto
+        await renderPageToCanvas(pdfPage, canvas, scaleFactor, useHighQualityFormat, preserveTextQuality);
         
-        // Elegir formato según nivel de compresión, asegurando que no aumentemos el tamaño
+        // Elegir formato según configuración y soporte
         let dataUrl: string;
+        const isLowOrMedium = level === 'low' || level === 'medium';
         
-        // Decidir formato óptimo
-        if (useHighQualityFormat) {
-          // Para niveles bajo y medio, intentamos PNG primero para máxima calidad
-          if (level === 'low') {
-            // Para nivel bajo, siempre usar PNG para máxima calidad
-            dataUrl = canvas.toDataURL('image/png');
-          } else {
-            // Para nivel medio, usar PNG pero con comprobación de tamaño
-            const pngUrl = canvas.toDataURL('image/png');
-            const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
-            
-            // Si PNG es excesivamente grande (más de 2 veces JPEG), usar JPEG alta calidad
-            if (pngUrl.length > jpegUrl.length * 2) {
-              dataUrl = jpegUrl;
-              console.log("Cambiando a JPEG para nivel medio debido a tamaño excesivo del PNG");
-            } else {
-              dataUrl = pngUrl;
-            }
-          }
+        if (useWebP && webpSupported) {
+          // Usar WebP para mejor relación calidad/compresión cuando esté disponible
+          dataUrl = canvas.toDataURL('image/webp', webpQuality);
+          console.log(`Usando formato WebP para nivel ${level} con calidad ${webpQuality}`);
+        } else if (useHighQualityFormat && isLowOrMedium) {
+          // En niveles bajo/medio usamos PNG para máxima calidad si WebP no está disponible
+          dataUrl = canvas.toDataURL('image/png');
+          console.log(`Usando formato PNG para nivel ${level}`);
         } else {
-          // Nivel alto usa JPEG con calidad baja
+          // Para nivel alto o cuando las opciones anteriores no aplican, usar JPEG
           dataUrl = canvas.toDataURL('image/jpeg', imageQuality);
+          console.log(`Usando formato JPEG para nivel ${level} con calidad ${imageQuality}`);
         }
         
         // Extraer la base64
@@ -190,16 +225,16 @@ export const useMultipleCompressPDF = () => {
         
         // Insertar la imagen en el nuevo PDF según el formato usado
         let image;
-        if (dataUrl.includes('image/png')) {
+        if (dataUrl.includes('image/webp') || dataUrl.includes('image/png')) {
           image = await newPdfDoc.embedPng(bytes);
         } else {
           image = await newPdfDoc.embedJpg(bytes);
         }
         
-        // Agregar una nueva página con las dimensiones originales para conservar calidad
-        // Para nivel bajo y medio, mantenemos dimensiones exactas para mejor calidad
-        const pageWidth = (level === 'low' || level === 'medium') ? width : width * colorReduction;
-        const pageHeight = (level === 'low' || level === 'medium') ? height : height * colorReduction;
+        // Agregar una nueva página con las dimensiones optimizadas para legibilidad
+        // Para nivel bajo y medio, mantenemos dimensiones casi exactas
+        const pageWidth = isLowOrMedium ? width : width * colorReduction;
+        const pageHeight = isLowOrMedium ? height : height * colorReduction;
         const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
         
         // Dibujar la imagen en la página
@@ -213,7 +248,7 @@ export const useMultipleCompressPDF = () => {
       
       // Ajustar opciones de guardado según el nivel
       const saveOptions = {
-        useObjectStreams: level === 'high', // Solo para nivel alto usar object streams para mejor compresión
+        useObjectStreams: level === 'high', // Solo para nivel alto usar object streams
         addDefaultPage: false,
         objectsPerTick: preserveTextQuality ? 50 : 100 // Menos objetos por tick para niveles que preservan texto
       };
@@ -410,4 +445,3 @@ export const useMultipleCompressPDF = () => {
     totalFiles
   };
 };
-
