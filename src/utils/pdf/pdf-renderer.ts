@@ -25,10 +25,10 @@ export async function renderPageToCanvas(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    // Para niveles de baja y media compresión, usar un DPI más alto pero controlado
+    // Para niveles de baja y media compresión, usar un DPI más bajo pero controlado
     if (useHighQualityRendering) {
       // Usar un DPI moderado para equilibrar calidad y tamaño
-      const dpr = 2; // Reducido de 3 a 2 para controlar tamaño
+      const dpr = 1.5; // Reducido de 2 a 1.5 para controlar tamaño
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -47,10 +47,10 @@ export async function renderPageToCanvas(
     if (useHighQualityRendering && ctx) {
       // Aplicar configuraciones para mejorar la calidad visual
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.imageSmoothingQuality = 'medium'; // Cambiado de 'high' a 'medium' para mejor compresión
       
       // Si estamos usando DPI escalado, ajustar el contexto
-      const dpr = 2; // Reducido de 3 a 2 para controlar tamaño
+      const dpr = 1.5; // Reducido de 2 a 1.5 para controlar tamaño
       ctx.scale(dpr, dpr);
     }
     
@@ -63,8 +63,8 @@ export async function renderPageToCanvas(
       canvasContext: ctx,
       viewport: viewport,
       // Optimizaciones para texto
-      intent: useHighQualityRendering ? 'print' : 'display', // print ofrece mejor calidad
-      renderInteractiveForms: true,
+      intent: useHighQualityRendering ? 'display' : 'display', // Cambiado de 'print' a 'display' para mejor compresión
+      renderInteractiveForms: false, // Cambiado a false para mejorar compresión
       canvasFactory: undefined,
       textLayer: null,
       annotationStorage: undefined,

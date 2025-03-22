@@ -41,27 +41,13 @@ export async function compressPDFWithCanvas(
     // Crear un nuevo documento PDF
     const newPdfDoc = await PDFDocument.create();
     
-    // Gestionar metadatos según nivel de compresión
-    if (level === 'low') {
-      // Para nivel bajo, intentar preservar metadatos
-      try {
-        const originalDoc = await PDFDocument.load(fileArrayBuffer.slice(0));
-        newPdfDoc.setTitle(originalDoc.getTitle() || "");
-        newPdfDoc.setAuthor(originalDoc.getAuthor() || "");
-        newPdfDoc.setSubject(originalDoc.getSubject() || "");
-        newPdfDoc.setCreator("PDF Compressor - Nivel Bajo");
-      } catch (e) {
-        console.log("No se pudieron copiar los metadatos originales");
-      }
-    } else {
-      // Para otros niveles, eliminar metadatos para reducir tamaño
-      newPdfDoc.setTitle("");
-      newPdfDoc.setAuthor("");
-      newPdfDoc.setSubject("");
-      newPdfDoc.setKeywords([]);
-      newPdfDoc.setProducer("");
-      newPdfDoc.setCreator("");
-    }
+    // Eliminar metadatos para reducir tamaño
+    newPdfDoc.setTitle("");
+    newPdfDoc.setAuthor("");
+    newPdfDoc.setSubject("");
+    newPdfDoc.setKeywords([]);
+    newPdfDoc.setProducer("");
+    newPdfDoc.setCreator("PDF Compressor");
     
     // Procesar cada página
     const totalPages = pdfDoc.numPages;
@@ -89,16 +75,16 @@ export async function compressPDFWithCanvas(
       let imageDataUrl: string;
       let imageBytes: Uint8Array;
       
-      // CORREGIDO: Elección clara del formato de imagen según nivel
+      // Elección clara del formato de imagen según nivel
       if (level === 'high') {
         // Para nivel alto, usar JPEG para máxima compresión
         imageDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
         console.info(`Usando formato JPEG para nivel alto con calidad ${imageQuality}`);
       } else {
-        // Para niveles bajo y medio, usar siempre PNG para asegurar la calidad
-        // pero no usar calidad máxima para evitar archivos demasiado grandes
-        imageDataUrl = canvas.toDataURL('image/png');
-        console.info(`Usando formato PNG para nivel ${level}`);
+        // Para niveles bajo y medio, intentar primero con JPEG de alta calidad
+        // para mejor compromiso entre calidad y compresión
+        imageDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
+        console.info(`Usando formato JPEG para nivel ${level} con calidad ${imageQuality}`);
       }
       
       // Extraer la base64 desde la URL de datos
@@ -113,30 +99,26 @@ export async function compressPDFWithCanvas(
       
       // Insertar imagen en el PDF según formato
       let pdfImage;
-      if (level === 'high') {
-        // Insertar JPEG para alta compresión en nivel alto
+      try {
+        // Usar siempre JPEG para mejor compresión en todos los niveles
         pdfImage = await newPdfDoc.embedJpg(imageBytes);
-      } else {
-        // Usar PNG para niveles bajo y medio para asegurar calidad
-        try {
-          pdfImage = await newPdfDoc.embedPng(imageBytes);
-        } catch (error) {
-          console.error('Error al incrustar PNG, intentando con JPEG:', error);
-          // Si falla el PNG, intentar con JPEG como plan B
-          imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-          const base64Jpeg = imageDataUrl.split(',')[1];
-          const binaryStringJpeg = atob(base64Jpeg);
-          const imageBytesJpeg = new Uint8Array(binaryStringJpeg.length);
-          for (let j = 0; j < binaryStringJpeg.length; j++) {
-            imageBytesJpeg[j] = binaryStringJpeg.charCodeAt(j);
-          }
-          pdfImage = await newPdfDoc.embedJpg(imageBytesJpeg);
+      } catch (error) {
+        console.error('Error al incrustar JPEG, intentando con calidad reducida:', error);
+        // Si falla, intentar con JPEG de calidad más baja como plan B
+        const fallbackQuality = level === 'high' ? 0.5 : 0.7;
+        imageDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
+        const base64Fallback = imageDataUrl.split(',')[1];
+        const binaryStringFallback = atob(base64Fallback);
+        const imageBytesFallback = new Uint8Array(binaryStringFallback.length);
+        for (let j = 0; j < binaryStringFallback.length; j++) {
+          imageBytesFallback[j] = binaryStringFallback.charCodeAt(j);
         }
+        pdfImage = await newPdfDoc.embedJpg(imageBytesFallback);
       }
       
-      // Ajustar dimensiones según colorReduction si no es nivel bajo
-      const pageWidth = level === 'low' ? width : width * colorReduction;
-      const pageHeight = level === 'low' ? height : height * colorReduction;
+      // Aplicar reducción de dimensiones según nivel de compresión
+      const pageWidth = width * (level === 'low' ? 1 : colorReduction);
+      const pageHeight = height * (level === 'low' ? 1 : colorReduction);
       
       // Agregar página al nuevo documento
       const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
@@ -153,11 +135,11 @@ export async function compressPDFWithCanvas(
     // Progreso antes de guardar
     onProgress?.(85);
     
-    // Ajustar opciones de guardado según el nivel
+    // Ajustar opciones de guardado para optimizar compresión
     const saveOptions = {
-      useObjectStreams: level !== 'low', // Para nivel bajo, no usar object streams para mejor calidad
+      useObjectStreams: true, // Usar object streams para mejor compresión
       addDefaultPage: false,
-      objectsPerTick: level === 'low' ? 50 : 100 // Menos objetos por tick para nivel bajo = mejor calidad
+      objectsPerTick: 100
     };
     
     // Guardar el documento comprimido con opciones óptimas
