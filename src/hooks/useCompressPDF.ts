@@ -1,15 +1,9 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import * as pdfjsLib from 'pdfjs-dist';
-import { PDFDocument } from 'pdf-lib';
 import { COMPRESSION_FACTORS, MIN_SIZE_REDUCTION } from '@/utils/pdf/compression-constants';
-
-// Configurar PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
-// Tipos de nivel de compresión
-type CompressionLevel = 'low' | 'medium' | 'high';
+import { calculateCompression } from '@/utils/pdf/compression-utils';
+import { compressPDFWithCanvas, CompressionLevel } from '@/utils/pdf/compression-processor';
 
 interface CompressionInfo {
   originalSize: number;
@@ -24,170 +18,6 @@ export const useCompressPDF = () => {
   const [compressionError, setCompressionError] = useState<string | null>(null);
   const [compressedFile, setCompressedFile] = useState<File | null>(null);
 
-  // Función auxiliar para renderizar página PDF a canvas
-  async function renderPageToCanvas(pdfPage: pdfjsLib.PDFPageProxy, canvas: HTMLCanvasElement, scaleFactor: number): Promise<void> {
-    const viewport = pdfPage.getViewport({ scale: scaleFactor });
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('No se pudo obtener el contexto 2D del canvas');
-    }
-    
-    // Fondo blanco para eliminar transparencia y mejorar compresión JPEG
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const renderContext = {
-      canvasContext: ctx,
-      viewport: viewport,
-      intent: 'print', // Usar intent print para mejor calidad de texto
-      antialiasing: true // Mejorar la calidad visual
-    };
-    
-    await pdfPage.render(renderContext).promise;
-  }
-
-  // Método de compresión basado en canvas (similar a GhostScript)
-  async function compressPDFWithCanvas(
-    file: File,
-    level: CompressionLevel
-  ): Promise<File | null> {
-    try {
-      // Obtener configuración según nivel
-      const { imageQuality, scaleFactor, colorReduction } = COMPRESSION_FACTORS[level];
-      
-      // Cargar el documento con PDF.js
-      const fileArrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileArrayBuffer) });
-      const pdfDoc = await loadingTask.promise;
-      
-      // Crear un nuevo documento PDF
-      const newPdfDoc = await PDFDocument.create();
-      
-      // Para nivel bajo, preservamos algunos metadatos pero aplicamos compresión básica
-      if (level !== 'low') {
-        // Eliminar metadatos para niveles medio y alto
-        newPdfDoc.setTitle("");
-        newPdfDoc.setAuthor("");
-        newPdfDoc.setSubject("");
-        newPdfDoc.setKeywords([]);
-        newPdfDoc.setProducer("");
-        newPdfDoc.setCreator("");
-      } else {
-        // Para nivel bajo, podemos preservar algunos metadatos importantes
-        try {
-          // Intentar copiar metadatos del PDF original
-          const originalDoc = await PDFDocument.load(await file.arrayBuffer());
-          newPdfDoc.setTitle(originalDoc.getTitle() || "");
-          newPdfDoc.setAuthor(originalDoc.getAuthor() || "");
-          newPdfDoc.setSubject(originalDoc.getSubject() || "");
-          newPdfDoc.setCreator("PDF Compressor - Nivel Bajo");
-        } catch (e) {
-          console.log("No se pudieron copiar los metadatos originales");
-        }
-      }
-      
-      // Procesar cada página
-      const totalPages = pdfDoc.numPages;
-      
-      for (let i = 0; i < totalPages; i++) {
-        // Actualizar progreso
-        const pageProgress = 10 + Math.floor((i / totalPages) * 75);
-        setProgress(pageProgress);
-        
-        // Obtener la página
-        const pdfPage = await pdfDoc.getPage(i + 1);
-        
-        // Obtener dimensiones originales
-        const viewport = pdfPage.getViewport({ scale: 1.0 });
-        const width = viewport.width;
-        const height = viewport.height;
-        
-        // Crear un canvas con configuración de alta calidad
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-        if (ctx) {
-          // Aplicar configuración para mejorar la calidad visual
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-        }
-        
-        // Renderizar la página en el canvas con factor de escala adecuado
-        await renderPageToCanvas(pdfPage, canvas, scaleFactor);
-        
-        // Aplicar compresión JPEG con calidad adecuada según el nivel
-        const jpegDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
-        
-        // Extraer la base64
-        const base64 = jpegDataUrl.split(',')[1];
-        
-        // Convertir base64 a Uint8Array
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let j = 0; j < binaryString.length; j++) {
-          bytes[j] = binaryString.charCodeAt(j);
-        }
-        
-        // Insertar la imagen JPEG en el nuevo PDF
-        const jpgImage = await newPdfDoc.embedJpg(bytes);
-        
-        // Agregar una nueva página con las dimensiones originales ajustadas
-        const pageWidth = level === 'low' ? width : width * colorReduction;
-        const pageHeight = level === 'low' ? height : height * colorReduction;
-        const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
-        
-        // Dibujar la imagen en la página
-        newPage.drawImage(jpgImage, {
-          x: 0,
-          y: 0,
-          width: pageWidth,
-          height: pageHeight
-        });
-      }
-      
-      // Indicar progreso antes de guardar
-      setProgress(85);
-      
-      // Ajustar opciones de guardado según el nivel
-      const saveOptions = {
-        useObjectStreams: level !== 'low', // Para nivel bajo, no usar object streams para mejor calidad
-        addDefaultPage: false,
-        objectsPerTick: level === 'low' ? 50 : 100 // Menos objetos por tick para nivel bajo = mejor calidad
-      };
-      
-      // Guardar el documento comprimido con opciones óptimas
-      const compressedBytes = await newPdfDoc.save(saveOptions);
-      
-      // Progreso casi completado después de guardar
-      setProgress(95);
-      
-      // Crear un nuevo archivo
-      return new File(
-        [compressedBytes],
-        `comprimido_${file.name}`,
-        { type: 'application/pdf' }
-      );
-    } catch (error) {
-      console.error('Error al comprimir PDF con canvas:', error);
-      // Asegurar que el progreso se actualiza incluso en caso de error
-      setProgress(100);
-      return null;
-    }
-  }
-
-  // Función para calcular el porcentaje de compresión correctamente
-  const calculateCompression = (originalSize: number, compressedSize: number) => {
-    // El porcentaje reducido es (tamaño original - tamaño comprimido) / tamaño original * 100
-    const savedPercentage = Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 1000) / 10);
-    return {
-      originalSize,
-      compressedSize,
-      savedPercentage
-    };
-  };
-
   // Función principal para comprimir un PDF
   const compressPDF = async (file: File | null, compressionLevel: CompressionLevel) => {
     if (!file) {
@@ -196,6 +26,7 @@ export const useCompressPDF = () => {
     }
 
     try {
+      // Inicializar estado
       setIsProcessing(true);
       setCompressionError(null);
       setCompressedFile(null);
@@ -205,10 +36,8 @@ export const useCompressPDF = () => {
       // Obtener tamaño original
       const fileSize = file.size;
       
-      // Comprimir usando el método basado en canvas
-      setProgress(10);
-      
-      const compressedFile = await compressPDFWithCanvas(file, compressionLevel);
+      // Comprimir usando el método basado en canvas con seguimiento de progreso
+      const compressedFile = await compressPDFWithCanvas(file, compressionLevel, setProgress);
       
       // Asegurar que progreso llega a 100 siempre
       setProgress(100);
