@@ -25,10 +25,10 @@ export async function renderPageToCanvas(
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     
-    // Para niveles de baja y media compresión, usar un DPI más alto
+    // Para niveles de baja y media compresión, usar un DPI más alto pero controlado
     if (useHighQualityRendering) {
-      // Aumentar la resolución significativamente para calidad óptima
-      const dpr = 3; // Forzar 3x para calidad excepcional en niveles bajo y medio
+      // Usar un DPI moderado para equilibrar calidad y tamaño
+      const dpr = 2; // Reducido de 3 a 2 para controlar tamaño
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -50,7 +50,7 @@ export async function renderPageToCanvas(
       ctx.imageSmoothingQuality = 'high';
       
       // Si estamos usando DPI escalado, ajustar el contexto
-      const dpr = 3; // Forzar 3x para calidad excepcional
+      const dpr = 2; // Reducido de 3 a 2 para controlar tamaño
       ctx.scale(dpr, dpr);
     }
     

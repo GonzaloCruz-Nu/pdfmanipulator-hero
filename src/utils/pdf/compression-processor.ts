@@ -25,14 +25,8 @@ export async function compressPDFWithCanvas(
       scaleFactor, 
       colorReduction, 
       useHighQualityFormat,
-      preserveTextQuality,
-      useWebP,
-      webpQuality
+      preserveTextQuality
     } = COMPRESSION_FACTORS[level];
-    
-    // Registrar el nivel de compresión y formato usado para diagnóstico
-    const formatoUsado = useWebP ? 'WebP' : (useHighQualityFormat ? 'PNG' : 'JPEG');
-    console.info(`Usando formato ${formatoUsado} para nivel ${level} con calidad ${imageQuality}`);
     
     // Reportar progreso inicial
     onProgress?.(5);
@@ -95,19 +89,16 @@ export async function compressPDFWithCanvas(
       let imageDataUrl: string;
       let imageBytes: Uint8Array;
       
-      // Verificar si WebP está soportado por el navegador
-      const testWebP = canvas.toDataURL('image/webp');
-      const webpSupported = testWebP.indexOf('data:image/webp') !== -1;
-      
-      // CORREGIDO: Usamos siempre PNG para asegurar compatibilidad en niveles bajo y medio
+      // CORREGIDO: Elección clara del formato de imagen según nivel
       if (level === 'high') {
         // Para nivel alto, usar JPEG para máxima compresión
         imageDataUrl = canvas.toDataURL('image/jpeg', imageQuality);
         console.info(`Usando formato JPEG para nivel alto con calidad ${imageQuality}`);
       } else {
         // Para niveles bajo y medio, usar siempre PNG para asegurar la calidad
+        // pero no usar calidad máxima para evitar archivos demasiado grandes
         imageDataUrl = canvas.toDataURL('image/png');
-        console.info(`Usando formato PNG para nivel ${level} para asegurar máxima calidad`);
+        console.info(`Usando formato PNG para nivel ${level}`);
       }
       
       // Extraer la base64 desde la URL de datos
@@ -127,7 +118,20 @@ export async function compressPDFWithCanvas(
         pdfImage = await newPdfDoc.embedJpg(imageBytes);
       } else {
         // Usar PNG para niveles bajo y medio para asegurar calidad
-        pdfImage = await newPdfDoc.embedPng(imageBytes);
+        try {
+          pdfImage = await newPdfDoc.embedPng(imageBytes);
+        } catch (error) {
+          console.error('Error al incrustar PNG, intentando con JPEG:', error);
+          // Si falla el PNG, intentar con JPEG como plan B
+          imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          const base64Jpeg = imageDataUrl.split(',')[1];
+          const binaryStringJpeg = atob(base64Jpeg);
+          const imageBytesJpeg = new Uint8Array(binaryStringJpeg.length);
+          for (let j = 0; j < binaryStringJpeg.length; j++) {
+            imageBytesJpeg[j] = binaryStringJpeg.charCodeAt(j);
+          }
+          pdfImage = await newPdfDoc.embedJpg(imageBytesJpeg);
+        }
       }
       
       // Ajustar dimensiones según colorReduction si no es nivel bajo
