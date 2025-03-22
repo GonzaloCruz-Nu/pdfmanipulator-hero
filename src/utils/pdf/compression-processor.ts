@@ -9,9 +9,13 @@ export type CompressionLevel = 'low' | 'medium' | 'high';
 
 // Verificar compatibilidad con WebP
 const isWebPSupported = (): boolean => {
-  const canvas = document.createElement('canvas');
-  if (canvas && canvas.getContext('2d')) {
-    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  try {
+    const canvas = document.createElement('canvas');
+    if (canvas && canvas.getContext('2d')) {
+      return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    }
+  } catch (e) {
+    console.error('Error checking WebP support:', e);
   }
   return false;
 };
@@ -41,7 +45,7 @@ export async function compressPDFWithCanvas(
       webpQuality
     } = COMPRESSION_FACTORS[level];
     
-    // Comprobar soporte WebP
+    // Comprobar soporte WebP (pero usarlo solo si está habilitado para este nivel)
     const webpSupported = isWebPSupported() && useWebP;
     
     // Reportar progreso inicial
@@ -50,8 +54,8 @@ export async function compressPDFWithCanvas(
     console.info(`Iniciando compresión con nivel ${level}:`);
     console.info(`- Factor de escala: ${scaleFactor}`);
     console.info(`- Calidad de imagen: ${imageQuality}`);
-    console.info(`- Formato: ${webpSupported ? 'WebP' : (useJpegFormat ? 'JPEG' : 'PNG')}`);
-    console.info(`- Calidad JPEG/WebP: ${webpSupported ? webpQuality : jpegQuality}`);
+    console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
+    console.info(`- Calidad JPEG: ${jpegQuality}`);
     
     // Cargar el documento con PDF.js
     const fileArrayBuffer = await file.arrayBuffer();
@@ -93,22 +97,9 @@ export async function compressPDFWithCanvas(
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
       await renderPageToCanvas(pdfPage, canvas, scaleFactor, preserveTextQuality);
       
-      // Seleccionar formato según configuración y soporte
-      let imageDataUrl: string;
-      
-      if (webpSupported) {
-        // Usar WebP para mejor compresión cuando esté disponible y configurado
-        imageDataUrl = canvas.toDataURL('image/webp', webpQuality);
-        console.info(`Usando formato WebP para nivel ${level} con calidad ${webpQuality}`);
-      } else if (useJpegFormat) {
-        // Usar JPEG como formato preferido para compresión
-        imageDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
-        console.info(`Usando formato JPEG para nivel ${level} con calidad ${jpegQuality}`);
-      } else {
-        // Fallback a PNG si se requiere (aunque generalmente no se usará)
-        imageDataUrl = canvas.toDataURL('image/png');
-        console.info(`Usando formato PNG para nivel ${level}`);
-      }
+      // Usar siempre JPEG para mejor compresión (no WebP o PNG)
+      const imageDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+      console.info(`Usando formato JPEG para nivel ${level} con calidad ${jpegQuality}`);
       
       // Extraer la base64 desde la URL de datos
       const base64 = imageDataUrl.split(',')[1];
@@ -120,19 +111,15 @@ export async function compressPDFWithCanvas(
         imageBytes[j] = binaryString.charCodeAt(j);
       }
       
-      // Insertar imagen en el PDF según formato
+      // Insertar imagen en el PDF
       let pdfImage;
       
       try {
-        if (webpSupported || useJpegFormat) {
-          pdfImage = await newPdfDoc.embedJpg(imageBytes);
-        } else {
-          pdfImage = await newPdfDoc.embedPng(imageBytes);
-        }
+        pdfImage = await newPdfDoc.embedJpg(imageBytes);
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
         // Si falla, intentar con JPEG de calidad más baja como último recurso
-        const fallbackQuality = 0.5;
+        const fallbackQuality = 0.4;
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBinaryString = atob(jpegBase64);
@@ -163,25 +150,12 @@ export async function compressPDFWithCanvas(
     onProgress?.(85);
     
     // Optimizar opciones de guardado para cada nivel de compresión
-    let saveOptions;
-    
-    if (level === 'high') {
-      // Máxima compresión para nivel alto
-      saveOptions = {
-        useObjectStreams: true,
-        addDefaultPage: false,
-        objectsPerTick: 100,
-        // Comprimir más agresivamente
-        compress: true
-      };
-    } else {
-      // Balance para niveles bajo y medio
-      saveOptions = {
-        useObjectStreams: true,
-        addDefaultPage: false,
-        objectsPerTick: 100
-      };
-    }
+    let saveOptions = {
+      useObjectStreams: true,
+      addDefaultPage: false,
+      objectsPerTick: 100,
+      compress: true  // Habilitar compresión para todos los niveles
+    };
     
     // Guardar el documento comprimido
     const compressedBytes = await newPdfDoc.save(saveOptions);

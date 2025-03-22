@@ -45,21 +45,15 @@ export const useCompressPDF = () => {
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
         
-        // Para nivel bajo, aceptamos el resultado incluso si el tamaño no se reduce significativamente
-        // o incluso si aumenta ligeramente, para evitar errores de usuario
-        if (compressionLevel === 'low' || compressionResult.savedPercentage > 0) {
+        // Aceptamos el resultado solo si redujo el tamaño (o es nivel bajo con reducción mínima)
+        if (compressionResult.savedPercentage > 0) {
           setCompressedFile(compressedFile);
           setCompressionInfo(compressionResult);
-          
-          // Mensaje personalizado según resultado
-          if (compressionResult.savedPercentage <= 0) {
-            toast.info('PDF procesado sin reducción de tamaño significativa.');
-          } else {
-            toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
-          }
+          toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
         } else {
-          setCompressionError('No se pudo comprimir significativamente el PDF. Es posible que ya esté optimizado.');
-          toast.error('No se pudo comprimir significativamente el PDF.');
+          // Si no hubo reducción, mostramos un error apropiado
+          setCompressionError('No se pudo comprimir el PDF. Es posible que ya esté optimizado o que necesites un nivel más alto de compresión.');
+          toast.error('No se pudo reducir el tamaño del PDF.');
         }
       } else {
         setCompressionError('Error al comprimir el PDF. Intenta con otro archivo o nivel de compresión.');

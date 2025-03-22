@@ -14,9 +14,13 @@ export { standardCompression } from './standard-compression';
 
 // Verificar compatibilidad con WebP
 export const isWebPSupported = (): boolean => {
-  const canvas = document.createElement('canvas');
-  if (canvas && canvas.getContext('2d')) {
-    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  try {
+    const canvas = document.createElement('canvas');
+    if (canvas && canvas.getContext('2d')) {
+      return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    }
+  } catch (e) {
+    console.error('Error checking WebP support:', e);
   }
   return false;
 };
