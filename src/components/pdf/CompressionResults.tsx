@@ -3,6 +3,7 @@ import React from 'react';
 import { Check, Download, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatFileSize } from '@/utils/pdf/compression-utils';
 
 interface CompressionInfo {
   originalSize: number;
@@ -27,46 +28,92 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
   file,
   multipleFiles = false
 }) => {
-  // Función para mostrar tamaño con formato
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
-    else return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-  };
-
   return (
     <div className="mt-6">
       {compressionInfo && compressedFile && (
         <div className="space-y-4">
-          <div className={`${compressionInfo.savedPercentage > 0 ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-md p-4`}>
-            <h3 className={`${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium mb-2`}>
-              {compressionInfo.savedPercentage > 0 ? 'Compresión completada' : 'Procesamiento completado'}
+          <div className={`${
+            compressionInfo.savedPercentage > 0 
+              ? 'bg-green-50 border-green-200' 
+              : compressionInfo.savedPercentage === 0 
+                ? 'bg-blue-50 border-blue-200' 
+                : 'bg-amber-50 border-amber-200'
+          } border rounded-md p-4`}>
+            <h3 className={`${
+              compressionInfo.savedPercentage > 0 
+                ? 'text-green-800' 
+                : compressionInfo.savedPercentage === 0 
+                  ? 'text-blue-800' 
+                  : 'text-amber-800'
+            } font-medium mb-2`}>
+              {compressionInfo.savedPercentage > 0 
+                ? 'Compresión completada' 
+                : 'Procesamiento completado'}
               {multipleFiles && ' para el archivo actual'}
             </h3>
             <div className="space-y-1 text-sm">
               <div className="flex items-start">
-                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>Tamaño original:</span>
-                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                <span className={compressionInfo.savedPercentage > 0 
+                  ? 'text-green-800' 
+                  : compressionInfo.savedPercentage === 0 
+                    ? 'text-blue-800' 
+                    : 'text-amber-800'
+                }>Tamaño original:</span>
+                <span className={`ml-auto ${
+                  compressionInfo.savedPercentage > 0 
+                    ? 'text-green-800' 
+                    : compressionInfo.savedPercentage === 0 
+                      ? 'text-blue-800' 
+                      : 'text-amber-800'
+                } font-medium`}>
                   {formatFileSize(compressionInfo.originalSize)}
                 </span>
               </div>
               <div className="flex items-start">
-                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>Tamaño procesado:</span>
-                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                <span className={compressionInfo.savedPercentage > 0 
+                  ? 'text-green-800' 
+                  : compressionInfo.savedPercentage === 0 
+                    ? 'text-blue-800' 
+                    : 'text-amber-800'
+                }>Tamaño procesado:</span>
+                <span className={`ml-auto ${
+                  compressionInfo.savedPercentage > 0 
+                    ? 'text-green-800' 
+                    : compressionInfo.savedPercentage === 0 
+                      ? 'text-blue-800' 
+                      : 'text-amber-800'
+                } font-medium`}>
                   {formatFileSize(compressionInfo.compressedSize)}
                 </span>
               </div>
               <div className="flex items-start">
-                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'}>
-                  {compressionInfo.savedPercentage > 0 ? 'Reducción:' : 'Cambio:'}
+                <span className={compressionInfo.savedPercentage > 0 
+                  ? 'text-green-800' 
+                  : compressionInfo.savedPercentage === 0 
+                    ? 'text-blue-800' 
+                    : 'text-amber-800'
+                }>
+                  {compressionInfo.savedPercentage >= 0 ? 'Reducción:' : 'Cambio:'}
                 </span>
-                <span className={`ml-auto ${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium`}>
+                <span className={`ml-auto ${
+                  compressionInfo.savedPercentage > 0 
+                    ? 'text-green-800' 
+                    : compressionInfo.savedPercentage === 0 
+                      ? 'text-blue-800' 
+                      : 'text-amber-800'
+                } font-medium`}>
                   {compressionInfo.savedPercentage.toFixed(1)}%
+                  {compressionInfo.savedPercentage < 0 && ' (aumentó)'}
                 </span>
               </div>
               <div className="flex items-start text-xs mt-2">
-                <span className={compressionInfo.savedPercentage > 0 ? 'text-green-700' : 'text-blue-700'}>
-                  {compressionInfo.savedPercentage > 0 ? 'Ahorro de espacio:' : 'Cambio de tamaño:'}
+                <span className={compressionInfo.savedPercentage > 0 
+                  ? 'text-green-700' 
+                  : compressionInfo.savedPercentage === 0 
+                    ? 'text-blue-700' 
+                    : 'text-amber-700'
+                }>
+                  {compressionInfo.savedPercentage >= 0 ? 'Ahorro de espacio:' : 'Cambio de tamaño:'}
                 </span>
                 <span className="ml-auto">
                   {formatFileSize(Math.abs(compressionInfo.originalSize - compressionInfo.compressedSize))}
@@ -76,8 +123,9 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             </div>
             
             {compressionInfo.savedPercentage <= 0 && (
-              <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-2 rounded">
+              <div className="mt-3 text-xs bg-blue-100 p-2 rounded">
                 <strong>Nota:</strong> Con nivel de compresión "Baja", se prioriza la calidad máxima sobre la reducción de tamaño.
+                {compressionInfo.savedPercentage < 0 && ' Para evitar aumento de tamaño, prueba con nivel Medio.'}
               </div>
             )}
           </div>

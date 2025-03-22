@@ -9,10 +9,10 @@ export const COMPRESSION_FACTORS = {
     preserveTextQuality: true     // Preservar calidad de texto
   },
   medium: { 
-    imageQuality: 0.90, 
-    scaleFactor: 0.97, 
+    imageQuality: 0.85, 
+    scaleFactor: 0.95, 
     colorReduction: 0.95,
-    useHighQualityFormat: true,   // Usar PNG para nivel medio también
+    useHighQualityFormat: false,  // Usar JPEG para nivel medio para evitar aumento de tamaño
     preserveTextQuality: true     // Preservar calidad de texto
   },
   high: { 
