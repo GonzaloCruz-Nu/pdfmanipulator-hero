@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -28,47 +27,57 @@ export const useMultipleCompressPDF = () => {
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
 
-  // Función auxiliar para renderizar página PDF a canvas con calidad optimizada
+  // Función auxiliar mejorada para renderizar página PDF a canvas con calidad optimizada
   async function renderPageToCanvas(
     pdfPage: pdfjsLib.PDFPageProxy, 
     canvas: HTMLCanvasElement, 
     scaleFactor: number,
     useHighQualityFormat: boolean
   ): Promise<void> {
-    const viewport = pdfPage.getViewport({ scale: scaleFactor });
+    const viewport = pdfPage.getViewport({ scale: 1.0 }); // Primero obtenemos viewport a escala 1 para cálculos
     
-    // Ajustamos el tamaño del canvas para que coincida con el viewport
-    const pixelRatio = useHighQualityFormat ? window.devicePixelRatio || 1 : 1;
-    canvas.width = Math.floor(viewport.width * pixelRatio);
-    canvas.height = Math.floor(viewport.height * pixelRatio);
-    canvas.style.width = `${viewport.width}px`;
-    canvas.style.height = `${viewport.height}px`;
+    // Calculamos dimensiones reales considerando DPI para mejor calidad
+    const pixelRatio = window.devicePixelRatio || 1;
+    const realScaleFactor = useHighQualityFormat ? Math.max(scaleFactor, 0.9) : scaleFactor; // Mayor calidad para formatos de alta calidad
+    
+    // Calculamos dimensiones del canvas para alta calidad
+    const canvasWidth = Math.floor(viewport.width * realScaleFactor * pixelRatio);
+    const canvasHeight = Math.floor(viewport.height * realScaleFactor * pixelRatio);
+    
+    // Configuramos canvas para renderizado de alta calidad
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    canvas.style.width = `${viewport.width * realScaleFactor}px`;
+    canvas.style.height = `${viewport.height * realScaleFactor}px`;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       throw new Error('No se pudo obtener el contexto 2D del canvas');
     }
     
-    // Aplicamos escala para alta resolución en caso de formato de alta calidad
-    if (useHighQualityFormat && pixelRatio > 1) {
-      ctx.scale(pixelRatio, pixelRatio);
-    }
+    // Ampliamos el canvas considerando el ratio de píxeles para mayor nitidez
+    ctx.scale(pixelRatio, pixelRatio);
     
     // Configuración mejorada para calidad
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = useHighQualityFormat ? 'high' : 'medium';
+    ctx.imageSmoothingQuality = 'high'; // Siempre usamos alta calidad de suavizado
     
     // Fondo blanco para eliminar transparencia 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Ajustar viewport al tamaño correcto
+    const adjustedViewport = pdfPage.getViewport({ scale: realScaleFactor });
+    
     const renderContext = {
       canvasContext: ctx,
-      viewport: viewport,
-      intent: useHighQualityFormat ? 'print' : 'display', // Mejor calidad de texto para alta calidad
-      antialiasing: true // Mejorar la calidad visual
+      viewport: adjustedViewport,
+      intent: 'print', // Siempre usar 'print' para mejor calidad
+      antialiasing: true, // Habilitar antialiasing
+      useHighQualityRenderer: true // Forzar renderizado de alta calidad
     };
     
+    // Renderizamos la página con la configuración optimizada
     await pdfPage.render(renderContext).promise;
   }
 
@@ -139,30 +148,33 @@ export const useMultipleCompressPDF = () => {
         // Crear un canvas con configuración de alta calidad
         const canvas = document.createElement('canvas');
         
-        // Renderizar la página en el canvas con factor de escala adecuado
+        // Renderizar la página en el canvas con factor de escala y calidad mejorados
         await renderPageToCanvas(pdfPage, canvas, scaleFactor, useHighQualityFormat);
         
         // Elegir formato según nivel de compresión, asegurando que no aumentemos el tamaño
         let dataUrl: string;
         
-        // Para nivel bajo, intentamos PNG primero
+        // Decidir formato óptimo
         if (useHighQualityFormat) {
-          // Para nivel bajo, intentamos PNG primero para máxima calidad
-          dataUrl = canvas.toDataURL('image/png');
-          
-          // Si el tamaño del PNG es más de 3 veces el tamaño estimado de JPEG, cambiamos a JPEG
-          // Esto evita el problema de aumento excesivo de tamaño en archivos con muchas imágenes
-          const pngSize = dataUrl.length;
-          const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
-          const jpegSize = jpegUrl.length;
-          
-          if (pngSize > jpegSize * 3) {
-            // Si PNG es mucho más grande, usamos JPEG de alta calidad
-            dataUrl = jpegUrl;
-            console.log("Cambiando a JPEG para nivel bajo debido a tamaño excesivo del PNG");
+          // Para niveles bajo y medio, intentamos PNG primero para máxima calidad
+          if (level === 'low') {
+            // Para nivel bajo, siempre usar PNG para máxima calidad
+            dataUrl = canvas.toDataURL('image/png');
+          } else {
+            // Para nivel medio, usar PNG pero con comprobación de tamaño
+            const pngUrl = canvas.toDataURL('image/png');
+            const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
+            
+            // Si PNG es excesivamente grande (más de 2 veces JPEG), usar JPEG alta calidad
+            if (pngUrl.length > jpegUrl.length * 2) {
+              dataUrl = jpegUrl;
+              console.log("Cambiando a JPEG para nivel medio debido a tamaño excesivo del PNG");
+            } else {
+              dataUrl = pngUrl;
+            }
           }
         } else {
-          // Nivel medio y alto usan JPEG con calidad variable
+          // Nivel alto usa JPEG con calidad baja
           dataUrl = canvas.toDataURL('image/jpeg', imageQuality);
         }
         
@@ -184,10 +196,10 @@ export const useMultipleCompressPDF = () => {
           image = await newPdfDoc.embedJpg(bytes);
         }
         
-        // Agregar una nueva página con las dimensiones originales ajustadas
-        // Para nivel bajo, mantenemos dimensiones exactas para mejor calidad
-        const pageWidth = level === 'low' ? width : width * colorReduction;
-        const pageHeight = level === 'low' ? height : height * colorReduction;
+        // Agregar una nueva página con las dimensiones originales para conservar calidad
+        // Para nivel bajo y medio, mantenemos dimensiones exactas para mejor calidad
+        const pageWidth = (level === 'low' || level === 'medium') ? width : width * colorReduction;
+        const pageHeight = (level === 'low' || level === 'medium') ? height : height * colorReduction;
         const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
         
         // Dibujar la imagen en la página
@@ -201,32 +213,13 @@ export const useMultipleCompressPDF = () => {
       
       // Ajustar opciones de guardado según el nivel
       const saveOptions = {
-        useObjectStreams: level !== 'low', // Para nivel bajo, no usar object streams para mejor calidad
+        useObjectStreams: level === 'high', // Solo para nivel alto usar object streams para mejor compresión
         addDefaultPage: false,
         objectsPerTick: preserveTextQuality ? 50 : 100 // Menos objetos por tick para niveles que preservan texto
       };
       
       // Guardar el documento comprimido con opciones óptimas
       const compressedBytes = await newPdfDoc.save(saveOptions);
-      
-      // Comprobar si el tamaño resultante no es mayor que el original
-      // Si para nivel bajo el tamaño aumenta mucho, intentamos con nivel medio
-      if (level === 'low' && compressedBytes.length > file.size * 1.5) {
-        console.log("El archivo resultante es 50% más grande que el original, intentando con nuevos parámetros");
-        
-        // Crear otra versión con parámetros ajustados
-        const adjustedBytes = await adjustCompressionForLowLevel(file, newPdfDoc);
-        
-        // Si conseguimos reducir el tamaño, usamos esa versión
-        if (adjustedBytes && adjustedBytes.length < compressedBytes.length) {
-          console.log("Usando versión ajustada de compresión baja");
-          return new File(
-            [adjustedBytes],
-            `comprimido_${file.name}`,
-            { type: 'application/pdf' }
-          );
-        }
-      }
       
       // Progreso casi completado después de guardar
       setProgress(100);
@@ -417,3 +410,4 @@ export const useMultipleCompressPDF = () => {
     totalFiles
   };
 };
+

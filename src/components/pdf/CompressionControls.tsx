@@ -45,7 +45,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Baja</span>
-          <span className="block text-xs mt-1">Buenísima calidad, menor compresión</span>
+          <span className="block text-xs mt-1">Calidad máxima, compresión mínima</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -56,7 +56,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           }`}
         >
           <span className="block font-medium">Media</span>
-          <span className="block text-xs mt-1">Buena calidad, más compresión</span>
+          <span className="block text-xs mt-1">Alta calidad, compresión moderada</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -72,7 +72,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
-        <p>Usando técnicas de compresión mejoradas para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño). Nivel bajo proporciona alta fidelidad con compresión moderada.</p>
+        <p>Hemos mejorado la calidad de imagen en todos los niveles. Para <strong>documentos con texto</strong>, recomendamos usar nivel <strong>BAJO</strong> o <strong>MEDIO</strong> para asegurar legibilidad. El nivel alto es ideal para fotos o imágenes donde el texto no es crucial.</p>
       </div>
 
       <Button
@@ -87,12 +87,12 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {totalFiles > 1 ? `Comprimiendo (${currentFile}/${totalFiles})...` : 'Comprimiendo...'}
+            {totalFiles > 1 ? `Procesando (${currentFile}/${totalFiles})...` : 'Procesando...'}
           </>
         ) : (
           <>
             <Zap className="h-5 w-5 mr-2" />
-            Comprimir PDF{totalFiles > 1 ? 's' : ''}
+            Procesar PDF{totalFiles > 1 ? 's' : ''}
           </>
         )}
       </Button>

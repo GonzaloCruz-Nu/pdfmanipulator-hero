@@ -48,7 +48,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             } font-medium mb-2`}>
               {compressionInfo.savedPercentage > 0 
                 ? 'Compresión completada' 
-                : 'Procesamiento completado'}
+                : 'Procesamiento completado con alta calidad'}
               {multipleFiles && ' para el archivo actual'}
             </h3>
             <div className="space-y-1 text-sm">
@@ -124,8 +124,8 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             
             {compressionInfo.savedPercentage <= 0 && (
               <div className="mt-3 text-xs bg-blue-100 p-2 rounded">
-                <strong>Nota:</strong> Con nivel de compresión "Baja", se prioriza la calidad máxima sobre la reducción de tamaño.
-                {compressionInfo.savedPercentage < 0 && ' Para evitar aumento de tamaño, prueba con nivel Medio.'}
+                <strong>Nota:</strong> Con nivel de compresión "Baja" o "Media", se prioriza la calidad máxima sobre la reducción de tamaño.
+                {compressionInfo.savedPercentage < 0 && ' El documento procesado tiene mejor calidad visual pero puede ser ligeramente más grande.'}
               </div>
             )}
           </div>
@@ -136,7 +136,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
             className="w-full py-5 border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
           >
             <Download className="h-5 w-5 mr-2" />
-            Descargar PDF procesado
+            Descargar PDF{compressionInfo.savedPercentage > 0 ? ' comprimido' : ' procesado'}
           </Button>
         </div>
       )}
