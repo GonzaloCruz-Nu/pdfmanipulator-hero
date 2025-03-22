@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ interface CompressionControlsProps {
   onCompress: () => void;
   isProcessing: boolean;
   progress: number;
+  currentFile?: number;
+  totalFiles?: number;
 }
 
 const CompressionControls: React.FC<CompressionControlsProps> = ({
@@ -20,7 +23,9 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
   setCompressionLevel,
   onCompress,
   isProcessing,
-  progress
+  progress,
+  currentFile = 1,
+  totalFiles = 1
 }) => {
   if (!file) return null;
 
@@ -67,7 +72,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-6 text-sm text-amber-800">
-        <p>Usando técnicas de compresión tipo GhostScript para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño). Nivel bajo proporciona mínima compresión con calidad óptima.</p>
+        <p>Usando técnicas de compresión mejoradas para máxima reducción de tamaño. Para mejores resultados, selecciona nivel <strong>ALTO</strong> (máxima reducción) o <strong>MEDIO</strong> (balance calidad/tamaño). Nivel bajo proporciona alta fidelidad con compresión moderada.</p>
       </div>
 
       <Button
@@ -82,12 +87,12 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Comprimiendo...
+            {totalFiles > 1 ? `Comprimiendo (${currentFile}/${totalFiles})...` : 'Comprimiendo...'}
           </>
         ) : (
           <>
             <Zap className="h-5 w-5 mr-2" />
-            Comprimir PDF
+            Comprimir PDF{totalFiles > 1 ? 's' : ''}
           </>
         )}
       </Button>
@@ -95,7 +100,9 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
       {isProcessing && (
         <div className="mt-4">
           <Progress value={progress} className="h-2" />
-          <p className="text-xs text-center mt-1 text-muted-foreground">{progress}%</p>
+          <p className="text-xs text-center mt-1 text-muted-foreground">
+            {totalFiles > 1 ? `Archivo ${currentFile}/${totalFiles} - ` : ''}{progress}%
+          </p>
         </div>
       )}
     </div>

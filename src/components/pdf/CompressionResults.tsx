@@ -16,6 +16,7 @@ interface CompressionResultsProps {
   compressedFile: File | null;
   onDownload: () => void;
   file: File | null;
+  multipleFiles?: boolean;
 }
 
 const CompressionResults: React.FC<CompressionResultsProps> = ({
@@ -23,7 +24,8 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
   compressionError,
   compressedFile,
   onDownload,
-  file
+  file,
+  multipleFiles = false
 }) => {
   // Función para mostrar tamaño con formato
   const formatFileSize = (bytes: number) => {
@@ -39,6 +41,7 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
           <div className={`${compressionInfo.savedPercentage > 0 ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-md p-4`}>
             <h3 className={`${compressionInfo.savedPercentage > 0 ? 'text-green-800' : 'text-blue-800'} font-medium mb-2`}>
               {compressionInfo.savedPercentage > 0 ? 'Compresión completada' : 'Procesamiento completado'}
+              {multipleFiles && ' para el archivo actual'}
             </h3>
             <div className="space-y-1 text-sm">
               <div className="flex items-start">

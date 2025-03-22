@@ -1,40 +1,53 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, FileDown, FileCheck } from 'lucide-react';
+import { Zap, FileDown, FileCheck, Archive } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import CompressionControls from '@/components/pdf/CompressionControls';
 import CompressionResults from '@/components/pdf/CompressionResults';
-import { useCompressPDF } from '@/hooks/useCompressPDF';
+import { useMultipleCompressPDF } from '@/hooks/useMultipleCompressPDF';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const CompressPDF = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const [compressionLevel, setCompressionLevel] = useState<'low' | 'medium' | 'high'>('medium');
   
   const {
-    compressPDF,
+    compressMultiplePDFs,
     isProcessing,
     progress,
     compressionInfo,
     compressionError,
-    compressedFile,
-    downloadCompressedFile
-  } = useCompressPDF();
+    compressedFiles,
+    downloadCompressedFile,
+    downloadAllAsZip,
+    currentProcessingIndex,
+    totalFiles
+  } = useMultipleCompressPDF();
 
-  const handleFileSelected = (selectedFiles: File[]) => {
+  const handleFilesSelected = (selectedFiles: File[]) => {
     if (selectedFiles.length > 0) {
-      setFile(selectedFiles[0]);
+      setFiles(selectedFiles);
+      setSelectedFileIndex(0); // Reset to first file
     } else {
-      setFile(null);
+      setFiles([]);
     }
   };
 
-  const handleCompressPDF = () => {
-    compressPDF(file, compressionLevel);
+  const handleCompressPDFs = () => {
+    compressMultiplePDFs(files, compressionLevel);
   };
+
+  // Determine which file to preview
+  const previewFile = selectedFileIndex < compressedFiles.length ? 
+                      compressedFiles[selectedFileIndex] : 
+                      (files.length > 0 ? files[selectedFileIndex] : null);
 
   return (
     <Layout>
@@ -66,28 +79,56 @@ const CompressPDF = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <div className="bg-white rounded-xl p-6 shadow-subtle h-full">
-              <h2 className="text-xl font-bold mb-4">1. Selecciona un archivo PDF</h2>
+              <h2 className="text-xl font-bold mb-4">1. Selecciona archivos PDF</h2>
+              
               <FileUpload 
-                onFilesSelected={handleFileSelected}
-                multiple={false}
+                onFilesSelected={handleFilesSelected}
+                multiple={true}
                 accept=".pdf"
+                maxFiles={5}
+                infoText="Arrastra PDFs aquí o haz clic para buscar"
               />
 
+              {files.length > 1 && (
+                <Alert className="mt-4 bg-blue-50 border-blue-200">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    Has seleccionado {files.length} archivos. Todos serán comprimidos con el mismo nivel.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {files.length > 1 && compressedFiles.length > 0 && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    onClick={downloadAllAsZip}
+                    variant="outline"
+                    className="border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
+                  >
+                    <Archive className="h-5 w-5 mr-2" />
+                    Descargar todos como ZIP
+                  </Button>
+                </div>
+              )}
+
               <CompressionControls 
-                file={file}
+                file={files.length > 0 ? files[0] : null}
                 compressionLevel={compressionLevel}
                 setCompressionLevel={setCompressionLevel}
-                onCompress={handleCompressPDF}
+                onCompress={handleCompressPDFs}
                 isProcessing={isProcessing}
                 progress={progress}
+                currentFile={currentProcessingIndex + 1}
+                totalFiles={totalFiles}
               />
 
               <CompressionResults 
                 compressionInfo={compressionInfo}
                 compressionError={compressionError}
-                compressedFile={compressedFile}
-                onDownload={downloadCompressedFile}
-                file={file}
+                compressedFile={compressedFiles[selectedFileIndex] || null}
+                onDownload={() => downloadCompressedFile(selectedFileIndex)}
+                file={files.length > 0 ? files[selectedFileIndex] : null}
+                multipleFiles={files.length > 1}
               />
             </div>
           </motion.div>
@@ -100,10 +141,34 @@ const CompressPDF = () => {
             <div className="bg-white rounded-xl p-6 shadow-subtle h-full">
               <h2 className="text-xl font-bold mb-4">2. Vista previa</h2>
               
-              {file ? (
+              {files.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center">
+                    <button 
+                      disabled={selectedFileIndex === 0}
+                      onClick={() => setSelectedFileIndex(prev => Math.max(0, prev - 1))}
+                      className={`text-sm px-2 py-1 rounded ${selectedFileIndex === 0 ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-sm">
+                      Archivo {selectedFileIndex + 1} de {Math.max(files.length, compressedFiles.length)}
+                    </span>
+                    <button 
+                      disabled={selectedFileIndex >= Math.max(files.length, compressedFiles.length) - 1}
+                      onClick={() => setSelectedFileIndex(prev => Math.min(Math.max(files.length, compressedFiles.length) - 1, prev + 1))}
+                      className={`text-sm px-2 py-1 rounded ${selectedFileIndex >= Math.max(files.length, compressedFiles.length) - 1 ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {previewFile ? (
                 <PdfPreview 
-                  file={compressedFile || file}
-                  className={compressedFile ? "border-2 border-green-500" : ""}
+                  file={previewFile}
+                  className={selectedFileIndex < compressedFiles.length ? "border-2 border-green-500" : ""}
                   showEditor={false}
                 />
               ) : (
@@ -117,7 +182,7 @@ const CompressPDF = () => {
                 </div>
               )}
 
-              {compressedFile && (
+              {selectedFileIndex < compressedFiles.length && compressedFiles[selectedFileIndex] && (
                 <div className="mt-4 flex items-center justify-center">
                   <FileCheck className="h-5 w-5 text-green-600 mr-2" />
                   <span className="text-sm text-green-600 font-medium">

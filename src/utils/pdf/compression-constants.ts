@@ -1,9 +1,27 @@
 
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
-  low: { imageQuality: 0.9, scaleFactor: 0.98, colorReduction: 0.9 },     // Compresión baja - mejor calidad, menor reducción
-  medium: { imageQuality: 0.88, scaleFactor: 0.95, colorReduction: 0.9 },   // Compresión media mejorada - calidad casi idéntica al original
-  high: { imageQuality: 0.2, scaleFactor: 0.5, colorReduction: 0.6 }      // Compresión alta - máxima reducción, menor calidad
+  low: { 
+    imageQuality: 0.95, 
+    scaleFactor: 0.99, 
+    colorReduction: 0.99,
+    useHighQualityFormat: true,   // Usar PNG en vez de JPEG para mejor calidad
+    preserveTextQuality: true     // Preservar calidad de texto
+  },
+  medium: { 
+    imageQuality: 0.90, 
+    scaleFactor: 0.97, 
+    colorReduction: 0.95,
+    useHighQualityFormat: true,   // Usar PNG para nivel medio también
+    preserveTextQuality: true     // Preservar calidad de texto
+  },
+  high: { 
+    imageQuality: 0.2, 
+    scaleFactor: 0.5, 
+    colorReduction: 0.6,
+    useHighQualityFormat: false,  // Usar JPEG para máxima compresión
+    preserveTextQuality: false    // Permitir degradación de texto para máxima compresión
+  }
 };
 
 // Umbral mínimo de reducción de tamaño
