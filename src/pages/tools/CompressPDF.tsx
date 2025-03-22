@@ -49,8 +49,16 @@ const CompressPDF = () => {
     setWasmSupported(isWasmSupported());
   }, []);
 
+  useEffect(() => {
+    // Resetear el índice seleccionado cuando cambia el número de archivos comprimidos
+    if (compressedFiles.length > 0 && selectedFileIndex >= compressedFiles.length) {
+      setSelectedFileIndex(compressedFiles.length - 1);
+    }
+  }, [compressedFiles, selectedFileIndex]);
+
   const handleFilesSelected = (selectedFiles: File[]) => {
     if (selectedFiles.length > 0) {
+      console.info(`${selectedFiles.length} archivos seleccionados`);
       setFiles(selectedFiles);
       setSelectedFileIndex(0); // Reset to first file
     } else {
@@ -59,6 +67,7 @@ const CompressPDF = () => {
   };
 
   const handleCompressPDFs = () => {
+    console.info(`Iniciando compresión de ${files.length} archivos con nivel ${compressionLevel}`);
     compressMultiplePDFs(files, compressionLevel);
   };
 
@@ -66,6 +75,10 @@ const CompressPDF = () => {
   const previewFile = selectedFileIndex < compressedFiles.length ? 
                       compressedFiles[selectedFileIndex] : 
                       (files.length > 0 ? files[selectedFileIndex] : null);
+
+  const maxFileIndex = Math.max(files.length - 1, compressedFiles.length - 1);
+
+  console.info(`Estado actual: ${files.length} archivos originales, ${compressedFiles.length} comprimidos, índice seleccionado: ${selectedFileIndex}`);
 
   return (
     <Layout>
@@ -133,7 +146,7 @@ const CompressPDF = () => {
                     className="border-naranja text-naranja hover:bg-naranja/10 flex items-center justify-center"
                   >
                     <Archive className="h-5 w-5 mr-2" />
-                    Descargar todos como ZIP
+                    Descargar todos como ZIP ({compressedFiles.length} archivos)
                   </Button>
                 </div>
               )}
@@ -182,9 +195,9 @@ const CompressPDF = () => {
                       Archivo {selectedFileIndex + 1} de {Math.max(files.length, compressedFiles.length)}
                     </span>
                     <button 
-                      disabled={selectedFileIndex >= Math.max(files.length, compressedFiles.length) - 1}
-                      onClick={() => setSelectedFileIndex(prev => Math.min(Math.max(files.length, compressedFiles.length) - 1, prev + 1))}
-                      className={`text-sm px-2 py-1 rounded ${selectedFileIndex >= Math.max(files.length, compressedFiles.length) - 1 ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
+                      disabled={selectedFileIndex >= maxFileIndex}
+                      onClick={() => setSelectedFileIndex(prev => Math.min(maxFileIndex, prev + 1))}
+                      className={`text-sm px-2 py-1 rounded ${selectedFileIndex >= maxFileIndex ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
                     >
                       Siguiente
                     </button>
@@ -195,7 +208,7 @@ const CompressPDF = () => {
               {previewFile ? (
                 <PdfPreview 
                   file={previewFile}
-                  className={selectedFileIndex < compressedFiles.length ? "border-2 border-green-500" : ""}
+                  className={selectedFileIndex < compressedFiles.length && compressedFiles[selectedFileIndex] ? "border-2 border-green-500" : ""}
                   showEditor={false}
                 />
               ) : (

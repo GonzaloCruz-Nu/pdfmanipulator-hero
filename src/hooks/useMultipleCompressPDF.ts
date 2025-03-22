@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -281,6 +280,8 @@ export const useMultipleCompressPDF = () => {
         setCurrentProcessingIndex(i);
         const file = files[i];
         
+        console.info(`Procesando archivo ${i+1}/${files.length}: ${file.name}`);
+        
         // Obtener tamaño original
         const fileSize = file.size;
         
@@ -290,30 +291,28 @@ export const useMultipleCompressPDF = () => {
         if (compressedFile) {
           const compressionResult = calculateCompression(fileSize, compressedFile.size);
           
-          // Solo aceptar archivos que realmente se hayan comprimido
-          if (compressionResult.savedPercentage > 0) {
-            compressedFilesArray.push(compressedFile);
+          // Aceptar archivos incluso si la compresión no redujo el tamaño
+          compressedFilesArray.push(compressedFile);
+          console.info(`Archivo ${i+1} procesado con éxito: ${compressionResult.savedPercentage.toFixed(1)}% de ahorro`);
+          
+          // Si es el último archivo o hay un solo archivo, mostrar la info de compresión
+          if (i === files.length - 1 || files.length === 1) {
+            setCompressionInfo(compressionResult);
             
-            // Si es el último archivo o hay un solo archivo, mostrar la info de compresión
-            if (i === files.length - 1 || files.length === 1) {
-              setCompressionInfo(compressionResult);
-              
-              if (files.length === 1) {
-                toast.success(`PDF comprimido con éxito. Ahorro: ${compressionResult.savedPercentage.toFixed(1)}%`);
-              } else {
-                toast.success(`Todos los PDFs comprimidos con éxito.`);
-              }
-            }
-          } else {
             if (files.length === 1) {
-              setCompressionError('No se pudo reducir el tamaño del PDF. Intenta con un nivel más alto de compresión.');
-              toast.error('No se pudo reducir el tamaño del PDF.');
+              toast.success(`PDF procesado con éxito. Ahorro: ${compressionResult.savedPercentage > 0 ? compressionResult.savedPercentage.toFixed(1) + '%' : 'sin reducción de tamaño'}`);
             } else {
-              toast.warning(`El archivo ${file.name} no pudo ser comprimido.`);
+              toast.success(`Todos los PDFs procesados con éxito.`);
             }
           }
         } else {
-          toast.error(`Error al comprimir el archivo ${file.name}`);
+          console.error(`Error al procesar el archivo ${i+1}: ${file.name}`);
+          if (files.length === 1) {
+            setCompressionError('No se pudo procesar el PDF. Intenta con otro nivel de compresión.');
+            toast.error('No se pudo procesar el PDF.');
+          } else {
+            toast.warning(`El archivo ${file.name} no pudo ser procesado.`);
+          }
         }
       }
       
@@ -321,8 +320,8 @@ export const useMultipleCompressPDF = () => {
       setCompressedFiles(compressedFilesArray);
       
       if (compressedFilesArray.length === 0) {
-        setCompressionError('No se pudo comprimir ningún archivo PDF. Intenta con otro nivel de compresión.');
-        toast.error('Error al comprimir los archivos PDF.');
+        setCompressionError('No se pudo procesar ningún archivo PDF. Intenta con otro nivel de compresión.');
+        toast.error('Error al procesar los archivos PDF.');
       } else if (compressedFilesArray.length < files.length) {
         toast.warning(`Se procesaron ${compressedFilesArray.length} de ${files.length} archivos.`);
       } else {
@@ -343,8 +342,12 @@ export const useMultipleCompressPDF = () => {
 
   // Función para descargar un archivo comprimido específico
   const downloadCompressedFile = (index: number) => {
-    if (index < 0 || index >= compressedFiles.length) return;
+    if (index < 0 || index >= compressedFiles.length) {
+      console.error(`Índice fuera de rango: ${index}, total de archivos: ${compressedFiles.length}`);
+      return;
+    }
     
+    console.info(`Descargando archivo en índice ${index}`);
     const file = compressedFiles[index];
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
@@ -366,14 +369,18 @@ export const useMultipleCompressPDF = () => {
     }
     
     try {
+      console.info(`Creando archivo ZIP con ${compressedFiles.length} archivos`);
       const zip = new JSZip();
       
       // Añadir todos los archivos comprimidos al ZIP
-      for (const file of compressedFiles) {
+      for (let i = 0; i < compressedFiles.length; i++) {
+        const file = compressedFiles[i];
+        console.info(`Añadiendo al ZIP: ${file.name} (${file.size} bytes)`);
         const fileData = await file.arrayBuffer();
         zip.file(file.name, fileData);
       }
       
+      console.info('Generando archivo ZIP...');
       // Generar el archivo ZIP
       const zipBlob = await zip.generateAsync({
         type: 'blob',
@@ -382,6 +389,8 @@ export const useMultipleCompressPDF = () => {
           level: 6 // Nivel medio de compresión para el ZIP
         }
       });
+      
+      console.info(`Archivo ZIP generado: ${zipBlob.size} bytes`);
       
       // Descargar el archivo ZIP
       saveAs(zipBlob, 'pdfs_comprimidos.zip');
