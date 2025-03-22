@@ -14,15 +14,15 @@ export const COMPRESSION_FACTORS = {
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   medium: { 
-    imageQuality: 0.85, // Mayor calidad JPEG para nivel medio (aumentada)
-    scaleFactor: 0.90, // Reducción moderada pero preservando mejor legibilidad (aumentada)
-    colorReduction: 0.95, // Reducción de color menor (aumentada)
+    imageQuality: 0.90, // Mayor calidad JPEG para nivel medio (aumentada aún más)
+    scaleFactor: 0.94, // Reducción moderada pero preservando mejor legibilidad (aumentada más)
+    colorReduction: 0.97, // Reducción de color menor (aumentada más)
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.88, // Mayor calidad JPEG para nivel medio (aumentada)
+    jpegQuality: 0.92, // Mayor calidad JPEG para nivel medio (aumentada más)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.88, // Calidad WebP si se usa (aumentada)
+    webpQuality: 0.92, // Calidad WebP si se usa (aumentada más)
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   high: { 

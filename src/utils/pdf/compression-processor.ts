@@ -125,13 +125,18 @@ export async function compressPDFWithCanvas(
       let imageDataUrl;
       let imageQualityToUse = jpegQuality;
       
-      // Para niveles de baja compresión, aumentar calidad siempre
+      // Ajustar calidad según nivel de compresión
       if (level === 'low') {
         // Aumentar ligeramente la calidad para compresión baja
         imageQualityToUse = Math.min(jpegQuality + 0.03, 0.98);
-      } else if (level === 'medium' && wasmSupported) {
-        // Para nivel medio con WASM, mejorar la calidad
-        imageQualityToUse = Math.min(jpegQuality + 0.04, 0.95);
+      } else if (level === 'medium') {
+        // Para nivel medio, aumentamos aún más la calidad
+        imageQualityToUse = Math.min(jpegQuality + 0.05, 0.97);
+        
+        // Si además hay soporte WASM, mejoramos un poco más
+        if (wasmSupported) {
+          imageQualityToUse = Math.min(imageQualityToUse + 0.02, 0.98);
+        }
       }
       
       // Siempre usar JPEG para mejor compresión
@@ -165,9 +170,11 @@ export async function compressPDFWithCanvas(
         pdfImage = await newPdfDoc.embedJpg(imageBytes);
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
-        // Si falla, intentar con JPEG de calidad más baja como último recurso
-        // Pero no tan baja que se vuelva ilegible (mínimo 0.7 para mantener legibilidad)
-        const fallbackQuality = Math.max(0.7, jpegQuality * 0.85);
+        // Para nivel medio, intentar con calidad más alta incluso en fallback
+        const fallbackQuality = level === 'medium' 
+          ? Math.max(0.80, jpegQuality * 0.90) // Mayor calidad de fallback para nivel medio
+          : Math.max(0.70, jpegQuality * 0.85);
+          
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBinaryString = atob(jpegBase64);
@@ -179,17 +186,20 @@ export async function compressPDFWithCanvas(
       }
       
       // Aplicar reducción de dimensiones según nivel de compresión
-      // Para niveles bajo y medio, preservar más las dimensiones originales
       let pageWidth = width;
       let pageHeight = height;
       
       if (level === 'high') {
         pageWidth = width * colorReduction;
         pageHeight = height * colorReduction;
+      } else if (level === 'medium') {
+        // Para nivel medio, preservar mejor las dimensiones originales
+        pageWidth = width * Math.max(0.99, colorReduction);
+        pageHeight = height * Math.max(0.99, colorReduction);
       } else {
-        // Para niveles bajo y medio, reducción mínima de tamaño
-        pageWidth = width * Math.max(0.98, colorReduction);
-        pageHeight = height * Math.max(0.98, colorReduction);
+        // Para nivel bajo, reducción mínima de tamaño
+        pageWidth = width * Math.max(0.99, colorReduction);
+        pageHeight = height * Math.max(0.99, colorReduction);
       }
       
       // Agregar página al nuevo documento
