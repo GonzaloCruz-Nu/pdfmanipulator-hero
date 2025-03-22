@@ -14,7 +14,7 @@ const isWasmSupported = (): boolean => {
   }
 };
 
-// Método de compresión agresiva - significativamente más agresivo
+// Método de compresión agresiva - significativamente más agresivo pero preservando texto
 export const aggressiveCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
@@ -24,7 +24,7 @@ export const aggressiveCompression = async (
     const wasmSupported = isWasmSupported();
     console.info(`Compresión agresiva con WebAssembly: ${wasmSupported}`);
     
-    const { scaleFactor } = COMPRESSION_FACTORS[level];
+    const { scaleFactor, preserveTextQuality } = COMPRESSION_FACTORS[level];
     
     const srcPdfDoc = await PDFDocument.load(fileBuffer);
     const newPdfDoc = await PDFDocument.create();
@@ -43,7 +43,7 @@ export const aggressiveCompression = async (
     const optimizedScaleFactor = wasmSupported ? 
       Math.min(scaleFactor * 1.05, 1.0) : scaleFactor;
     
-    // Escalado más agresivo para cada página
+    // Escalado más agresivo para cada página, pero preservando texto en niveles bajo y medio
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
@@ -71,21 +71,21 @@ export const aggressiveCompression = async (
         currentPage.node.delete(PDFName.of('Metadata'));
       }
 
-      // Eliminar recursos como imágenes y fuentes grandes
+      // Manejar recursos como imágenes y fuentes grandes de forma más inteligente
       if (currentPage.node.has(PDFName.of('Resources'))) {
         const resources = currentPage.node.get(PDFName.of('Resources'));
         
-        // Eliminar XObjects (imágenes principalmente)
-        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
+        // Eliminar XObjects (imágenes principalmente) solo en alta compresión
+        if (level === 'high' && resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
-        // Eliminar o reducir fuentes
-        if (resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
-          // En compresor extremo, eliminar fuentes por completo
-          if (level === 'high') {
-            resources.delete(PDFName.of('Font'));
-          }
+        // NUNCA eliminar fuentes por completo para preservar la legibilidad del texto
+        // Solo reducir/optimizar en alta compresión
+        if (level === 'high' && !preserveTextQuality && resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
+          // Opcionalmente, optimizar fuentes sin eliminarlas completamente
+          // Esto podría hacer que el texto se vea diferente pero seguiría siendo legible
+          // Por ahora, mantenemos las fuentes para preservar legibilidad
         }
       }
     }

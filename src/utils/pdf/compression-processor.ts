@@ -52,7 +52,8 @@ export async function compressPDFWithCanvas(
       useHighQualityFormat,
       preserveTextQuality,
       useJpegFormat,
-      jpegQuality
+      jpegQuality,
+      textMode
     } = COMPRESSION_FACTORS[level];
     
     // Comprobar soporte WebAssembly
@@ -70,6 +71,9 @@ export async function compressPDFWithCanvas(
     console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
     console.info(`- Calidad JPEG: ${jpegQuality}`);
     console.info(`- WebAssembly: ${wasmSupported ? 'Disponible' : 'No disponible'}`);
+    console.info(`- Modo de texto: ${textMode || 'display'}`);
+    console.info(`- Preservar calidad texto: ${preserveTextQuality}`);
+    console.info(`- Alta calidad: ${useHighQualityFormat}`);
     
     // Cargar el documento con PDF.js
     const fileArrayBuffer = await file.arrayBuffer();
@@ -109,16 +113,25 @@ export async function compressPDFWithCanvas(
       const canvas = document.createElement('canvas');
       
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
-      await renderPageToCanvas(pdfPage, canvas, scaleFactor, preserveTextQuality);
+      await renderPageToCanvas(
+        pdfPage, 
+        canvas, 
+        scaleFactor, 
+        useHighQualityFormat, 
+        textMode as 'print' | 'display'
+      );
       
-      // Usar siempre JPEG para mejor compresión
+      // Usar formato de imagen según configuración
+      let imageDataUrl;
       let imageQualityToUse = jpegQuality;
+      
       if (wasmSupported) {
-        // Ajustar calidad para WASM (ligeramente mejor)
-        imageQualityToUse = Math.min(jpegQuality + 0.05, 1.0);
+        // Aumentar ligeramente la calidad con WASM para compensar optimizaciones
+        imageQualityToUse = Math.min(jpegQuality + 0.05, 0.95);
       }
       
-      const imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
+      // Siempre usar JPEG para mejor compresión
+      imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
       console.info(`Usando formato JPEG para nivel ${level} con calidad ${imageQualityToUse}`);
       
       // Extraer la base64 desde la URL de datos
@@ -149,7 +162,8 @@ export async function compressPDFWithCanvas(
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
         // Si falla, intentar con JPEG de calidad más baja como último recurso
-        const fallbackQuality = 0.4;
+        // Pero no tan baja que se vuelva ilegible (mínimo 0.6)
+        const fallbackQuality = Math.max(0.6, jpegQuality * 0.75);
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBinaryString = atob(jpegBase64);

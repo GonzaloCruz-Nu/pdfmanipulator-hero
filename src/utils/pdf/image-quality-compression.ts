@@ -1,7 +1,7 @@
 
 import { PDFDocument, rgb, PDFName, PDFDict } from 'pdf-lib';
 
-// Método de compresión de calidad de imagen - significativamente mejorado
+// Método de compresión de calidad de imagen - mejorado para preservar texto
 export const imageQualityCompression = async (
   fileBuffer: ArrayBuffer,
   level: 'low' | 'medium' | 'high',
@@ -20,17 +20,17 @@ export const imageQualityCompression = async (
     newDoc.setProducer("");
     newDoc.setCreator("");
     
-    // Configuración de calidad basada en nivel - mucho más agresiva
-    const imageQuality = level === 'high' ? 0.001 : 
-                        level === 'medium' ? 0.005 : 0.01;
+    // Configuración de calidad basada en nivel - ajustado para mejor legibilidad
+    const imageQuality = level === 'high' ? 0.05 : 
+                        level === 'medium' ? 0.15 : 0.3;
     
-    const scaleFactor = level === 'high' ? 0.2 : 
-                        level === 'medium' ? 0.3 : 0.4;
+    const scaleFactor = level === 'high' ? 0.35 : 
+                        level === 'medium' ? 0.5 : 0.7;
     
     // Obtener páginas originales
     const pages = originalDoc.getPages();
     
-    // Convertir cada página a una imagen de baja calidad
+    // Convertir cada página a una imagen de mejor calidad
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       const { width, height } = page.getSize();
@@ -50,16 +50,16 @@ export const imageQualityCompression = async (
       // Incrustar la página original
       const [embeddedPage] = await newDoc.embedPages([page]);
       
-      // Dibujar con calidad reducida
+      // Dibujar con mejor calidad, especialmente en niveles bajo y medio
       newPage.drawPage(embeddedPage, {
         x: 0,
         y: 0,
         width: width * scaleFactor,
         height: height * scaleFactor,
-        opacity: 0.7 // Reducir opacidad para mejor compresión
+        opacity: level === 'high' ? 0.8 : 1.0 // Mantener opacidad completa para mejor legibilidad excepto en alta compresión
       });
       
-      // Eliminar datos innecesarios
+      // Eliminar datos innecesarios pero mantener la integridad del texto
       if (newPage.node.has(PDFName.of('Annots'))) {
         newPage.node.delete(PDFName.of('Annots'));
       }
@@ -68,18 +68,18 @@ export const imageQualityCompression = async (
         newPage.node.delete(PDFName.of('Metadata'));
       }
       
-      // Eliminar recursos para maximizar la compresión
-      if (newPage.node.has(PDFName.of('Resources'))) {
+      // Solo eliminar recursos en alta compresión, preservar en baja y media
+      if (level === 'high' && newPage.node.has(PDFName.of('Resources'))) {
         const resources = newPage.node.get(PDFName.of('Resources'));
         
         if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
-        // Para compresión alta, eliminar fuentes también
-        if (level === 'high' && resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
-          resources.delete(PDFName.of('Font'));
-        }
+        // NUNCA eliminar fuentes por completo, solo en casos extremos
+        // if (level === 'high' && resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
+        //   resources.delete(PDFName.of('Font'));
+        // }
       }
     }
     

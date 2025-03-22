@@ -15,7 +15,8 @@ export async function renderPageToCanvas(
   pdfPage: pdfjsLib.PDFPageProxy, 
   canvas: HTMLCanvasElement, 
   scaleFactor: number,
-  useHighQualityRendering: boolean = false
+  useHighQualityRendering: boolean = false,
+  textMode: 'print' | 'display' = 'display'
 ): Promise<void> {
   try {
     // Obtener viewport con escala ajustada
@@ -27,8 +28,8 @@ export async function renderPageToCanvas(
     
     // Para niveles de baja y media compresión, usar un DPI ajustado
     if (useHighQualityRendering) {
-      // Usar un DPI moderado para equilibrar calidad y tamaño
-      const dpr = window.devicePixelRatio || 1; // Usar DPR nativo del dispositivo
+      // Usar un DPI elevado para mejorar calidad de texto
+      const dpr = Math.max(window.devicePixelRatio || 1, 2); // Usar al menos 2x DPR
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -47,7 +48,7 @@ export async function renderPageToCanvas(
     if (useHighQualityRendering) {
       // Aplicar configuraciones para mejorar la calidad visual
       ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'medium';
+      ctx.imageSmoothingQuality = 'high';
       
       // Si estamos usando DPI escalado, ajustar el contexto
       if (window.devicePixelRatio > 1) {
@@ -64,7 +65,7 @@ export async function renderPageToCanvas(
       canvasContext: ctx,
       viewport: viewport,
       // Optimizaciones para texto
-      intent: useHighQualityRendering ? 'display' : 'display',
+      intent: textMode, // 'print' produce mejor calidad de texto
       renderInteractiveForms: false,
       canvasFactory: undefined,
       textLayer: null,
