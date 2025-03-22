@@ -1,4 +1,3 @@
-
 import { PDFDocument, PDFName, PDFDict } from 'pdf-lib';
 import { COMPRESSION_FACTORS } from './compression-constants';
 
@@ -73,8 +72,7 @@ export const aggressiveCompression = async (
     
     const compressedBytes = await newPdfDoc.save({
       useObjectStreams: true,
-      addDefaultPage: false,
-      objectsPerTick: 50
+      addDefaultPage: false
     });
     
     return new File(

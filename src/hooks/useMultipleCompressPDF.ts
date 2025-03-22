@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { COMPRESSION_FACTORS, MIN_SIZE_REDUCTION } from '@/utils/pdf/compression-constants';
+import { calculateCompression } from '@/utils/pdf/compression-utils';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -180,8 +180,7 @@ export const useMultipleCompressPDF = () => {
       // Guardar con compresión
       const compressedBytes = await newPdfDoc.save({
         useObjectStreams: true,
-        addDefaultPage: false,
-        compress: true
+        addDefaultPage: false
       });
       
       // Crear archivo resultado

@@ -1,4 +1,3 @@
-
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -153,8 +152,7 @@ export async function compressPDFWithCanvas(
     let saveOptions = {
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 100,
-      compress: true  // Habilitar compresión para todos los niveles
+      objectsPerTick: 100
     };
     
     // Guardar el documento comprimido
