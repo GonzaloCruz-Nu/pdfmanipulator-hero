@@ -112,7 +112,7 @@ const CompressPDF = () => {
                 onFilesSelected={handleFilesSelected}
                 multiple={true}
                 accept=".pdf"
-                maxFiles={5}
+                maxFiles={10}
                 infoText="Arrastra PDFs aquí o haz clic para buscar"
               />
 
