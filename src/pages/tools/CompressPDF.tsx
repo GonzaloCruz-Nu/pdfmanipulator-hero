@@ -12,6 +12,7 @@ import { useMultipleCompressPDF } from '@/hooks/useMultipleCompressPDF';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { calculateCompression } from '@/utils/pdf/compression-utils';
 
 const isWasmSupported = (): boolean => {
   try {
@@ -29,6 +30,12 @@ const CompressPDF = () => {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const [compressionLevel, setCompressionLevel] = useState<'low' | 'medium' | 'high'>('medium');
   const [wasmSupported, setWasmSupported] = useState<boolean | null>(null);
+  const [totalStats, setTotalStats] = useState<{
+    totalOriginalSize: number;
+    totalCompressedSize: number;
+    totalSavedPercentage: number;
+    fileCount: number;
+  } | null>(null);
   
   const {
     compressMultiplePDFs,
@@ -51,7 +58,33 @@ const CompressPDF = () => {
     if (compressedFiles.length > 0 && selectedFileIndex >= compressedFiles.length) {
       setSelectedFileIndex(compressedFiles.length - 1);
     }
-  }, [compressedFiles, selectedFileIndex]);
+    
+    // Calcular estadísticas agregadas cuando hay archivos comprimidos
+    if (compressedFiles.length > 0 && files.length > 0) {
+      let totalOriginalSize = 0;
+      let totalCompressedSize = 0;
+      
+      // Sumar tamaños originales
+      for (let i = 0; i < Math.min(files.length, compressedFiles.length); i++) {
+        totalOriginalSize += files[i].size;
+        totalCompressedSize += compressedFiles[i].size;
+      }
+      
+      // Calcular porcentaje de reducción global
+      const totalSavedPercentage = Math.round(((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 1000) / 10;
+      
+      setTotalStats({
+        totalOriginalSize,
+        totalCompressedSize,
+        totalSavedPercentage,
+        fileCount: compressedFiles.length
+      });
+      
+      console.info(`Estadísticas totales calculadas: ${totalOriginalSize} bytes originales, ${totalCompressedSize} bytes comprimidos, ${totalSavedPercentage.toFixed(1)}% de ahorro`);
+    } else {
+      setTotalStats(null);
+    }
+  }, [compressedFiles, files, selectedFileIndex]);
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     if (selectedFiles.length > 0) {
@@ -164,6 +197,7 @@ const CompressPDF = () => {
                 onDownload={() => downloadCompressedFile(selectedFileIndex)}
                 file={files.length > 0 ? files[selectedFileIndex] : null}
                 multipleFiles={files.length > 1}
+                totalStats={totalStats}
               />
             </div>
           </motion.div>

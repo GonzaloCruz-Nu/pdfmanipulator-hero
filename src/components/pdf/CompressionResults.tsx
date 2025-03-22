@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Download, AlertCircle, Info, FileText } from 'lucide-react';
+import { Check, Download, AlertCircle, Info, FileText, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatFileSize } from '@/utils/pdf/compression-utils';
@@ -19,6 +19,12 @@ interface CompressionResultsProps {
   onDownload: () => void;
   file: File | null;
   multipleFiles?: boolean;
+  totalStats?: {
+    totalOriginalSize: number;
+    totalCompressedSize: number;
+    totalSavedPercentage: number;
+    fileCount: number;
+  } | null;
 }
 
 const CompressionResults: React.FC<CompressionResultsProps> = ({
@@ -27,10 +33,62 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
   compressedFile,
   onDownload,
   file,
-  multipleFiles = false
+  multipleFiles = false,
+  totalStats = null
 }) => {
   return (
     <div className="mt-6">
+      {totalStats && totalStats.fileCount > 1 && (
+        <div className="mb-4">
+          <div className={`${
+            totalStats.totalSavedPercentage > 0 
+              ? 'bg-blue-50 border-blue-200' 
+              : 'bg-amber-50 border-amber-200'
+          } border rounded-md p-4`}>
+            <h3 className={`${
+              totalStats.totalSavedPercentage > 0 
+                ? 'text-blue-800' 
+                : 'text-amber-800'
+            } font-medium mb-2 flex items-center`}>
+              <FileArchive className="h-4 w-4 mr-2" />
+              Estadísticas de todos los archivos ({totalStats.fileCount} PDFs)
+            </h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-start">
+                <span className="text-blue-800">Tamaño original total:</span>
+                <span className="ml-auto text-blue-800 font-medium">
+                  {formatFileSize(totalStats.totalOriginalSize)}
+                </span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-blue-800">Tamaño procesado total:</span>
+                <span className="ml-auto text-blue-800 font-medium">
+                  {formatFileSize(totalStats.totalCompressedSize)}
+                </span>
+              </div>
+              <div className="flex items-start">
+                <span className="text-blue-800">
+                  {totalStats.totalSavedPercentage >= 0 ? 'Reducción promedio:' : 'Cambio promedio:'}
+                </span>
+                <span className="ml-auto text-blue-800 font-medium">
+                  {Math.abs(totalStats.totalSavedPercentage).toFixed(1)}%
+                  {totalStats.totalSavedPercentage < 0 && ' (aumentó)'}
+                </span>
+              </div>
+              <div className="flex items-start text-xs mt-2">
+                <span className="text-blue-700">
+                  {totalStats.totalSavedPercentage >= 0 ? 'Ahorro de espacio total:' : 'Cambio de tamaño total:'}
+                </span>
+                <span className="ml-auto">
+                  {formatFileSize(Math.abs(totalStats.totalOriginalSize - totalStats.totalCompressedSize))}
+                  {totalStats.totalOriginalSize < totalStats.totalCompressedSize && ' (aumentó)'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {compressionInfo && compressedFile && (
         <div className="space-y-4">
           <div className={`${
