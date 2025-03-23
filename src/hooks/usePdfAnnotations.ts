@@ -62,11 +62,64 @@ export const usePdfAnnotations = () => {
     return annotations[pageNum] || [];
   }, [annotations]);
 
+  // Crear anotaciones de la página actual desde objetos de Fabric
+  const createAnnotationsFromCanvas = useCallback((pageNum: number, fabricObjects: any[]) => {
+    const newAnnotations: Omit<Annotation, 'id'>[] = fabricObjects.map(obj => {
+      let type: Annotation['type'] = 'rectangle';
+      
+      if (obj.type === 'i-text' || obj.type === 'text') {
+        type = 'text';
+      } else if (obj.type === 'circle') {
+        type = 'circle';
+      } else if (obj.type === 'path') {
+        type = 'pen';
+      } else if (obj.type === 'image') {
+        type = 'image';
+      }
+      
+      return {
+        type,
+        pageNum,
+        properties: {
+          left: obj.left,
+          top: obj.top,
+          width: obj.width,
+          height: obj.height,
+          fill: obj.fill,
+          stroke: obj.stroke,
+          strokeWidth: obj.strokeWidth,
+          fontSize: obj.fontSize,
+          fontFamily: obj.fontFamily,
+          text: obj.text,
+          radius: obj.radius,
+          path: obj.path
+        },
+        object: obj.toJSON()
+      };
+    });
+    
+    // Agregar todas las anotaciones nuevas
+    newAnnotations.forEach(annotation => {
+      addAnnotation(annotation);
+    });
+  }, [addAnnotation]);
+
+  // Limpiar todas las anotaciones de una página
+  const clearPageAnnotations = useCallback((pageNum: number) => {
+    setAnnotations(prevAnnotations => {
+      const newAnnotations = { ...prevAnnotations };
+      delete newAnnotations[pageNum];
+      return newAnnotations;
+    });
+  }, []);
+
   return {
     annotations,
     addAnnotation,
     removeAnnotation,
     updateAnnotation,
-    getPageAnnotations
+    getPageAnnotations,
+    createAnnotationsFromCanvas,
+    clearPageAnnotations
   };
 };

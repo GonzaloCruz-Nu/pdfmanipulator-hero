@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import PdfEditToolbar, { EditToolType } from './PdfEditToolbar';
@@ -39,9 +38,17 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
   const [fontFamily, setFontFamily] = useState('Arial');
   const [isPanning, setIsPanning] = useState(false);
   const canvasRef = useRef<fabric.Canvas | null>(null);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
+
+  useEffect(() => {
+    if (pageUrl && canvasRef.current && canvasInitialized) {
+      console.log("Página cambiada, reiniciando modo de edición");
+      setActiveTool('select');
+      setIsPanning(false);
+    }
+  }, [pageUrl, canvasInitialized]);
 
   const handleToolChange = (tool: EditToolType) => {
-    // Disable panning mode when selecting a tool
     if (isPanning) {
       setIsPanning(false);
     }
@@ -50,7 +57,6 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
 
   const handleClearCanvas = () => {
     if (canvasRef.current) {
-      // Keep the background image (PDF)
       const bgImage = canvasRef.current.backgroundImage;
       canvasRef.current.clear();
       
@@ -80,18 +86,22 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
     }
 
     try {
-      // Obtener la imagen del canvas como URL de datos
       const dataUrl = canvasRef.current.toDataURL({
         format: 'jpeg',
         quality: 0.95
       });
       
-      // Llamar a la función proporcionada para guardar cambios
       onSaveChanges(dataUrl);
+      toast.success(`Cambios guardados en la página ${currentPage}`);
     } catch (error) {
       console.error('Error al guardar cambios:', error);
       toast.error('Error al guardar los cambios en el PDF');
     }
+  };
+
+  const handleCanvasInitialized = (canvas: fabric.Canvas) => {
+    console.log("Canvas inicializado en PdfViewerContent");
+    setCanvasInitialized(true);
   };
 
   if (isLoading) {
@@ -136,6 +146,7 @@ const PdfViewerContent: React.FC<PdfViewerContentProps> = ({
           pageUrl={pageUrl}
           onSelectionChange={setHasSelection}
           fabricRef={canvasRef}
+          onCanvasInitialized={handleCanvasInitialized}
         />
         
         <PdfCanvasTools

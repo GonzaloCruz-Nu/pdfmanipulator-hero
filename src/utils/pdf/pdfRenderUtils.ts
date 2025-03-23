@@ -59,13 +59,62 @@ export async function renderPageToCanvas(
     const renderContext = {
       canvasContext: ctx,
       viewport: adjustedViewport,
-      intent: preserveTextQuality ? 'print' : 'display'
+      intent: preserveTextQuality ? 'print' : 'display',
+      enableWebGL: true,
+      renderInteractiveForms: true
     };
     
     // Render the page
     await pdfPage.render(renderContext).promise;
   } catch (error) {
     console.error('Error rendering page:', error);
+    throw error;
+  }
+}
+
+/**
+ * Convert PDF page to an image data URL for editing
+ */
+export async function pdfPageToDataUrl(
+  pdfPage: pdfjsLib.PDFPageProxy,
+  quality: number = 0.9,
+  scale: number = 1.5
+): Promise<string> {
+  try {
+    // Create an offscreen canvas
+    const canvas = document.createElement('canvas');
+    
+    // Render the PDF page to the canvas
+    await renderPageToCanvas(pdfPage, canvas, scale, true);
+    
+    // Convert canvas to data URL
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch (error) {
+    console.error('Error converting PDF page to data URL:', error);
+    throw error;
+  }
+}
+
+/**
+ * Load a PDF page as an image for fabric.js editing
+ */
+export async function loadPdfPageAsImage(
+  pdfPage: pdfjsLib.PDFPageProxy, 
+  scale: number = 1.5
+): Promise<HTMLImageElement> {
+  try {
+    // Convert the PDF page to a data URL
+    const dataUrl = await pdfPageToDataUrl(pdfPage, 0.9, scale);
+    
+    // Create a new image from the data URL
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+      img.src = dataUrl;
+    });
+  } catch (error) {
+    console.error('Error loading PDF page as image:', error);
     throw error;
   }
 }

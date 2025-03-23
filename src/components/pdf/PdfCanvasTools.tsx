@@ -45,6 +45,11 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
         canvas.isDrawingMode = false;
         canvas.selection = true;
         canvas.defaultCursor = 'default';
+        // Ensure all objects are selectable
+        canvas.forEachObject(obj => {
+          obj.selectable = true;
+          obj.setCoords();
+        });
         break;
       case 'pen':
         canvas.isDrawingMode = true;
