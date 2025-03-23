@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -100,7 +101,8 @@ const ToolsGrid = () => {
       description: "Edita el contenido de tus documentos",
       icon: FileCog,
       to: "/tools/edit",
-      category: "edicion"
+      category: "edicion",
+      maintenance: true
     },
     {
       title: "OCR PDF",
