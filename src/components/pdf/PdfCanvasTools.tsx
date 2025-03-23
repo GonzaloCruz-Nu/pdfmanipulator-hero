@@ -38,6 +38,7 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
 
     console.log("Updating tool to:", activeTool, "with color:", color, "and size:", size);
 
+    // Reset drawing mode first
     canvas.isDrawingMode = false;
 
     switch (activeTool) {
@@ -48,6 +49,7 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
         // Ensure all objects are selectable
         canvas.forEachObject(obj => {
           obj.selectable = true;
+          obj.evented = true;
           obj.setCoords();
         });
         break;
@@ -55,6 +57,7 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
         canvas.isDrawingMode = true;
         canvas.freeDrawingBrush.color = color;
         canvas.freeDrawingBrush.width = size;
+        canvas.defaultCursor = 'crosshair';
         break;
       case 'text':
       case 'rectangle':
@@ -90,6 +93,8 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
       
       canvas.add(text);
       canvas.setActiveObject(text);
+      text.enterEditing();
+      text.selectAll();
       onToolChange('select');
       return;
     }
@@ -104,6 +109,8 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
         fill: 'transparent',
         stroke: color,
         strokeWidth: size,
+        selectable: false,
+        evented: false,
       });
     } else if (activeTool === 'circle') {
       tempShape = new fabric.Circle({
@@ -113,14 +120,19 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
         fill: 'transparent',
         stroke: color,
         strokeWidth: size,
+        selectable: false,
+        evented: false,
       });
     } else {
       return;
     }
 
     canvas.add(tempShape);
+    canvas.renderAll();
     
     const handleMouseMove = (moveEvent: fabric.IEvent) => {
+      if (!canvas) return;
+      
       const movePointer = canvas.getPointer(moveEvent.e);
       
       if (activeTool === 'rectangle') {
@@ -161,11 +173,34 @@ const PdfCanvasTools: React.FC<PdfCanvasToolsProps> = ({
     };
     
     const handleMouseUp = () => {
+      if (!canvas) return;
+      
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
-      onToolChange('select');
       
-      canvas.setActiveObject(tempShape);
+      // Check if shape is too small
+      let isTooSmall = false;
+      if (activeTool === 'rectangle') {
+        const rect = tempShape as fabric.Rect;
+        isTooSmall = (rect.width || 0) < 5 || (rect.height || 0) < 5;
+      } else if (activeTool === 'circle') {
+        const circle = tempShape as fabric.Circle;
+        isTooSmall = (circle.radius || 0) < 2.5;
+      }
+      
+      if (isTooSmall) {
+        canvas.remove(tempShape);
+      } else {
+        // Make object selectable now
+        tempShape.set({
+          selectable: true,
+          evented: true,
+        });
+        tempShape.setCoords();
+        canvas.setActiveObject(tempShape);
+      }
+      
+      onToolChange('select');
       canvas.renderAll();
     };
     

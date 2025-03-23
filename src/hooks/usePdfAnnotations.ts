@@ -15,6 +15,7 @@ export interface AnnotationsByPage {
 
 export const usePdfAnnotations = () => {
   const [annotations, setAnnotations] = useState<AnnotationsByPage>({});
+  const [isModified, setIsModified] = useState(false);
 
   const addAnnotation = useCallback((annotation: Omit<Annotation, 'id'>) => {
     const id = `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -31,6 +32,7 @@ export const usePdfAnnotations = () => {
       };
     });
     
+    setIsModified(true);
     return id;
   }, []);
 
@@ -43,6 +45,8 @@ export const usePdfAnnotations = () => {
         [pageNum]: pageAnnotations.filter(anno => anno.id !== annotationId)
       };
     });
+    
+    setIsModified(true);
   }, []);
 
   const updateAnnotation = useCallback((pageNum: number, annotationId: string, updates: Partial<Annotation>) => {
@@ -56,14 +60,18 @@ export const usePdfAnnotations = () => {
         )
       };
     });
+    
+    setIsModified(true);
   }, []);
 
   const getPageAnnotations = useCallback((pageNum: number) => {
     return annotations[pageNum] || [];
   }, [annotations]);
 
-  // Crear anotaciones de la página actual desde objetos de Fabric
+  // Create annotations from Fabric objects
   const createAnnotationsFromCanvas = useCallback((pageNum: number, fabricObjects: any[]) => {
+    console.log("Creating annotations from", fabricObjects.length, "Fabric objects");
+    
     const newAnnotations: Omit<Annotation, 'id'>[] = fabricObjects.map(obj => {
       let type: Annotation['type'] = 'rectangle';
       
@@ -98,28 +106,39 @@ export const usePdfAnnotations = () => {
       };
     });
     
-    // Agregar todas las anotaciones nuevas
+    // Add all new annotations
     newAnnotations.forEach(annotation => {
       addAnnotation(annotation);
     });
+    
+    setIsModified(true);
   }, [addAnnotation]);
 
-  // Limpiar todas las anotaciones de una página
+  // Clear all annotations from a page
   const clearPageAnnotations = useCallback((pageNum: number) => {
     setAnnotations(prevAnnotations => {
       const newAnnotations = { ...prevAnnotations };
       delete newAnnotations[pageNum];
       return newAnnotations;
     });
+    
+    setIsModified(true);
+  }, []);
+
+  // Check if annotations have been modified
+  const resetModifiedState = useCallback(() => {
+    setIsModified(false);
   }, []);
 
   return {
     annotations,
+    isModified,
     addAnnotation,
     removeAnnotation,
     updateAnnotation,
     getPageAnnotations,
     createAnnotationsFromCanvas,
-    clearPageAnnotations
+    clearPageAnnotations,
+    resetModifiedState
   };
 };

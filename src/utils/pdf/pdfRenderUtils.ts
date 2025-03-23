@@ -24,8 +24,8 @@ export const isWasmSupported = (): boolean => {
 export async function renderPageToCanvas(
   pdfPage: pdfjsLib.PDFPageProxy, 
   canvas: HTMLCanvasElement, 
-  scaleFactor: number,
-  preserveTextQuality: boolean
+  scaleFactor: number = 1.5,
+  preserveTextQuality: boolean = true
 ): Promise<void> {
   try {
     // Use scale based on configuration
@@ -66,6 +66,7 @@ export async function renderPageToCanvas(
     
     // Render the page
     await pdfPage.render(renderContext).promise;
+    console.log("Page rendered to canvas successfully");
   } catch (error) {
     console.error('Error rendering page:', error);
     throw error;
@@ -88,7 +89,9 @@ export async function pdfPageToDataUrl(
     await renderPageToCanvas(pdfPage, canvas, scale, true);
     
     // Convert canvas to data URL
-    return canvas.toDataURL('image/jpeg', quality);
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    console.log("PDF page converted to data URL successfully");
+    return dataUrl;
   } catch (error) {
     console.error('Error converting PDF page to data URL:', error);
     throw error;
@@ -109,8 +112,14 @@ export async function loadPdfPageAsImage(
     // Create a new image from the data URL
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = (err) => reject(err);
+      img.onload = () => {
+        console.log("PDF page loaded as image successfully");
+        resolve(img);
+      };
+      img.onerror = (err) => {
+        console.error("Error loading image:", err);
+        reject(err);
+      };
       img.src = dataUrl;
     });
   } catch (error) {
