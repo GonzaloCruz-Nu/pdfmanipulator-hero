@@ -70,12 +70,15 @@ export async function compressPDFWithCanvas(
                                       scaleFactor * 1.4;
           
           // Renderizar página en el canvas con configuraciones según nivel
+          // Aseguramos que textMode sea del tipo correcto ('print' | 'display')
+          const renderTextMode = textMode === 'print' ? 'print' : 'display';
+          
           await renderPageToCanvasWithOptions(
             page,
             canvas,
             adjustedScaleFactor,
             compressionLevel !== 'high', // Usar alta calidad solo para niveles bajo y medio
-            textMode
+            renderTextMode
           );
           
           // Usar calidad de JPEG según nivel de compresión
