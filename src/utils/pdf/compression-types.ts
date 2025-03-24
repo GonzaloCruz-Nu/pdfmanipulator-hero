@@ -6,7 +6,7 @@ export type CompressionLevel = 'low' | 'medium' | 'high';
 export interface CompressionFactors {
   jpegQuality: number;
   scaleFactor: number;
-  textMode: string;
+  textMode: 'print' | 'display'; // Fixed: Explicit union type instead of string
   maximumDimension: number;
   objectsPerTick: number;
   useObjectStreams: boolean;

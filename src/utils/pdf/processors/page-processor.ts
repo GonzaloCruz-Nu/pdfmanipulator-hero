@@ -25,7 +25,7 @@ export async function processPage(
     const compressionFactors = COMPRESSION_FACTORS[compressionLevel];
     const jpegQuality = compressionFactors.jpegQuality;
     const scaleFactor = compressionFactors.scaleFactor;
-    const textMode = compressionFactors.textMode;
+    const textMode = compressionFactors.textMode as 'print' | 'display'; // Fix: Explicit type casting
     const maximumDimension = compressionFactors.maximumDimension;
     
     // Obtener página actual

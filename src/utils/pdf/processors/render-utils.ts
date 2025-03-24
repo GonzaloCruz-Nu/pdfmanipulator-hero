@@ -126,4 +126,3 @@ export async function loadPdfDocumentFromArray(fileArrayBuffer: ArrayBuffer): Pr
     throw error;
   }
 }
-
