@@ -36,6 +36,8 @@ export const useCompressPDF = () => {
       // Obtener tamaño original
       const fileSize = file.size;
       
+      console.info(`Iniciando compresión de PDF con nivel ${compressionLevel}. Tamaño original: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+      
       // Comprimir usando el método basado en canvas con seguimiento de progreso
       const compressedFile = await compressPDFWithCanvas(
         file, 
@@ -50,6 +52,7 @@ export const useCompressPDF = () => {
       
       if (compressedFile) {
         const compressionResult = calculateCompression(fileSize, compressedFile.size);
+        console.info(`Compresión completada. Tamaño final: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB. Reducción: ${compressionResult.savedPercentage.toFixed(1)}%`);
         
         // Aceptamos el resultado solo si redujo el tamaño (o es nivel bajo con reducción mínima)
         if (compressionResult.savedPercentage > 0) {

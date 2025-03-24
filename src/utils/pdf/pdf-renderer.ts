@@ -22,14 +22,10 @@ export async function renderPageToCanvas(
     // Obtener viewport con escala ajustada
     const viewport = pdfPage.getViewport({ scale: scaleFactor });
     
-    // Configurar dimensiones del canvas
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
     // Para niveles de baja y media compresión, usar un DPI ajustado
     if (useHighQualityRendering) {
       // Usar un DPI elevado para mejorar calidad de texto
-      const dpr = Math.max(window.devicePixelRatio || 1, 4.0); // Aumentado a 4.0x DPR para calidad superior
+      const dpr = Math.max(window.devicePixelRatio || 1, 5.0); // Aumentado a 5.0x DPR (antes 4.0)
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -37,6 +33,10 @@ export async function renderPageToCanvas(
       canvas.height = scaledHeight;
       canvas.style.width = `${viewport.width}px`;
       canvas.style.height = `${viewport.height}px`;
+    } else {
+      // Configuración estándar para canvas
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
     }
     
     const ctx = canvas.getContext('2d');
@@ -75,7 +75,9 @@ export async function renderPageToCanvas(
       imageLayer: undefined,
       printAnnotationStorage: undefined,
       optionalContentConfigPromise: undefined,
-      renderingIntent: 'print' // Forzar siempre modo print para máxima calidad de texto
+      renderingIntent: 'print', // Forzar siempre modo print para máxima calidad de texto
+      enableScripting: false, // Desactivar scripting para enfocarse en renderizado
+      antialiasing: true // Habilitar antialiasing para mejor calidad
     };
     
     // Renderizar página con máxima calidad
@@ -99,6 +101,9 @@ export async function loadPdfDocument(fileArrayBuffer: ArrayBuffer): Promise<pdf
       useWorkerFetch: true,  // Usar worker para fetching
       disableFontFace: false, // Permitir uso de fuentes embebidas
       isEvalSupported: true,  // Habilitar eval para mejorar rendimiento
+      verbosity: 0, // Reducir verbosidad para mejor rendimiento
+      docBaseUrl: location.origin, // Ayudar a resolver URLs relativas
+      ignoreErrors: false, // No ignorar errores para asegurar calidad
     });
     return await loadingTask.promise;
   } catch (error) {
