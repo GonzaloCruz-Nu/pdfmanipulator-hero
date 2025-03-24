@@ -2,7 +2,7 @@
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from '../compression-constants';
-import { compressImageWithResmush } from '../resmush-service';
+import { checkResmushAvailability, compressImageWithResmush } from '../resmush-service';
 import { renderPageToCanvas } from '../pdf-renderer';
 import { CompressionLevel } from '../compression-types';
 
@@ -58,22 +58,11 @@ export async function compressPDFWithCanvas(
     const newPdfDoc = await PDFDocument.create();
     
     // Verificar la conexión con la API de reSmush.it
-    let resmushAvailable = false;
-    try {
-      const testConnectionResult = await fetch('https://api.resmush.it/ping', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000) // 5 segundos de timeout
-      });
-      resmushAvailable = testConnectionResult.ok;
-      if (resmushAvailable) {
-        console.info('Conexión exitosa con la API de reSmush.it');
-      } else {
-        console.warn('No se pudo conectar con la API de reSmush.it. Se usará compresión local.');
-      }
-    } catch (error) {
-      console.warn('Error al conectar con reSmush.it API:', error);
-      resmushAvailable = false;
+    const resmushAvailable = await checkResmushAvailability(5000);
+    if (resmushAvailable) {
+      console.info('Conexión exitosa con la API de reSmush.it. Se usará para optimización de imágenes.');
+    } else {
+      console.warn('No se pudo conectar con la API de reSmush.it. Se usará compresión local.');
     }
     
     // Procesar cada página
@@ -102,20 +91,24 @@ export async function compressPDFWithCanvas(
       // Comprimir la imagen del canvas
       let compressedImageUrl;
       
-      // Solo intentar usar reSmush.it si está disponible
+      // Intentar usar reSmush.it si está disponible y el nivel no es bajo
       if (resmushAvailable && compressionLevel !== 'low') {
         try {
-          // Convertir canvas a Blob con alta calidad
+          // Convertir canvas a Blob con alta calidad para enviar a reSmush
           const canvasBlob = await new Promise<Blob>((resolve) => {
             canvas.toBlob((blob) => {
               resolve(blob || new Blob([]));
-            }, 'image/jpeg', imageQuality);
+            }, 'image/jpeg', 0.99); // Enviamos calidad alta para que reSmush tenga mejor material
           });
           
-          // Usar la API para comprimir
+          // Usar la API para comprimir con reintentos
           compressedImageUrl = await compressImageWithResmush(
             canvasBlob,
-            { quality: resmushQuality, timeout: 15000 }
+            { 
+              quality: resmushQuality, 
+              timeout: 25000,
+              retries: 1 // Un reintento adicional
+            }
           );
           
           console.info(`Página ${i+1} comprimida exitosamente con reSmush.it API`);
@@ -134,23 +127,18 @@ export async function compressPDFWithCanvas(
       let compressedImageArrayBuffer;
       
       if (compressedImageUrl.startsWith('data:')) {
-        // Es un data URL (compresión local)
+        // Es un data URL (compresión local o reSmush convertido a dataURL)
         const base64 = compressedImageUrl.split(',')[1];
         compressedImageArrayBuffer = Buffer.from(base64, 'base64');
       } else {
-        // Es una URL (reSmush.it API)
+        // Es una URL de objeto (caso raro pero posible)
         try {
-          const compressedImageResponse = await fetch(compressedImageUrl, {
-            signal: AbortSignal.timeout(15000) // 15 segundos de timeout
-          });
-          if (!compressedImageResponse.ok) {
-            throw new Error(`Error al descargar imagen comprimida: ${compressedImageResponse.status}`);
-          }
-          const compressedImageBlob = await compressedImageResponse.blob();
-          compressedImageArrayBuffer = await compressedImageBlob.arrayBuffer();
+          const response = await fetch(compressedImageUrl);
+          const blob = await response.blob();
+          compressedImageArrayBuffer = await blob.arrayBuffer();
         } catch (error) {
-          console.warn(`Error al descargar imagen comprimida: ${error}. Usando original.`);
-          // Si falla la descarga, usar la imagen original
+          console.warn(`Error al procesar URL de objeto: ${error}. Usando imagen original.`);
+          // Fallback a la imagen original
           compressedImageUrl = canvas.toDataURL('image/jpeg', imageQuality);
           const base64 = compressedImageUrl.split(',')[1];
           compressedImageArrayBuffer = Buffer.from(base64, 'base64');

@@ -4,12 +4,14 @@
  */
 
 const RESMUSH_API_URL = 'https://api.resmush.it/ws.php';
+const RESMUSH_PING_URL = 'https://api.resmush.it/ping';
 
 // Opciones para la compresión de imágenes
 export interface ResmushOptions {
   quality?: number;     // Calidad de compresión (0-100)
   exif?: boolean;       // Mantener metadatos EXIF
   timeout?: number;     // Tiempo máximo de espera en milisegundos
+  retries?: number;     // Número de reintentos
 }
 
 // Resultado de la compresión
@@ -18,6 +20,41 @@ export interface ResmushResult {
   dest_size: number;    // Tamaño comprimido en bytes  
   percent: number;      // Porcentaje de reducción
   dest: string;         // URL de la imagen comprimida
+}
+
+/**
+ * Verifica la disponibilidad del servicio reSmush.it
+ * @param timeout Tiempo máximo de espera en ms
+ * @returns Booleano indicando si el servicio está disponible
+ */
+export async function checkResmushAvailability(timeout: number = 5000): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    const response = await fetch(RESMUSH_PING_URL, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+        'Referer': window.location.origin || 'http://localhost'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      console.info('Conexión exitosa con la API de reSmush.it');
+      return true;
+    } else {
+      console.warn(`Respuesta no satisfactoria de reSmush.it: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.warn('Error al verificar disponibilidad de reSmush.it:', error);
+    return false;
+  }
 }
 
 /**
@@ -35,6 +72,15 @@ export async function compressImageWithResmush(
     const quality = options.quality ?? 90;
     const exif = options.exif ?? true;
     const timeout = options.timeout ?? 30000; // 30 segundos por defecto
+    const retries = options.retries ?? 1; // 1 intento adicional por defecto
+    
+    // Verificar disponibilidad del servicio
+    if (!(await checkResmushAvailability())) {
+      console.warn('reSmush.it API no disponible, usando compresión local');
+      // Fallback a compresión local
+      const compressedBlob = await compressImageLocally(imageData, quality / 100);
+      return URL.createObjectURL(compressedBlob);
+    }
     
     // Convertir a Blob si es ArrayBuffer
     const imageBlob = imageData instanceof Blob 
@@ -51,14 +97,96 @@ export async function compressImageWithResmush(
     
     console.info(`Enviando solicitud a reSmush.it API con calidad ${quality}%...`);
     
-    // Configurar el controlador de tiempo de espera
+    // Implementar sistema de reintentos
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      if (attempt > 0) {
+        console.info(`Reintentando petición a reSmush.it (intento ${attempt}/${retries})...`);
+      }
+      
+      try {
+        // Configurar el controlador de tiempo de espera
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        // Realizar la petición a reSmush.it con los headers requeridos
+        const response = await fetch(RESMUSH_API_URL, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+            'Referer': window.location.origin || 'http://localhost',
+            'Accept': 'application/json'
+          },
+          signal: controller.signal
+        });
+        
+        // Limpiar el timeout
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error en la respuesta de reSmush.it (${response.status}):`, errorText);
+          throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+        }
+        
+        const data: ResmushResult = await response.json();
+        console.info('Respuesta de reSmush.it:', data);
+        
+        if (!data.dest) {
+          throw new Error('No se recibió la URL de la imagen comprimida');
+        }
+        
+        if ('error' in data) {
+          throw new Error(`Error de reSmush.it: ${(data as any).error_long || (data as any).error}`);
+        }
+        
+        // Verificar y mostrar estadísticas de compresión
+        if (data.src_size && data.dest_size) {
+          const originalSizeKB = Math.round(data.src_size / 1024);
+          const compressedSizeKB = Math.round(data.dest_size / 1024);
+          const percentReduction = data.percent || ((data.src_size - data.dest_size) / data.src_size * 100).toFixed(2);
+          
+          console.info(`reSmush.it (qlty=${quality}%): ${originalSizeKB}KB → ${compressedSizeKB}KB (${percentReduction}% reducción)`);
+        }
+        
+        // Descargar la imagen comprimida con timeout
+        return await downloadCompressedImageAsDataURL(data.dest, timeout);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt === retries) {
+          // Si es el último intento, propagar el error
+          throw lastError;
+        }
+        // Esperar antes de reintentar
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Este punto no debería alcanzarse debido al manejo de errores anterior
+    throw lastError || new Error('Error desconocido en compressImageWithResmush');
+  } catch (error) {
+    console.error('Error al comprimir imagen con reSmush.it:', error);
+    
+    // Fallback a compresión local en caso de error
+    console.info('Usando compresión local como alternativa...');
+    const compressedBlob = await compressImageLocally(imageData, (options.quality || 90) / 100);
+    return URL.createObjectURL(compressedBlob);
+  }
+}
+
+/**
+ * Descarga una imagen comprimida y la convierte a Data URL
+ */
+async function downloadCompressedImageAsDataURL(imageUrl: string, timeout: number = 30000): Promise<string> {
+  try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
-    // Realizar la petición a reSmush.it con los headers requeridos
-    const response = await fetch(RESMUSH_API_URL, {
-      method: 'POST',
-      body: formData,
+    console.info(`Descargando imagen comprimida desde ${imageUrl}...`);
+    
+    const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
         'Referer': window.location.origin || 'http://localhost'
@@ -66,67 +194,20 @@ export async function compressImageWithResmush(
       signal: controller.signal
     });
     
-    // Limpiar el timeout
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error en la respuesta de reSmush.it:', errorText);
-      throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+      throw new Error(`Error al descargar imagen: ${response.status}`);
     }
     
-    const data: ResmushResult = await response.json();
-    console.info('Respuesta de reSmush.it:', data);
-    
-    if (!data.dest) {
-      throw new Error('No se recibió la URL de la imagen comprimida');
-    }
-    
-    if ('error' in data) {
-      throw new Error(`Error de reSmush.it: ${(data as any).error_long || (data as any).error}`);
-    }
-    
-    // Verificar y mostrar estadísticas de compresión
-    if (data.src_size && data.dest_size) {
-      const originalSizeKB = Math.round(data.src_size / 1024);
-      const compressedSizeKB = Math.round(data.dest_size / 1024);
-      const percentReduction = data.percent || ((data.src_size - data.dest_size) / data.src_size * 100).toFixed(2);
-      
-      console.info(`reSmush.it (qlty=${quality}%): ${originalSizeKB}KB → ${compressedSizeKB}KB (${percentReduction}% reducción)`);
-    }
-    
-    // Descargar la imagen comprimida con timeout
-    const downloadController = new AbortController();
-    const downloadTimeoutId = setTimeout(() => downloadController.abort(), timeout);
-    
-    try {
-      const compressedImageResponse = await fetch(data.dest, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
-          'Referer': window.location.origin || 'http://localhost'
-        },
-        signal: downloadController.signal
-      });
-      
-      clearTimeout(downloadTimeoutId);
-      
-      if (!compressedImageResponse.ok) {
-        throw new Error('Error al descargar la imagen comprimida');
-      }
-      
-      // Convertir a URL de objeto para uso en PDF
-      const compressedImageBlob = await compressedImageResponse.blob();
-      return URL.createObjectURL(compressedImageBlob);
-    } catch (error) {
-      clearTimeout(downloadTimeoutId);
-      throw error;
-    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      console.error('La solicitud a reSmush.it ha excedido el tiempo de espera');
-      throw new Error('Tiempo de espera excedido. El servidor de compresión no responde.');
+      console.error('La descarga de la imagen ha excedido el tiempo de espera');
+      throw new Error('Tiempo de espera excedido al descargar la imagen comprimida.');
     }
-    console.error('Error al comprimir imagen con reSmush.it:', error);
+    console.error('Error al descargar imagen comprimida:', error);
     throw error;
   }
 }
