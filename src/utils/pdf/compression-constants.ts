@@ -8,11 +8,11 @@ export const COMPRESSION_FACTORS = {
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.998, // Calidad JPEG aumentada de 0.998 a 0.999
+    jpegQuality: 0.998, // Calidad JPEG aumentada a 0.998
     useWebP: false, // No usar WebP por defecto
     webpQuality: 0.998, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 98 // Calidad para reSmush.it API aumentada de 95 a 98
+    resmushQuality: 98 // Calidad para reSmush.it API aumentada a 98
   },
   medium: { 
     imageQuality: 0.98, // Aumentado drásticamente a 0.98 (casi sin compresión)
