@@ -1,4 +1,3 @@
-
 import { downloadCompressedImage, compressImageWithResmush, checkResmushAvailability } from '../resmush-service';
 
 /**
@@ -28,7 +27,7 @@ export async function compressCanvasImage(
     // Para imágenes muy grandes, usar calidad alta pero razonable
     if (canvasSize > 8000000) { // > 8 megapíxeles
       // Usar una calidad adaptativa basada en el tamaño pero manteniendo buena legibilidad
-      const adjustedQuality = Math.max(0.85, fallbackQuality - 0.05);
+      const adjustedQuality = Math.max(0.78, fallbackQuality - 0.07); // Ajustado para más compresión
       console.info(`Imagen muy grande detectada (${Math.round(canvasSize/1000000)} MP), ajustando calidad a ${adjustedQuality.toFixed(2)}`);
       return canvas.toDataURL('image/jpeg', adjustedQuality);
     }
@@ -36,7 +35,7 @@ export async function compressCanvasImage(
     // Para imágenes con texto potencial (detectado por proporción y tamaño)
     // usar calidad extra alta
     if (canvasSize < 3000000 && (canvas.width / canvas.height > 1.2 || canvas.height / canvas.width > 1.2)) {
-      const enhancedQuality = Math.min(0.95, fallbackQuality + 0.05);
+      const enhancedQuality = Math.min(0.90, fallbackQuality + 0.02); // Ajustado para más compresión
       console.info(`Posible documento con texto detectado, aumentando calidad a ${enhancedQuality.toFixed(2)}`);
       return canvas.toDataURL('image/jpeg', enhancedQuality);
     }
@@ -70,7 +69,7 @@ export async function compressCanvasImage(
   } catch (error) {
     console.error(`Error general comprimiendo imagen de página ${pageIndex+1}:`, error);
     // Último recurso: devolver una imagen con calidad alta como fallback
-    return canvas.toDataURL('image/jpeg', 0.9); // Aumentado a 0.9 (era 0.7)
+    return canvas.toDataURL('image/jpeg', 0.88); // Ajustado para más compresión (era 0.9)
   }
 }
 

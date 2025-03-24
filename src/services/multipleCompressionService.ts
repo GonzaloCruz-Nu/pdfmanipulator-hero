@@ -53,8 +53,8 @@ export const processPdfFile = async (
         continue;
       }
       
-      // Validación para nivel medio
-      if (compressedFile && compressionLevel === 'medium' && compressedFile.size < file.size * 0.5) {
+      // Validación para nivel medio - ajustada para permitir más compresión
+      if (compressedFile && compressionLevel === 'medium' && compressedFile.size < file.size * 0.4) {
         console.warn(`Compresión nivel medio demasiado agresiva (${Math.round((file.size - compressedFile.size) * 100 / file.size)}% reducción). Reintentando...`);
         compressedFile = null;
         continue;
