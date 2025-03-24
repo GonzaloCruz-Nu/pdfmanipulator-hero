@@ -1,3 +1,4 @@
+
 import { downloadCompressedImage, compressImageWithResmush, checkResmushAvailability } from '../resmush-service';
 
 /**
@@ -27,16 +28,16 @@ export async function compressCanvasImage(
     // Para imágenes muy grandes, usar calidad alta pero razonable
     if (canvasSize > 8000000) { // > 8 megapíxeles
       // Usar una calidad adaptativa basada en el tamaño pero manteniendo buena legibilidad
-      const adjustedQuality = Math.max(0.78, fallbackQuality - 0.07); // Ajustado para más compresión
+      const adjustedQuality = Math.max(0.72, fallbackQuality - 0.08); // Reducido para más compresión
       console.info(`Imagen muy grande detectada (${Math.round(canvasSize/1000000)} MP), ajustando calidad a ${adjustedQuality.toFixed(2)}`);
       return canvas.toDataURL('image/jpeg', adjustedQuality);
     }
     
     // Para imágenes con texto potencial (detectado por proporción y tamaño)
-    // usar calidad extra alta
+    // usar calidad alta pero ajustada
     if (canvasSize < 3000000 && (canvas.width / canvas.height > 1.2 || canvas.height / canvas.width > 1.2)) {
-      const enhancedQuality = Math.min(0.90, fallbackQuality + 0.02); // Ajustado para más compresión
-      console.info(`Posible documento con texto detectado, aumentando calidad a ${enhancedQuality.toFixed(2)}`);
+      const enhancedQuality = Math.min(0.85, fallbackQuality); // No aumentar la calidad
+      console.info(`Posible documento con texto detectado, usando calidad ${enhancedQuality.toFixed(2)}`);
       return canvas.toDataURL('image/jpeg', enhancedQuality);
     }
     
@@ -63,13 +64,13 @@ export async function compressCanvasImage(
       }
     }
     
-    // Compresión local con calidad ajustada - MEJORADA
+    // Compresión local con calidad ajustada - AJUSTADA PARA MÁS COMPRESIÓN
     console.info(`Usando compresión local para página ${pageIndex+1} (calidad: ${fallbackQuality})`);
     return canvas.toDataURL('image/jpeg', fallbackQuality);
   } catch (error) {
     console.error(`Error general comprimiendo imagen de página ${pageIndex+1}:`, error);
-    // Último recurso: devolver una imagen con calidad alta como fallback
-    return canvas.toDataURL('image/jpeg', 0.88); // Ajustado para más compresión (era 0.9)
+    // Último recurso: devolver una imagen con calidad más reducida como fallback
+    return canvas.toDataURL('image/jpeg', 0.80); // Reducido para más compresión (era 0.88)
   }
 }
 

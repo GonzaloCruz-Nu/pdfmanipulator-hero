@@ -60,20 +60,34 @@ export const useMultipleCompressPDF = () => {
           );
           
           if (compressedFile) {
-            const compressionResult = calculateCompressionStats(fileSize, compressedFile.size);
-            
-            // Accept files even if compression didn't reduce size
-            compressedFilesArray.push(compressedFile);
-            console.info(`File ${i+1} processed successfully: ${compressionResult.savedPercentage.toFixed(1)}% saved`);
-            
-            // If it's the last file or there's only one file, show compression info
-            if (i === files.length - 1 || files.length === 1) {
-              setCompressionInfo(compressionResult);
+            // Verificar que el resultado no sea mayor que el original x1.5
+            // Es un control adicional a los que ya hay en processPdfFile
+            if (compressedFile.size > file.size * 1.5) {
+              console.error(`Resultado de compresión excesivamente grande detectado: ${(compressedFile.size/1024/1024).toFixed(2)}MB vs ${(file.size/1024/1024).toFixed(2)}MB. Usando original.`);
               
-              if (files.length === 1) {
-                toast.success(`PDF processed successfully. Savings: ${compressionResult.savedPercentage > 0 ? compressionResult.savedPercentage.toFixed(1) + '%' : 'no size reduction'}`);
-              } else {
-                toast.success(`All PDFs processed successfully.`);
+              // Usar una copia del original en su lugar
+              const originalCopy = await createFallbackCopy(file);
+              if (originalCopy) {
+                compressedFilesArray.push(originalCopy);
+                console.warn(`Se usó una copia del original para ${file.name} para evitar aumento excesivo de tamaño`);
+              }
+            } else {
+              // Resultado normal, calcular estadísticas y agregarlo
+              const compressionResult = calculateCompressionStats(fileSize, compressedFile.size);
+              compressedFilesArray.push(compressedFile);
+              console.info(`File ${i+1} processed successfully: ${compressionResult.savedPercentage.toFixed(1)}% saved`);
+              
+              // Si es el último archivo o hay un solo archivo, mostrar info
+              if (i === files.length - 1 || files.length === 1) {
+                setCompressionInfo(compressionResult);
+                
+                if (files.length === 1) {
+                  toast.success(`PDF procesado correctamente. ${compressionResult.savedPercentage > 0 ? 
+                    `Reducción: ${compressionResult.savedPercentage.toFixed(1)}%` : 
+                    'Sin reducción de tamaño'}`);
+                } else {
+                  toast.success(`Todos los PDFs procesados correctamente.`);
+                }
               }
             }
           } else {
@@ -88,10 +102,10 @@ export const useMultipleCompressPDF = () => {
             }
             
             if (files.length === 1) {
-              setCompressionError('Could not process the PDF. Try with another compression level.');
-              toast.error('Could not process the PDF.');
+              setCompressionError('No se pudo procesar el PDF. Intenta con otro nivel de compresión.');
+              toast.error('No se pudo procesar el PDF.');
             } else {
-              toast.warning(`File ${file.name} could not be processed.`);
+              toast.warning(`No se pudo procesar el archivo ${file.name}.`);
             }
           }
         } catch (fileError) {
@@ -114,13 +128,13 @@ export const useMultipleCompressPDF = () => {
       showCompressionResultToast(compressedFilesArray, files, processingErrors);
       
       if (compressedFilesArray.length === 0) {
-        setCompressionError('Could not process any PDF files. Try with another compression level.');
+        setCompressionError('No se pudo procesar ningún archivo PDF. Intenta con otro nivel de compresión.');
       }
       
     } catch (error) {
       console.error('Error compressing PDFs:', error);
-      setCompressionError('Error processing PDFs. Try with other files or compression level.');
-      toast.error('Error compressing PDFs.');
+      setCompressionError('Error al procesar PDFs. Intenta con otros archivos o nivel de compresión.');
+      toast.error('Error al comprimir PDFs.');
     } finally {
       // Ensure progress is completed
       setProgress(100);
@@ -147,7 +161,7 @@ export const useMultipleCompressPDF = () => {
    */
   const downloadAllAsZip = async () => {
     if (compressedFiles.length === 0) {
-      toast.error('No compressed files to download');
+      toast.error('No hay archivos comprimidos para descargar');
       return;
     }
     

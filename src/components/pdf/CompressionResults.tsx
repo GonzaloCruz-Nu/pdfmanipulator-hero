@@ -85,6 +85,17 @@ const CompressionResults: React.FC<CompressionResultsProps> = ({
                 </span>
               </div>
             </div>
+            
+            {totalStats.totalOriginalSize < totalStats.totalCompressedSize && (
+              <div className="mt-3 text-xs bg-red-100 p-2 rounded">
+                <strong>Advertencia:</strong> Los archivos procesados son más grandes que los originales. 
+                Esto puede suceder con PDFs ya optimizados o con características especiales.
+                <ul className="list-disc pl-4 mt-1">
+                  <li>Prueba con otro nivel de compresión</li>
+                  <li>Considera usar los archivos originales</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}

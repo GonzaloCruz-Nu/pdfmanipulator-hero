@@ -60,6 +60,54 @@ export const processPdfFile = async (
         continue;
       }
       
+      // VALIDACIÓN CRÍTICA: Si el archivo procesado es mayor que el original x 1.5
+      if (compressedFile && compressedFile.size > file.size * 1.5) {
+        console.error(`¡ALERTA! El archivo procesado es significativamente más grande (${Math.round(compressedFile.size/1024/1024)} MB vs original ${Math.round(file.size/1024/1024)} MB). Usando original.`);
+        
+        // En este caso, devolver una copia del original en vez del resultado inflado
+        const buffer = await file.arrayBuffer();
+        compressedFile = new File(
+          [buffer],
+          `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+          { type: 'application/pdf' }
+        );
+        continue;
+      }
+      
+      // VALIDACIÓN ADICIONAL: Si el archivo procesado es ligeramente mayor que el original
+      if (compressedFile && compressedFile.size > file.size * 1.1) {
+        console.warn(`El archivo procesado es más grande (${Math.round(compressedFile.size/1024/1024)} MB vs original ${Math.round(file.size/1024/1024)} MB). Intentando optimización extra.`);
+        
+        try {
+          // Intentar una optimización adicional
+          const { ultimateCompression } = await import('@/utils/pdf/ultimate-compression');
+          const optimizedFile = await ultimateCompression(await compressedFile.arrayBuffer(), compressionLevel, file.name);
+          
+          // Solo usar si realmente es menor que el original
+          if (optimizedFile && optimizedFile.size < file.size) {
+            console.info(`Optimización extra exitosa: ${Math.round(optimizedFile.size/1024/1024)} MB`);
+            compressedFile = optimizedFile;
+          } else {
+            // Si no se puede reducir, usar el original
+            const buffer = await file.arrayBuffer();
+            compressedFile = new File(
+              [buffer],
+              `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+              { type: 'application/pdf' }
+            );
+          }
+        } catch (optimizeError) {
+          console.error("Error en optimización adicional:", optimizeError);
+          // Usar original como fallback
+          const buffer = await file.arrayBuffer();
+          compressedFile = new File(
+            [buffer],
+            `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+            { type: 'application/pdf' }
+          );
+        }
+      }
+      
     } catch (attemptError) {
       console.warn(`Intento ${attempts}/${maxAttempts} falló:`, attemptError);
       

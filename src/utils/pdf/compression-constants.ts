@@ -16,18 +16,18 @@ export const COMPRESSION_FACTORS = {
     maximumDimension: 2400 // Aumentado para preservar más detalles (era 1800)
   },
   medium: { 
-    imageQuality: 0.80, // Ajustado para más compresión (era 0.85)
-    scaleFactor: 0.85, // Reducido ligeramente para mejor compresión (era 0.95)
-    colorReduction: 0.85, // Reducido ligeramente para mejor compresión (era 0.9)
+    imageQuality: 0.75, // Reducido para más compresión (era 0.80)
+    scaleFactor: 0.80, // Reducido para mejor compresión (era 0.85)
+    colorReduction: 0.80, // Reducido para mejor compresión (era 0.85)
     useHighQualityFormat: true, // Mantener alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG
-    jpegQuality: 0.80, // Ajustado para más compresión (era 0.85)
+    jpegQuality: 0.75, // Reducido para más compresión (era 0.80)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.80, // Ajustado para más compresión (era 0.85)
+    webpQuality: 0.75, // Reducido para más compresión (era 0.80)
     textMode: 'print' as 'print' | 'display', // Modo optimizado para texto
-    resmushQuality: 80, // Ajustado para más compresión (era 85)
-    maximumDimension: 1600 // Reducido para mejor compresión (era 1800)
+    resmushQuality: 75, // Reducido para más compresión (era 80)
+    maximumDimension: 1400 // Reducido para mejor compresión (era 1600)
   },
   high: { 
     imageQuality: 0.60, // Duplicado para mejor legibilidad (era 0.30)
