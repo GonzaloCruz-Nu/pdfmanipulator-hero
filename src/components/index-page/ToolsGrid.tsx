@@ -5,7 +5,7 @@ import {
   Merge, Scissors, Zap, Unlock, FileCog, 
   FileSearch, FileLock, RotateCw, Languages, 
   Stamp, MoveVertical, EyeOff, ImagePlus,
-  Files, History
+  Files, History, Scale
 } from 'lucide-react';
 import ToolCard from '@/components/ToolCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,6 +92,14 @@ const ToolsGrid = () => {
       icon: RotateCw,
       to: "/tools/rotate",
       category: "basicas"
+    },
+    {
+      title: "Ajustar a A4",
+      description: "Escala tus documentos al formato A4",
+      icon: Scale,
+      to: "/tools/resize-a4",
+      category: "basicas",
+      isNew: true
     }
   ];
 

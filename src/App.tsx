@@ -23,6 +23,7 @@ import SortPDF from "./pages/tools/SortPDF";
 import CensorPDF from "./pages/tools/CensorPDF";
 import ExtractImagesPDF from "./pages/tools/ExtractImagesPDF";
 import ComparePDF from "./pages/tools/ComparePDF";
+import ResizeA4PDF from "./pages/tools/ResizeA4PDF";
 import NotFound from "./pages/NotFound";
 import CompressPDFGuide from "./pages/wiki/CompressPDFGuide";
 import MergePDFGuide from "./pages/wiki/MergePDFGuide";
@@ -93,6 +94,7 @@ const App = () => {
             <Route path="/tools/censor" element={<CensorPDF />} />
             <Route path="/tools/extract-images" element={<ExtractImagesPDF />} />
             <Route path="/tools/compare" element={<ComparePDF />} />
+            <Route path="/tools/resize-a4" element={<ResizeA4PDF />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
