@@ -37,7 +37,13 @@ export const useCompressPDF = () => {
       const fileSize = file.size;
       
       // Comprimir usando el método basado en canvas con seguimiento de progreso
-      const compressedFile = await compressPDFWithCanvas(file, compressionLevel, setProgress);
+      const compressedFile = await compressPDFWithCanvas(
+        file, 
+        compressionLevel, 
+        0, 
+        1, 
+        (progressValue: number) => setProgress(progressValue)
+      );
       
       // Asegurar que progreso llega a 100 siempre
       setProgress(100);
