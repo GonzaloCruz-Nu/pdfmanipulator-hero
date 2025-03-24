@@ -1,8 +1,10 @@
+
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { COMPRESSION_FACTORS } from '@/utils/pdf/compression-constants';
 import { isWasmSupported } from '@/utils/pdf/pdfRenderUtils';
 import { compressPDFWithCanvas } from '@/utils/pdf/processors/canvas-processor';
+import type { TotalCompressionStats } from '@/utils/pdf/compression-types';
 
 // Types of compression
 export type CompressionLevel = 'low' | 'medium' | 'high';
@@ -336,3 +338,35 @@ export const calculateCompressionStats = (originalSize: number, compressedSize: 
   };
 };
 
+/**
+ * Calculates total compression statistics for multiple files
+ */
+export const calculateTotalCompressionStats = (
+  originalFiles: File[],
+  compressedFiles: File[]
+): TotalCompressionStats => {
+  if (!originalFiles.length || !compressedFiles.length) {
+    return {
+      totalOriginalSize: 0,
+      totalCompressedSize: 0,
+      totalSavedPercentage: 0,
+      fileCount: 0
+    };
+  }
+
+  // Calculate total sizes
+  const totalOriginalSize = originalFiles.reduce((sum, file) => sum + file.size, 0);
+  const totalCompressedSize = compressedFiles.reduce((sum, file) => sum + file.size, 0);
+  
+  // Calculate percentage saved
+  const totalSavedPercentage = totalOriginalSize > 0 
+    ? Math.round(((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 1000) / 10
+    : 0;
+  
+  return {
+    totalOriginalSize,
+    totalCompressedSize,
+    totalSavedPercentage,
+    fileCount: compressedFiles.length
+  };
+};
