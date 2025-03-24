@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { Undo2, RotateCw, RotateCcw, Save, ListChecks, XCircle, Check } from 'lucide-react';
+import { Undo2, RotateCw, RotateCcw, Save, ListChecks, XCircle, Check, Loader2 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import { usePdfRenderer } from '@/hooks/usePdfRenderer';
@@ -19,6 +19,7 @@ const RotatePDF: React.FC = () => {
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [showSelectionMode, setShowSelectionMode] = useState(false);
+  const [generatingThumbnails, setGeneratingThumbnails] = useState(false);
   
   const {
     currentPage,
@@ -34,21 +35,28 @@ const RotatePDF: React.FC = () => {
     renderThumbnail
   } = usePdfRenderer(file);
 
-  // Efecto para generar las miniaturas cuando el PDF se carga
   useEffect(() => {
     if (!pdfDocument || !file) return;
     
     const generateThumbnails = async () => {
+      setGeneratingThumbnails(true);
       const thumbs: string[] = [];
-      for (let i = 1; i <= totalPages; i++) {
-        const thumb = await renderThumbnail(i);
-        if (thumb) thumbs.push(thumb);
+      try {
+        for (let i = 1; i <= totalPages; i++) {
+          const thumb = await renderThumbnail(i);
+          if (thumb) thumbs.push(thumb);
+        }
+        setThumbnails(thumbs);
+      } catch (error) {
+        console.error('Error generando miniaturas:', error);
+        toast.error('Error al generar las miniaturas del PDF');
+      } finally {
+        setGeneratingThumbnails(false);
       }
-      setThumbnails(thumbs);
     };
     
     generateThumbnails();
-  }, [pdfDocument, totalPages, file]);
+  }, [pdfDocument, totalPages, file, renderThumbnail]);
 
   const handleFileChange = (uploadedFiles: File[]) => {
     if (uploadedFiles.length > 0) {
@@ -67,19 +75,16 @@ const RotatePDF: React.FC = () => {
     const newRotationAngles = { ...rotationAngles };
     
     pagesToRotate.forEach(page => {
-      // Calculate new rotation angle (add or subtract 90 degrees)
       const currentAngle = rotationAngles[page] || 0;
       const newAngle = direction === 'clockwise' 
         ? (currentAngle + 90) % 360 
         : (currentAngle - 90 + 360) % 360;
       
-      // Update rotation angles state
       newRotationAngles[page] = newAngle;
     });
     
     setRotationAngles(newRotationAngles);
     
-    // Apply rotation to preview if we're only viewing the current page
     if (selectedPages.length === 0 || selectedPages.includes(currentPage)) {
       reloadCurrentPage(newRotationAngles[currentPage] || 0);
     }
@@ -97,7 +102,6 @@ const RotatePDF: React.FC = () => {
     
     setRotationAngles(newRotationAngles);
     
-    // Reload current page without rotation if appropriate
     if (selectedPages.length === 0 || selectedPages.includes(currentPage)) {
       reloadCurrentPage(0);
     }
@@ -110,7 +114,6 @@ const RotatePDF: React.FC = () => {
       setProcessingRotation(true);
       toast.info("Procesando rotaciones, espere un momento...");
       
-      // Save rotated PDF
       await rotatePdfPage(file, rotationAngles);
       
       toast.success('PDF rotado correctamente. Descarga completada.');
@@ -144,7 +147,6 @@ const RotatePDF: React.FC = () => {
   const toggleSelectionMode = () => {
     setShowSelectionMode(prev => !prev);
     if (showSelectionMode) {
-      // Clear selection when exiting selection mode
       setSelectedPages([]);
     }
   };
@@ -186,7 +188,6 @@ const RotatePDF: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Sidebar con miniaturas y selección de páginas */}
                 {showSelectionMode && (
                   <div className="md:col-span-1 bg-gray-50 p-4 rounded-lg overflow-y-auto max-h-[600px] border border-gray-200">
                     <div className="flex justify-between items-center mb-3">
@@ -196,6 +197,7 @@ const RotatePDF: React.FC = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={selectAllPages}
+                          disabled={generatingThumbnails}
                           title="Seleccionar todas"
                         >
                           <Check className="h-4 w-4" />
@@ -204,6 +206,7 @@ const RotatePDF: React.FC = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={clearPageSelection}
+                          disabled={generatingThumbnails}
                           title="Limpiar selección"
                         >
                           <XCircle className="h-4 w-4" />
@@ -211,45 +214,61 @@ const RotatePDF: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      {thumbnails.map((thumb, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`flex items-center space-x-2 p-2 rounded ${selectedPages.includes(idx + 1) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'}`}
-                        >
-                          <Checkbox 
-                            id={`page-${idx + 1}`}
-                            checked={selectedPages.includes(idx + 1)}
-                            onCheckedChange={() => togglePageSelection(idx + 1)}
-                          />
-                          <div className="flex items-center space-x-2 flex-1">
-                            <div className="w-12 h-16 relative border border-gray-200">
-                              <img 
-                                src={thumb} 
-                                alt={`Página ${idx + 1}`} 
-                                className="absolute inset-0 w-full h-full object-contain"
-                              />
+                    {generatingThumbnails ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: Math.min(10, totalPages) }).map((_, idx) => (
+                          <div key={idx} className="flex items-center space-x-2 p-2 rounded animate-pulse">
+                            <Skeleton className="h-4 w-4 rounded-sm" />
+                            <div className="flex items-center space-x-2 flex-1">
+                              <Skeleton className="w-12 h-16 rounded" />
+                              <Skeleton className="h-4 w-16 rounded" />
                             </div>
-                            <label htmlFor={`page-${idx + 1}`} className="text-sm cursor-pointer flex-1">
-                              Página {idx + 1}
-                              {rotationAngles[idx + 1] ? 
-                                <span className="text-xs text-blue-600 ml-1">
-                                  ({rotationAngles[idx + 1]}°)
-                                </span> : null
-                              }
-                            </label>
                           </div>
+                        ))}
+                        <div className="text-center text-sm text-muted-foreground pt-2">
+                          <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
+                          Generando miniaturas...
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {thumbnails.map((thumb, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`flex items-center space-x-2 p-2 rounded ${selectedPages.includes(idx + 1) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'}`}
+                          >
+                            <Checkbox 
+                              id={`page-${idx + 1}`}
+                              checked={selectedPages.includes(idx + 1)}
+                              onCheckedChange={() => togglePageSelection(idx + 1)}
+                            />
+                            <div className="flex items-center space-x-2 flex-1">
+                              <div className="w-12 h-16 relative border border-gray-200">
+                                <img 
+                                  src={thumb} 
+                                  alt={`Página ${idx + 1}`} 
+                                  className="absolute inset-0 w-full h-full object-contain"
+                                />
+                              </div>
+                              <label htmlFor={`page-${idx + 1}`} className="text-sm cursor-pointer flex-1">
+                                Página {idx + 1}
+                                {rotationAngles[idx + 1] ? 
+                                  <span className="text-xs text-blue-600 ml-1">
+                                    ({rotationAngles[idx + 1]}°)
+                                  </span> : null
+                                }
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 
-                {/* Vista previa del PDF */}
                 <div className={`relative ${showSelectionMode ? 'md:col-span-3' : 'md:col-span-4'}`}>
                   <PdfPreview file={file} className="h-[600px]" />
                   
-                  {/* Rotation tools overlay */}
                   <div className="absolute top-12 right-4 flex flex-col gap-2 z-20">
                     <Button 
                       variant="secondary" 
@@ -282,15 +301,18 @@ const RotatePDF: React.FC = () => {
                       variant="secondary" 
                       size="icon"
                       onClick={toggleSelectionMode}
-                      disabled={isLoading || thumbnails.length === 0}
+                      disabled={isLoading || thumbnails.length === 0 || generatingThumbnails}
                       title={showSelectionMode ? "Ocultar selección de páginas" : "Mostrar selección de páginas"}
                       className={showSelectionMode ? "bg-blue-100" : ""}
                     >
-                      <ListChecks />
+                      {generatingThumbnails ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ListChecks />
+                      )}
                     </Button>
                   </div>
                   
-                  {/* Page info */}
                   <div className="absolute bottom-16 left-0 right-0 flex justify-center">
                     <div className="bg-white px-4 py-2 rounded-full shadow text-sm">
                       Página {currentPage} de {totalPages}
@@ -316,8 +338,17 @@ const RotatePDF: React.FC = () => {
                   onClick={handleSaveRotations}
                   disabled={isLoading || processingRotation || Object.keys(rotationAngles).length === 0}
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar cambios
+                  {processingRotation ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar cambios
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
