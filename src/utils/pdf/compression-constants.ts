@@ -2,48 +2,48 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { 
-    imageQuality: 0.80, // Reducido de 0.92 para asegurar compresión visible
-    scaleFactor: 1.0, // Reducido de 1.3 para asegurar diferencia
-    colorReduction: 0.85, // Mayor reducción para asegurar compresión
-    useHighQualityFormat: true, // Usar formato de alta calidad
+    imageQuality: 0.95, // Aumentado significativamente para mejor calidad (era 0.80)
+    scaleFactor: 1.2, // Aumentado para preservar más detalles (era 1.0)
+    colorReduction: 0.95, // Mayor preservación de colores (era 0.85)
+    useHighQualityFormat: true, // Mantener formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.75, // Reducido de 0.9 para asegurar compresión
+    jpegQuality: 0.95, // Aumentado significativamente (era 0.75)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.9, // Calidad WebP si se usa
-    textMode: 'print' as 'print' | 'display', // Modo de renderizado optimizado para texto
-    resmushQuality: 80, // Reducido de 92 para asegurar compresión
-    maximumDimension: 1800 // Reducido de 2200 para asegurar compresión
+    webpQuality: 0.95, // Aumentado (era 0.9)
+    textMode: 'print' as 'print' | 'display', // Modo optimizado para texto
+    resmushQuality: 95, // Aumentado (era 80)
+    maximumDimension: 2400 // Aumentado para preservar más detalles (era 1800)
   },
   medium: { 
-    imageQuality: 0.55, // Reducido de 0.65 para asegurar más compresión
-    scaleFactor: 0.75, // Reducido de 0.85 para asegurar menor calidad
-    colorReduction: 0.75, // Mayor reducción para compresión visible
+    imageQuality: 0.85, // Aumentado significativamente (era 0.55)
+    scaleFactor: 0.95, // Aumentado para mejor legibilidad (era 0.75)
+    colorReduction: 0.9, // Mayor preservación de colores (era 0.75)
     useHighQualityFormat: true, // Mantener alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG
-    jpegQuality: 0.50, // Reducido de 0.6 para asegurar compresión visible
+    jpegQuality: 0.85, // Aumentado significativamente (era 0.50)
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.65, // Calidad WebP si se usa
-    textMode: 'print' as 'print' | 'display', 
-    resmushQuality: 55, // Reducido de 65 para asegurar compresión
-    maximumDimension: 1000 // Reducido de 1200 para asegurar compresión
+    webpQuality: 0.85, // Aumentado (era 0.65)
+    textMode: 'print' as 'print' | 'display', // Modo optimizado para texto
+    resmushQuality: 85, // Aumentado (era 55)
+    maximumDimension: 1800 // Aumentado significativamente (era 1000)
   },
   high: { 
-    imageQuality: 0.30, // Ligeramente reducido de 0.35
-    scaleFactor: 0.45, // Reducido de 0.5 para asegurar compresión fuerte
-    colorReduction: 0.6, // Mayor reducción de color
-    useHighQualityFormat: false, // No priorizar calidad en alta compresión
-    preserveTextQuality: false, // No preservar texto al máximo en alta compresión
-    useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.30, // Reducido ligeramente para más compresión
-    useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.35, // Calidad WebP si se usa
-    textMode: 'display' as 'print' | 'display', // Modo estándar para mejor compresión
-    resmushQuality: 30, // Reducido de 35 para más compresión
-    maximumDimension: 700 // Reducido de 800 para más compresión
+    imageQuality: 0.60, // Duplicado para mejor legibilidad (era 0.30)
+    scaleFactor: 0.70, // Aumentado para mejor legibilidad (era 0.45)
+    colorReduction: 0.8, // Mayor preservación de colores (era 0.6)
+    useHighQualityFormat: true, // Cambiado a true para mejorar calidad (era false)
+    preserveTextQuality: true, // Cambiado a true para preservar texto (era false)
+    useJpegFormat: true, // Mantener JPEG
+    jpegQuality: 0.60, // Duplicado para mejor calidad (era 0.30)
+    useWebP: false, // Mantener sin WebP
+    webpQuality: 0.65, // Aumentado (era 0.35)
+    textMode: 'print' as 'print' | 'display', // Cambiado a print para mejor calidad de texto (era display)
+    resmushQuality: 65, // Duplicado (era 30)
+    maximumDimension: 1200 // Aumentado significativamente (era 700)
   }
 };
 
-// Umbral mínimo de reducción de tamaño - Aumentado para garantizar reducción visible
-export const MIN_SIZE_REDUCTION = 0.005; // 0.5% reducción mínima para nivel bajo
+// Umbral mínimo de reducción de tamaño - Reducido para permitir mejor calidad con menos compresión
+export const MIN_SIZE_REDUCTION = 0.001; // 0.1% reducción mínima (era 0.005)

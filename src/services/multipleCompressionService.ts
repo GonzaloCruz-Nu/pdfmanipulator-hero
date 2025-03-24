@@ -4,7 +4,7 @@ import { compressPDF, calculateCompressionStats } from '@/services/pdfCompressio
 import type { CompressionLevel, CompressionInfo } from '@/utils/pdf/compression-types';
 
 /**
- * Processes a single PDF file for compression
+ * Procesa un único archivo PDF para compresión con alta calidad
  */
 export const processPdfFile = async (
   file: File,
@@ -13,7 +13,7 @@ export const processPdfFile = async (
   totalFiles: number,
   progressCallback: (value: number) => void
 ): Promise<File | null> => {
-  console.info(`Processing file ${fileIndex+1}/${totalFiles}: ${file.name}`);
+  console.info(`Procesando archivo ${fileIndex+1}/${totalFiles}: ${file.name}`);
   
   // Maximum 3 attempts per file
   let compressedFile = null;
@@ -23,7 +23,7 @@ export const processPdfFile = async (
   while (!compressedFile && attempts < maxAttempts) {
     attempts++;
     try {
-      // Compress using canvas-based method
+      // Compress using canvas-based method with enhanced quality
       compressedFile = await compressPDF(
         file, 
         compressionLevel, 
@@ -31,12 +31,41 @@ export const processPdfFile = async (
         totalFiles, 
         progressCallback
       );
-    } catch (attemptError) {
-      console.warn(`Attempt ${attempts}/${maxAttempts} failed:`, attemptError);
       
-      // If it's the last attempt, create a copy of the original
+      // Verificar que el archivo comprimido sea válido y tenga un tamaño razonable
+      if (compressedFile && compressedFile.size < file.size * 0.3) {
+        console.warn(`Compresión excesiva detectada (${Math.round(compressedFile.size/1024)} KB vs original ${Math.round(file.size/1024)} KB). Reintentando...`);
+        compressedFile = null; // Forzar reintento
+        continue;
+      }
+      
+      // Si la compresión generó un archivo demasiado pequeño (posible corrupción)
+      if (compressedFile && compressedFile.size < 1000 && file.size > 10000) {
+        console.warn(`Resultado de compresión sospechosamente pequeño (${compressedFile.size} bytes). Reintentando...`);
+        compressedFile = null; // Forzar reintento
+        continue;
+      }
+      
+      // Validación adicional para garantizar calidad
+      if (compressedFile && compressionLevel === 'low' && compressedFile.size < file.size * 0.7) {
+        console.warn(`Compresión nivel bajo demasiado agresiva (${Math.round((file.size - compressedFile.size) * 100 / file.size)}% reducción). Reintentando...`);
+        compressedFile = null;
+        continue;
+      }
+      
+      // Validación para nivel medio
+      if (compressedFile && compressionLevel === 'medium' && compressedFile.size < file.size * 0.5) {
+        console.warn(`Compresión nivel medio demasiado agresiva (${Math.round((file.size - compressedFile.size) * 100 / file.size)}% reducción). Reintentando...`);
+        compressedFile = null;
+        continue;
+      }
+      
+    } catch (attemptError) {
+      console.warn(`Intento ${attempts}/${maxAttempts} falló:`, attemptError);
+      
+      // Si es el último intento, crear una copia del original
       if (attempts === maxAttempts) {
-        console.warn("Using original file as last resort");
+        console.warn("Usando archivo original como último recurso");
         try {
           const buffer = await file.arrayBuffer();
           compressedFile = new File(
@@ -45,7 +74,7 @@ export const processPdfFile = async (
             { type: 'application/pdf' }
           );
         } catch (copyError) {
-          console.error("Error creating copy:", copyError);
+          console.error("Error creando copia:", copyError);
         }
       }
     }
@@ -55,7 +84,7 @@ export const processPdfFile = async (
 };
 
 /**
- * Creates a fallback copy of the original file
+ * Crea una copia del archivo original
  */
 export const createFallbackCopy = async (file: File): Promise<File | null> => {
   try {
@@ -66,13 +95,13 @@ export const createFallbackCopy = async (file: File): Promise<File | null> => {
       { type: 'application/pdf' }
     );
   } catch (fallbackError) {
-    console.error(`Could not create copy for ${file.name}:`, fallbackError);
+    console.error(`No se pudo crear copia para ${file.name}:`, fallbackError);
     return null;
   }
 };
 
 /**
- * Shows appropriate toast message based on compression results
+ * Muestra mensaje toast apropiado basado en resultados de compresión
  */
 export const showCompressionResultToast = (
   compressedFiles: File[],
@@ -80,21 +109,21 @@ export const showCompressionResultToast = (
   processingErrors: number
 ): void => {
   if (compressedFiles.length === 0) {
-    toast.error('Could not process any PDF files. Try with another compression level.');
+    toast.error('No se pudo procesar ningún archivo PDF. Intenta con otro nivel de compresión.');
     return;
   }
   
   if (compressedFiles.length < originalFiles.length) {
     if (processingErrors > 0) {
-      toast.warning(`Processed ${compressedFiles.length} of ${originalFiles.length} files. Some files were processed as copies.`);
+      toast.warning(`Se procesaron ${compressedFiles.length} de ${originalFiles.length} archivos. Algunos fueron procesados como copias.`);
     } else {
-      toast.warning(`Processed ${compressedFiles.length} of ${originalFiles.length} files.`);
+      toast.warning(`Se procesaron ${compressedFiles.length} de ${originalFiles.length} archivos.`);
     }
   } else {
     if (processingErrors > 0) {
-      toast.success(`Processed ${originalFiles.length} files. Some files were processed as copies.`);
+      toast.success(`Se procesaron ${originalFiles.length} archivos. Algunos fueron procesados como copias.`);
     } else {
-      toast.success(`Processed ${originalFiles.length} files correctly.`);
+      toast.success(`Se procesaron ${originalFiles.length} archivos correctamente.`);
     }
   }
 };

@@ -20,15 +20,15 @@ export async function renderPageToCanvasWithOptions(
     // Obtener viewport con escala ajustada
     const viewport = pdfPage.getViewport({ scale: scaleFactor });
     
-    // Configurar el DPI según el nivel de calidad
+    // Configurar el DPI según el nivel de calidad - VALORES AUMENTADOS PARA MEJOR CALIDAD
     let dpr = window.devicePixelRatio || 1;
     
     if (useHighQualityRendering) {
-      // Alta calidad para niveles bajo y medio
-      dpr = Math.max(dpr, textMode === 'print' ? 4.0 : 3.0);
+      // Alta calidad para niveles bajo y medio - AUMENTADO
+      dpr = Math.max(dpr, textMode === 'print' ? 6.0 : 5.0); // Valores anteriores: 4.0 y 3.0
     } else {
-      // Menor calidad para nivel alto de compresión
-      dpr = Math.max(dpr, 2.0);
+      // Para nivel alto de compresión - TAMBIÉN AUMENTADO
+      dpr = Math.max(dpr, 3.0); // Valor anterior: 2.0
     }
     
     // Ajustar dimensiones del canvas
@@ -45,55 +45,64 @@ export async function renderPageToCanvasWithOptions(
     // Aplicar escalado
     ctx.scale(dpr, dpr);
     
-    // Configurar calidad de renderizado
+    // Configurar calidad de renderizado - SIEMPRE USAR ALTA CALIDAD
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = useHighQualityRendering ? 'high' : 'medium';
+    ctx.imageSmoothingQuality = 'high'; // Siempre usar high independientemente del nivel
     
     // Fondo blanco para eliminar transparencia y mejorar compresión
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, viewport.width, viewport.height);
     
-    // Configurar opciones de renderizado
+    // Configurar opciones de renderizado con calidad mejorada
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
-      intent: textMode, // 'print' para mejor calidad, 'display' para mejor compresión
-      renderInteractiveForms: useHighQualityRendering,
+      intent: 'print', // Siempre usar 'print' para mejor calidad de texto
+      renderInteractiveForms: true, // Siempre true para mejor calidad
       canvasFactory: undefined,
       textLayer: null,
       annotationStorage: undefined,
-      annotationMode: useHighQualityRendering ? 2 : 0, // ENABLE o DISABLE según nivel
+      annotationMode: 2, // Siempre ENABLE para mejor calidad
       imageLayer: undefined,
       printAnnotationStorage: undefined,
       optionalContentConfigPromise: undefined,
-      renderingIntent: textMode, // Usar el mismo modo que intent
+      renderingIntent: 'print', // Siempre 'print' para mejor calidad
       enableScripting: false,
-      antialiasing: useHighQualityRendering
+      antialiasing: true // Siempre habilitado para todos los niveles
     };
     
     // Renderizar página
     await pdfPage.render(renderContext).promise;
     
-    // Aplicar mejora de contraste para texto solo en modos de alta calidad
-    if (useHighQualityRendering && textMode === 'print') {
-      try {
-        const imageData = ctx.getImageData(0, 0, viewport.width, viewport.height);
-        const data = imageData.data;
-        
-        // Aplicar mejora básica de contraste para texto
-        for (let i = 0; i < data.length; i += 4) {
-          // Mejorar contraste solo para píxeles oscuros (posible texto)
-          if (data[i] < 100 && data[i + 1] < 100 && data[i + 2] < 100) {
-            data[i] = Math.max(0, data[i] - 15);
-            data[i + 1] = Math.max(0, data[i + 1] - 15);
-            data[i + 2] = Math.max(0, data[i + 2] - 15);
-          }
+    // Aplicar mejora de contraste para texto para todos los modos
+    try {
+      const imageData = ctx.getImageData(0, 0, viewport.width, viewport.height);
+      const data = imageData.data;
+      
+      // Aplicar mejora adaptativa de contraste para mejorar la legibilidad del texto
+      for (let i = 0; i < data.length; i += 4) {
+        // Detectar píxeles de texto (oscuros sobre fondo claro)
+        if (data[i] < 150 && data[i + 1] < 150 && data[i + 2] < 150) {
+          // Es posible texto - mejorar contraste pero mantener color
+          const darknessFactor = (data[i] + data[i + 1] + data[i + 2]) / 3 < 50 ? 1.2 : 1.1;
+          
+          // Oscurecer texto para mejor legibilidad
+          data[i] = Math.max(0, Math.min(255, Math.floor(data[i] / darknessFactor)));
+          data[i + 1] = Math.max(0, Math.min(255, Math.floor(data[i + 1] / darknessFactor)));
+          data[i + 2] = Math.max(0, Math.min(255, Math.floor(data[i + 2] / darknessFactor)));
         }
         
-        ctx.putImageData(imageData, 0, 0);
-      } catch (e) {
-        console.warn('No se pudo aplicar mejora de contraste');
+        // Mejorar nitidez de contornos de texto y bordes
+        // Este código es muy costoso, solo aplicarlo si realmente se requiere
+        // if (i % 16 === 0 && i > canvas.width * 4 && i < data.length - canvas.width * 4) {
+        //   // Comparar con píxeles circundantes para detectar bordes
+        //   // ... código de mejora de nitidez adaptativa
+        // }
       }
+      
+      ctx.putImageData(imageData, 0, 0);
+    } catch (e) {
+      console.warn('No se pudo aplicar mejora de contraste:', e);
     }
   } catch (error) {
     console.error('Error al renderizar página en canvas:', error);
@@ -116,7 +125,7 @@ export async function loadPdfDocumentFromArray(fileArrayBuffer: ArrayBuffer): Pr
       useWorkerFetch: true,
       disableFontFace: false,
       isEvalSupported: true,
-      verbosity: 0
+      verbosity: 1  // Aumentado para más información de diagnóstico
     });
     return await loadingTask.promise;
   } catch (error) {
