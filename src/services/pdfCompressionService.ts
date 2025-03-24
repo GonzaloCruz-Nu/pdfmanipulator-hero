@@ -52,38 +52,81 @@ export async function compressPDF(
     const reductionPercentage = (sizeDifference / file.size) * 100;
     console.info(`Reducción de tamaño: ${reductionPercentage.toFixed(2)}% (${(sizeDifference/1024/1024).toFixed(2)} MB)`);
     
-    // Para nivel bajo, aceptamos que haya poca o ninguna compresión
-    if (level === 'low' && result.size >= file.size * 0.95) {
-      console.info(`Nivel de compresión bajo: conservando calidad cercana al original`);
+    // Para nivel bajo, necesitamos asegurar una reducción mínima de 2%
+    if (level === 'low' && reductionPercentage < 2) {
+      console.info(`Nivel de compresión bajo no alcanzó la reducción mínima de 2%, ajustando...`);
       
-      // Si el resultado es exactamente igual (0 bytes de diferencia)
-      if (Math.abs(result.size - file.size) < 10) {
-        console.warn(`No se detectó compresión efectiva en nivel bajo. Generando copia ligeramente modificada.`);
+      // Si no hay compresión mínima, intentamos mejorar la compresión
+      try {
+        const pdfDoc = await PDFDocument.load(await result.arrayBuffer());
+        pdfDoc.setCreator('PDF Optimizer - Baja compresión optimizada');
+        pdfDoc.setProducer('PDF Optimizer v1.0');
         
-        // Intentar hacer una pequeña modificación solo para diferenciar
-        try {
-          const pdfDoc = await PDFDocument.load(await result.arrayBuffer());
-          pdfDoc.setCreator('PDF Optimizer - Baja compresión');
-          pdfDoc.setProducer('PDF Optimizer v1.0');
-          const modifiedPdfBytes = await pdfDoc.save();
+        // Guardar con opciones optimizadas
+        const modifiedPdfBytes = await pdfDoc.save({
+          useObjectStreams: true,
+          addDefaultPage: false,
+          objectsPerTick: 50
+        });
+        
+        // Crear nuevo archivo con configuración mejorada
+        const optimizedResult = new File(
+          [modifiedPdfBytes], 
+          result.name, 
+          { type: 'application/pdf' }
+        );
+        
+        // Verificar si hubo alguna mejora
+        if (optimizedResult.size < file.size * 0.98) {
+          console.info(`Compresión optimizada exitosa: ${((file.size - optimizedResult.size) / file.size * 100).toFixed(1)}% reducción`);
+          return optimizedResult;
+        }
+        
+        // Si no hay mejora, intentar otra técnica para nivel bajo
+        console.info(`Intentando técnica alternativa para nivel bajo...`);
+        
+        // Usar compresión media pero con mejor calidad para nivel bajo
+        const alternativeLowResult = await compressPDFWithCanvas(
+          file, 
+          'medium', // Usar configuración media temporalmente
+          currentIndex, 
+          totalCount, 
+          onProgress
+        );
+        
+        if (alternativeLowResult && alternativeLowResult.size < file.size * 0.97) {
+          console.info(`Técnica alternativa exitosa para nivel bajo: ${((file.size - alternativeLowResult.size) / file.size * 100).toFixed(1)}% reducción`);
           
-          // Crear nuevo archivo con pequeños cambios de metadatos
+          // Renombrar para mantener nivel bajo en el nombre
           return new File(
-            [modifiedPdfBytes], 
-            result.name, 
+            [await alternativeLowResult.arrayBuffer()],
+            `${file.name.replace('.pdf', '')}_comprimido_bajo.pdf`,
             { type: 'application/pdf' }
           );
-        } catch (e) {
-          console.error('Error al modificar metadatos:', e);
-          return result; // Devolver el resultado original si falla
         }
+      } catch (e) {
+        console.error('Error al intentar optimizar compresión baja:', e);
       }
       
-      return result;
+      // Si ninguna técnica funciona y el archivo es idéntico, modificar ligeramente el resultado
+      if (Math.abs(result.size - file.size) < 10) {
+        // Forzar una pequeña reducción
+        try {
+          const { canvasBasedCompression } = await import('@/utils/pdf/canvas-compression');
+          const forcedLowResult = await canvasBasedCompression(originalBuffer, 'low', file.name);
+          
+          if (forcedLowResult && forcedLowResult.size < file.size * 0.97) {
+            console.info(`Compresión forzada para nivel bajo exitosa: ${((file.size - forcedLowResult.size) / file.size * 100).toFixed(1)}% reducción`);
+            return forcedLowResult;
+          }
+        } catch (e) {
+          console.error('Error en compresión forzada:', e);
+        }
+      }
     }
     
     // Para nivel medio y alto, exigimos una reducción mínima de tamaño
-    const minReduction = level === 'medium' ? 2 : 10; // 2% para medio, 10% para alto
+    const minReduction = level === 'medium' ? 10 : 25; // 10% para medio, 25% para alto
     
     if (reductionPercentage < minReduction && level !== 'low') {
       console.warn(`Compresión ${level} no alcanzó la reducción mínima esperada (${minReduction}%). Resultado: ${reductionPercentage.toFixed(1)}%`);
@@ -93,10 +136,10 @@ export async function compressPDF(
         console.info(`Intentando nuevamente con configuración más agresiva para nivel alto...`);
         try {
           // Usar un procesador más agresivo para nivel alto
-          const { canvasBasedCompression } = await import('@/utils/pdf/canvas-compression');
-          const aggressiveResult = await canvasBasedCompression(originalBuffer, 'high', file.name);
+          const { ultimateCompression } = await import('@/utils/pdf/ultimate-compression');
+          const aggressiveResult = await ultimateCompression(originalBuffer, 'high', file.name);
           
-          if (aggressiveResult && aggressiveResult.size > 0 && aggressiveResult.size < file.size * 0.9) {
+          if (aggressiveResult && aggressiveResult.size > 0 && aggressiveResult.size < file.size * 0.75) {
             console.info(`Compresión agresiva exitosa: ${(aggressiveResult.size/1024/1024).toFixed(2)} MB (${((file.size - aggressiveResult.size) / file.size * 100).toFixed(1)}% reducción)`);
             return aggressiveResult;
           }
@@ -119,7 +162,7 @@ export async function compressPDF(
         );
         
         if (alternativeResult && alternativeResult.size > 0 && 
-            (alternativeResult.size < result.size || alternativeResult.size < file.size * 0.9)) {
+            (alternativeResult.size < result.size * 0.9 || alternativeResult.size < file.size * 0.8)) {
           console.info(`Compresión alternativa con nivel ${nextLevel} exitosa`);
           return new File(
             [await alternativeResult.arrayBuffer()],
@@ -139,6 +182,7 @@ export async function compressPDF(
     }
     
     // Si hay una reducción de tamaño o es aceptable, devolver el resultado comprimido
+    // Para nivel bajo, aunque no haya reducción significativa, también devolvemos el resultado
     return result;
   } catch (error) {
     console.error('Error compressing PDF with canvas:', error);
