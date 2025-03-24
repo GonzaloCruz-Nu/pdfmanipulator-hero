@@ -8,13 +8,13 @@ import { toast } from 'sonner';
  */
 export async function createAndDownloadZip(files: File[]): Promise<boolean> {
   if (files.length === 0) {
-    toast.error('No files to compress');
+    toast.error('No hay archivos para comprimir');
     return false;
   }
   
   try {
     // Show initial progress toast
-    toast.loading('Preparing files for compression...', { id: 'zip-creation' });
+    toast.loading('Preparando archivos para compresión...', { id: 'zip-creation' });
     
     const zip = new JSZip();
     
@@ -24,7 +24,7 @@ export async function createAndDownloadZip(files: File[]): Promise<boolean> {
       console.info(`Adding to ZIP (${i+1}/${files.length}): ${file.name} (${file.size} bytes)`);
       
       // Update the progress toast
-      toast.loading(`Adding file ${i+1} of ${files.length}...`, { id: 'zip-creation' });
+      toast.loading(`Agregando archivo ${i+1} de ${files.length}...`, { id: 'zip-creation' });
       
       // Convert the file to ArrayBuffer directly and safely
       try {
@@ -33,42 +33,37 @@ export async function createAndDownloadZip(files: File[]): Promise<boolean> {
         console.info(`File ${i+1} added successfully`);
       } catch (fileError) {
         console.error(`Error processing file ${file.name}:`, fileError);
-        toast.error(`Error processing file ${file.name}`);
-        return false;
+        toast.error(`Error al procesar el archivo ${file.name}`);
+        // Continue with other files even if one fails
       }
     }
     
     // Update progress toast
-    toast.loading('Generating ZIP file...', { id: 'zip-creation' });
+    toast.loading('Generando archivo ZIP...', { id: 'zip-creation' });
     
     console.info('Generating final ZIP file...');
     
     // Generate the ZIP file with a promise and improved error handling
-    try {
-      const zipBlob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 6 // Medium compression level for ZIP
-        }
-      });
-      
-      console.info(`ZIP file generated successfully: ${zipBlob.size} bytes`);
-      
-      // Download the ZIP file using FileSaver
-      saveAs(zipBlob, 'pdfs_comprimidos.zip');
-      
-      // Mark the process as completed
-      toast.success('Files downloaded as ZIP', { id: 'zip-creation' });
-      return true;
-    } catch (zipError) {
-      console.error('Error generating ZIP file:', zipError);
-      toast.error('Error generating ZIP file', { id: 'zip-creation' });
-      return false;
-    }
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: {
+        level: 6 // Medium compression level for ZIP
+      }
+    });
+    
+    console.info(`ZIP file generated successfully: ${zipBlob.size} bytes`);
+    
+    // Download the ZIP file using FileSaver
+    const zipName = files.length > 1 ? 'pdfs_comprimidos.zip' : files[0].name.replace('.pdf', '_comprimido.zip');
+    saveAs(zipBlob, zipName);
+    
+    // Mark the process as completed
+    toast.success('Archivos descargados como ZIP', { id: 'zip-creation' });
+    return true;
   } catch (error) {
-    console.error('General error creating ZIP:', error);
-    toast.error('Error creating ZIP file');
+    console.error('Error al crear ZIP:', error);
+    toast.error('Error al crear el archivo ZIP', { id: 'zip-creation' });
     return false;
   }
 }

@@ -19,6 +19,7 @@ export const useMultipleCompressPDF = () => {
   const [compressedFiles, setCompressedFiles] = useState<File[]>([]);
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
   /**
    * Main function to compress multiple PDFs
@@ -165,7 +166,24 @@ export const useMultipleCompressPDF = () => {
       return;
     }
     
-    await createAndDownloadZip(compressedFiles);
+    try {
+      setIsDownloadingZip(true);
+      toast.loading('Preparando archivos para descarga...', { id: 'zip-download' });
+      
+      console.info(`Creating ZIP with ${compressedFiles.length} files`);
+      const result = await createAndDownloadZip(compressedFiles);
+      
+      if (result) {
+        toast.success('ZIP descargado correctamente', { id: 'zip-download' });
+      } else {
+        toast.error('Error al crear el ZIP', { id: 'zip-download' });
+      }
+    } catch (error) {
+      console.error('Error downloading ZIP:', error);
+      toast.error('Error al descargar los archivos');
+    } finally {
+      setIsDownloadingZip(false);
+    }
   };
 
   return {
@@ -178,6 +196,7 @@ export const useMultipleCompressPDF = () => {
     downloadCompressedFile,
     downloadAllAsZip,
     currentProcessingIndex,
-    totalFiles
+    totalFiles,
+    isDownloadingZip
   };
 };

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Info, Archive } from 'lucide-react';
+import { Info, Archive, Loader2 } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import CompressionControls from '@/components/pdf/CompressionControls';
 import CompressionResults from '@/components/pdf/CompressionResults';
@@ -30,6 +30,7 @@ interface CompressUploadProps {
     totalSavedPercentage: number;
     fileCount: number;
   } | null;
+  isDownloadingZip?: boolean;
 }
 
 const CompressUpload: React.FC<CompressUploadProps> = ({
@@ -48,7 +49,8 @@ const CompressUpload: React.FC<CompressUploadProps> = ({
   downloadCompressedFile,
   downloadAllAsZip,
   selectedFileIndex,
-  totalStats
+  totalStats,
+  isDownloadingZip = false
 }) => {
   return (
     <motion.div
@@ -80,10 +82,20 @@ const CompressUpload: React.FC<CompressUploadProps> = ({
           <div className="mt-4 flex justify-center">
             <Button
               onClick={downloadAllAsZip}
+              disabled={isDownloadingZip}
               className="bg-naranja text-white hover:bg-naranja/90 flex items-center justify-center py-2 px-4 w-full"
             >
-              <Archive className="h-5 w-5 mr-2" />
-              Descargar todos como ZIP ({compressedFiles.length} archivos)
+              {isDownloadingZip ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Creando ZIP...
+                </>
+              ) : (
+                <>
+                  <Archive className="h-5 w-5 mr-2" />
+                  Descargar todos como ZIP ({compressedFiles.length} archivos)
+                </>
+              )}
             </Button>
           </div>
         )}
