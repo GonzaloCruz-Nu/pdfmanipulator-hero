@@ -3,6 +3,7 @@ import React from 'react';
 import PdfPreview from '@/components/PdfPreview';
 import RotationControls from './RotationControls';
 import PageIndicator from './PageIndicator';
+import { Loader2 } from 'lucide-react';
 
 interface PdfPreviewSectionProps {
   file: File;
@@ -35,6 +36,14 @@ const PdfPreviewSection: React.FC<PdfPreviewSectionProps> = ({
 }) => {
   return (
     <div className={`relative ${showSelectionMode ? 'md:col-span-3' : 'md:col-span-4'}`}>
+      {generatingThumbnails && (
+        <div className="absolute inset-0 bg-white/70 z-30 flex flex-col items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
+          <p className="text-sm font-medium">Cargando documento...</p>
+          <p className="text-xs text-muted-foreground">Generando miniaturas ({thumbnails.length} de {totalPages})</p>
+        </div>
+      )}
+      
       <PdfPreview file={file} className="h-[600px]" />
       
       <RotationControls 

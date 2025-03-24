@@ -28,6 +28,7 @@ const SaveButton: React.FC<SaveButtonProps> = ({
       <Button 
         onClick={onSave}
         disabled={disabled || processing || rotationCount === 0}
+        className="min-w-[150px]"
       >
         {processing ? (
           <>

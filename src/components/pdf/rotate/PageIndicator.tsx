@@ -18,7 +18,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
         Página {currentPage} de {totalPages}
         {selectedPages.length > 0 && (
           <span className="ml-2 text-blue-600">
-            ({selectedPages.length} páginas seleccionadas)
+            ({selectedPages.length} {selectedPages.length === 1 ? 'página seleccionada' : 'páginas seleccionadas'})
           </span>
         )}
       </div>

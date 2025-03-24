@@ -65,7 +65,7 @@ const RotationControls: React.FC<RotationControlsProps> = ({
         title={showSelectionMode ? "Ocultar selección de páginas" : "Mostrar selección de páginas"}
         className={showSelectionMode ? "bg-blue-100" : ""}
       >
-        {generatingThumbnails || isLoading ? (
+        {generatingThumbnails ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <ListChecks />

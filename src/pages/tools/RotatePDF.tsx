@@ -38,21 +38,29 @@ const RotatePDF: React.FC = () => {
   // Track when PDF is fully loaded and thumbnails are generated
   useEffect(() => {
     if (!pdfDocument || !file) {
+      setThumbnails([]);
       setIsPageSelectionEnabled(false);
       return;
     }
     
     const generateThumbnails = async () => {
+      if (totalPages === 0) return;
+      
       setGeneratingThumbnails(true);
       setIsPageSelectionEnabled(false);
+      setThumbnails([]);
+      
       const thumbs: string[] = [];
       try {
         console.log("Comenzando a generar miniaturas...");
         for (let i = 1; i <= totalPages; i++) {
           const thumb = await renderThumbnail(i);
-          if (thumb) thumbs.push(thumb);
+          if (thumb) {
+            thumbs.push(thumb);
+            // Update thumbnails incrementally to show progress
+            setThumbnails(prev => [...prev, thumb]);
+          }
         }
-        setThumbnails(thumbs);
         console.log(`Miniaturas generadas: ${thumbs.length} de ${totalPages}`);
       } catch (error) {
         console.error('Error generando miniaturas:', error);
@@ -243,7 +251,7 @@ const RotatePDF: React.FC = () => {
               
               <SaveButton 
                 onSave={handleSaveRotations}
-                disabled={isLoading}
+                disabled={isLoading || generatingThumbnails}
                 processing={processingRotation}
                 rotationCount={Object.keys(rotationAngles).length}
               />
