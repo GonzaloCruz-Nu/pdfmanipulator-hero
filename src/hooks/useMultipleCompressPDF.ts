@@ -1,14 +1,15 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { compressPDF, calculateCompressionStats, CompressionLevel } from '@/services/pdfCompressionService';
+import { calculateCompressionStats } from '@/services/pdfCompressionService';
 import { createAndDownloadZip } from '@/utils/pdf/zipUtils';
-
-export interface CompressionInfo {
-  originalSize: number;
-  compressedSize: number;
-  savedPercentage: number;
-}
+import { 
+  processPdfFile, 
+  createFallbackCopy, 
+  showCompressionResultToast 
+} from '@/services/multipleCompressionService';
+import { downloadFile } from '@/utils/pdf/download-utils';
+import type { CompressionLevel, CompressionInfo } from '@/utils/pdf/compression-types';
 
 export const useMultipleCompressPDF = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,47 +46,18 @@ export const useMultipleCompressPDF = () => {
         setCurrentProcessingIndex(i);
         const file = files[i];
         
-        console.info(`Processing file ${i+1}/${files.length}: ${file.name}`);
-        
         // Get original size
         const fileSize = file.size;
         
         try {
-          // Máximo 3 intentos por archivo
-          let compressedFile = null;
-          let attempts = 0;
-          const maxAttempts = 3;
-          
-          while (!compressedFile && attempts < maxAttempts) {
-            attempts++;
-            try {
-              // Compress using canvas-based method
-              compressedFile = await compressPDF(
-                file, 
-                compressionLevel, 
-                i, 
-                files.length, 
-                (progressValue) => setProgress(progressValue)
-              );
-            } catch (attemptError) {
-              console.warn(`Intento ${attempts}/${maxAttempts} fallido:`, attemptError);
-              
-              // Si es el último intento, crear una copia del original
-              if (attempts === maxAttempts) {
-                console.warn("Usando archivo original como último recurso");
-                try {
-                  const buffer = await file.arrayBuffer();
-                  compressedFile = new File(
-                    [buffer],
-                    `${file.name.replace('.pdf', '')}_copia.pdf`,
-                    { type: 'application/pdf' }
-                  );
-                } catch (copyError) {
-                  console.error("Error creando copia:", copyError);
-                }
-              }
-            }
-          }
+          // Process the file
+          const compressedFile = await processPdfFile(
+            file,
+            compressionLevel,
+            i,
+            files.length,
+            (progressValue) => setProgress(progressValue)
+          );
           
           if (compressedFile) {
             const compressionResult = calculateCompressionStats(fileSize, compressedFile.size);
@@ -108,18 +80,11 @@ export const useMultipleCompressPDF = () => {
             processingErrors++;
             console.error(`Error processing file ${i+1}: ${file.name}`);
             
-            // Intentar crear una copia exacta como último recurso
-            try {
-              const buffer = await file.arrayBuffer();
-              const fallbackFile = new File(
-                [buffer],
-                `${file.name.replace('.pdf', '')}_copia.pdf`,
-                { type: 'application/pdf' }
-              );
+            // Try to create an exact copy as a last resort
+            const fallbackFile = await createFallbackCopy(file);
+            if (fallbackFile) {
               compressedFilesArray.push(fallbackFile);
-              console.warn(`Creada copia sin compresión para ${file.name}`);
-            } catch (fallbackError) {
-              console.error(`No se pudo crear ni copia para ${file.name}:`, fallbackError);
+              console.warn(`Created uncompressed copy for ${file.name}`);
             }
             
             if (files.length === 1) {
@@ -131,20 +96,13 @@ export const useMultipleCompressPDF = () => {
           }
         } catch (fileError) {
           processingErrors++;
-          console.error(`Error procesando archivo ${file.name}:`, fileError);
+          console.error(`Error processing file ${file.name}:`, fileError);
           
-          // Intentar crear una copia como último recurso
-          try {
-            const buffer = await file.arrayBuffer();
-            const fallbackFile = new File(
-              [buffer],
-              `${file.name.replace('.pdf', '')}_copia.pdf`,
-              { type: 'application/pdf' }
-            );
+          // Try to create a copy as a last resort
+          const fallbackFile = await createFallbackCopy(file);
+          if (fallbackFile) {
             compressedFilesArray.push(fallbackFile);
-            console.warn(`Creada copia sin compresión para ${file.name}`);
-          } catch (fallbackError) {
-            console.error(`No se pudo crear ni copia para ${file.name}:`, fallbackError);
+            console.warn(`Created uncompressed copy for ${file.name}`);
           }
         }
       }
@@ -152,21 +110,11 @@ export const useMultipleCompressPDF = () => {
       // Complete the process
       setCompressedFiles(compressedFilesArray);
       
+      // Show appropriate toast message
+      showCompressionResultToast(compressedFilesArray, files, processingErrors);
+      
       if (compressedFilesArray.length === 0) {
         setCompressionError('Could not process any PDF files. Try with another compression level.');
-        toast.error('Error processing PDF files.');
-      } else if (compressedFilesArray.length < files.length) {
-        if (processingErrors > 0) {
-          toast.warning(`Processed ${compressedFilesArray.length} of ${files.length} files. Some files were processed as copies.`);
-        } else {
-          toast.warning(`Processed ${compressedFilesArray.length} of ${files.length} files.`);
-        }
-      } else {
-        if (processingErrors > 0) {
-          toast.success(`Processed ${files.length} files. Some files were processed as copies.`);
-        } else {
-          toast.success(`Processed ${files.length} files correctly.`);
-        }
       }
       
     } catch (error) {
@@ -191,17 +139,7 @@ export const useMultipleCompressPDF = () => {
     }
     
     console.info(`Downloading file at index ${index}`);
-    const file = compressedFiles[index];
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('PDF downloaded successfully');
+    downloadFile(compressedFiles[index]);
   };
 
   /**
