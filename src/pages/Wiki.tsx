@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCw, Stamp, MoveVertical } from 'lucide-react';
+import { Book, FileText, HelpCircle, Merge, Scissors, Zap, Unlock, FileCog, FileSearch, RotateCw, Stamp, MoveVertical, FileType } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import { Link } from 'react-router-dom';
@@ -179,6 +179,19 @@ const Wiki = () => {
                     Convierte tus PDFs a texto mediante reconocimiento OCR.
                   </p>
                   <Link to="/wiki/convert" className="text-primary text-sm hover:underline">
+                    Leer guía completa →
+                  </Link>
+                </li>
+                
+                <li>
+                  <h3 className="text-lg font-medium mb-2 flex items-center">
+                    <FileType className="h-5 w-5 mr-2 text-primary" />
+                    Ajustar a tamaño A4
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Redimensiona documentos grandes (A3, A2) al formato estándar A4.
+                  </p>
+                  <Link to="/wiki/resize-a4" className="text-primary text-sm hover:underline">
                     Leer guía completa →
                   </Link>
                 </li>

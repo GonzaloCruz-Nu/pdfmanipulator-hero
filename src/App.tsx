@@ -33,6 +33,7 @@ import ConvertPDFGuide from "./pages/wiki/ConvertPDFGuide";
 import RotatePDFGuide from "./pages/wiki/RotatePDFGuide";
 import WatermarkPDFGuide from "./pages/wiki/WatermarkPDFGuide";
 import SortPDFGuide from "./pages/wiki/SortPDFGuide";
+import ResizeA4PDFGuide from "./pages/wiki/ResizeA4PDFGuide";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient({
@@ -76,6 +77,7 @@ const App = () => {
             <Route path="/wiki/rotate" element={<RotatePDFGuide />} />
             <Route path="/wiki/watermark" element={<WatermarkPDFGuide />} />
             <Route path="/wiki/sort" element={<SortPDFGuide />} />
+            <Route path="/wiki/resize-a4" element={<ResizeA4PDFGuide />} />
             <Route path="/about" element={<About />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/historial" element={<HistorialPDF />} />
