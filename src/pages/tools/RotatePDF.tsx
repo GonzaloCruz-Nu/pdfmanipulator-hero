@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Undo2, RotateCw, RotateCcw, Save, ListChecks, XCircle, Check, Loader2 } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -20,6 +21,7 @@ const RotatePDF: React.FC = () => {
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [showSelectionMode, setShowSelectionMode] = useState(false);
   const [generatingThumbnails, setGeneratingThumbnails] = useState(false);
+  const [isPageSelectionEnabled, setIsPageSelectionEnabled] = useState(false);
   
   const {
     currentPage,
@@ -40,6 +42,7 @@ const RotatePDF: React.FC = () => {
     
     const generateThumbnails = async () => {
       setGeneratingThumbnails(true);
+      setIsPageSelectionEnabled(false);
       const thumbs: string[] = [];
       try {
         for (let i = 1; i <= totalPages; i++) {
@@ -52,6 +55,7 @@ const RotatePDF: React.FC = () => {
         toast.error('Error al generar las miniaturas del PDF');
       } finally {
         setGeneratingThumbnails(false);
+        setIsPageSelectionEnabled(true);
       }
     };
     
@@ -65,6 +69,7 @@ const RotatePDF: React.FC = () => {
       setSelectedPages([]);
       setThumbnails([]);
       setShowSelectionMode(false);
+      setIsPageSelectionEnabled(false);
     }
   };
 
@@ -126,6 +131,8 @@ const RotatePDF: React.FC = () => {
   };
 
   const togglePageSelection = (pageNumber: number) => {
+    if (!isPageSelectionEnabled) return;
+    
     setSelectedPages(prev => {
       if (prev.includes(pageNumber)) {
         return prev.filter(p => p !== pageNumber);
@@ -136,15 +143,21 @@ const RotatePDF: React.FC = () => {
   };
 
   const selectAllPages = () => {
+    if (!isPageSelectionEnabled) return;
+    
     const allPages = Array.from({ length: totalPages }, (_, i) => i + 1);
     setSelectedPages(allPages);
   };
 
   const clearPageSelection = () => {
+    if (!isPageSelectionEnabled) return;
+    
     setSelectedPages([]);
   };
 
   const toggleSelectionMode = () => {
+    if (generatingThumbnails || thumbnails.length === 0) return;
+    
     setShowSelectionMode(prev => !prev);
     if (showSelectionMode) {
       setSelectedPages([]);
@@ -197,7 +210,7 @@ const RotatePDF: React.FC = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={selectAllPages}
-                          disabled={generatingThumbnails}
+                          disabled={generatingThumbnails || !isPageSelectionEnabled}
                           title="Seleccionar todas"
                         >
                           <Check className="h-4 w-4" />
@@ -206,7 +219,7 @@ const RotatePDF: React.FC = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={clearPageSelection}
-                          disabled={generatingThumbnails}
+                          disabled={generatingThumbnails || !isPageSelectionEnabled}
                           title="Limpiar selección"
                         >
                           <XCircle className="h-4 w-4" />
@@ -235,12 +248,13 @@ const RotatePDF: React.FC = () => {
                         {thumbnails.map((thumb, idx) => (
                           <div 
                             key={idx} 
-                            className={`flex items-center space-x-2 p-2 rounded ${selectedPages.includes(idx + 1) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'}`}
+                            className={`flex items-center space-x-2 p-2 rounded ${!isPageSelectionEnabled ? 'opacity-60' : selectedPages.includes(idx + 1) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'}`}
                           >
                             <Checkbox 
                               id={`page-${idx + 1}`}
                               checked={selectedPages.includes(idx + 1)}
                               onCheckedChange={() => togglePageSelection(idx + 1)}
+                              disabled={!isPageSelectionEnabled}
                             />
                             <div className="flex items-center space-x-2 flex-1">
                               <div className="w-12 h-16 relative border border-gray-200">
@@ -250,7 +264,10 @@ const RotatePDF: React.FC = () => {
                                   className="absolute inset-0 w-full h-full object-contain"
                                 />
                               </div>
-                              <label htmlFor={`page-${idx + 1}`} className="text-sm cursor-pointer flex-1">
+                              <label 
+                                htmlFor={`page-${idx + 1}`} 
+                                className={`text-sm cursor-pointer flex-1 ${!isPageSelectionEnabled ? 'text-gray-400' : ''}`}
+                              >
                                 Página {idx + 1}
                                 {rotationAngles[idx + 1] ? 
                                   <span className="text-xs text-blue-600 ml-1">
@@ -261,6 +278,13 @@ const RotatePDF: React.FC = () => {
                             </div>
                           </div>
                         ))}
+                        
+                        {!isPageSelectionEnabled && thumbnails.length > 0 && (
+                          <div className="text-center text-sm text-muted-foreground pt-2">
+                            <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
+                            Cargando opciones de selección...
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
