@@ -25,10 +25,16 @@ export async function compressImageWithResmush(imageData: ArrayBuffer | Blob): P
     formData.append('qlty', '90'); // Calidad 90% (por defecto es 92%)
     formData.append('exif', 'true'); // Mantener metadatos EXIF
     
-    // Realizar la petición a reSmush.it
+    // Realizar la petición a reSmush.it con los headers requeridos
     const response = await fetch(RESMUSH_API_URL, {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: {
+        // Agregar User-Agent adecuado
+        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+        // Agregar Referer
+        'Referer': window.location.origin
+      }
     });
     
     if (!response.ok) {
