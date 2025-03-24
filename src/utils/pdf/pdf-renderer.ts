@@ -103,7 +103,6 @@ export async function loadPdfDocument(fileArrayBuffer: ArrayBuffer): Promise<pdf
       isEvalSupported: true,  // Habilitar eval para mejorar rendimiento
       verbosity: 0, // Reducir verbosidad para mejor rendimiento
       docBaseUrl: location.origin, // Ayudar a resolver URLs relativas
-      ignoreErrors: false, // No ignorar errores para asegurar calidad
     });
     return await loadingTask.promise;
   } catch (error) {
