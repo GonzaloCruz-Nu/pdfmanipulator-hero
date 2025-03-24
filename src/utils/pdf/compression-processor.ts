@@ -4,7 +4,8 @@ import { compressPDF } from './processors/compression-orchestrator';
 import { CompressionLevel } from './compression-types';
 
 // Re-exportar la funcionalidad principal para mantener la compatibilidad con el código existente
-export { compressPDF, CompressionLevel };
+export { compressPDF };
+export type { CompressionLevel };
 
 // Re-exportar otros métodos utilizados externamente
 export { compressPDFWithCanvas } from './processors/canvas-processor';
