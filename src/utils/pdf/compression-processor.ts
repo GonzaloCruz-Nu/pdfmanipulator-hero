@@ -1,3 +1,4 @@
+
 import { PDFDocument, PDFPage } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -61,6 +62,14 @@ export async function compressPDFWithCanvas(
     // Crear nuevo documento PDF con pdf-lib
     const newPdfDoc = await PDFDocument.create();
     
+    // Verificar la conexión con la API de reSmush.it
+    const testConnectionResult = await fetch('https://api.resmush.it/ping');
+    if (!testConnectionResult.ok) {
+      console.warn('No se pudo conectar con la API de reSmush.it. Se usará compresión local.');
+    } else {
+      console.info('Conexión exitosa con la API de reSmush.it');
+    }
+    
     // Procesar cada página
     for (let i = 0; i < numPages; i++) {
       // Calcular y reportar progreso
@@ -84,23 +93,44 @@ export async function compressPDFWithCanvas(
         preserveTextQuality ? 'print' : 'display'
       );
       
-      // Comprimir la imagen del canvas usando reSmush.it
-      const canvasBlob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(blob || new Blob([]));
-        }, 'image/jpeg', imageQuality);
-      });
+      // Comprimir la imagen del canvas
+      let compressedImageUrl;
       
-      // Usar el Blob en lugar del canvas directamente
-      const compressedImageUrl = await compressImageWithResmush(
-        canvasBlob,
-        { quality: resmushQuality }
-      );
+      // Primero intentamos con reSmush.it API
+      try {
+        // Convertir canvas a Blob con alta calidad
+        const canvasBlob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((blob) => {
+            resolve(blob || new Blob([]));
+          }, 'image/jpeg', imageQuality);
+        });
+        
+        // Usar la API para comprimir
+        compressedImageUrl = await compressImageWithResmush(
+          canvasBlob,
+          { quality: resmushQuality }
+        );
+        
+        console.info(`Página ${i+1} comprimida exitosamente con reSmush.it API`);
+      } catch (error) {
+        console.warn(`Error al usar reSmush.it API: ${error}. Usando compresión local.`);
+        // Fallback: usar compresión local si la API falla
+        compressedImageUrl = canvas.toDataURL('image/jpeg', imageQuality);
+      }
       
       // Cargar la imagen comprimida
-      const compressedImageResponse = await fetch(compressedImageUrl);
-      const compressedImageBlob = await compressedImageResponse.blob();
-      const compressedImageArrayBuffer = await compressedImageBlob.arrayBuffer();
+      let compressedImageArrayBuffer;
+      
+      if (compressedImageUrl.startsWith('data:')) {
+        // Es un data URL (compresión local)
+        const base64 = compressedImageUrl.split(',')[1];
+        compressedImageArrayBuffer = Buffer.from(base64, 'base64');
+      } else {
+        // Es una URL (reSmush.it API)
+        const compressedImageResponse = await fetch(compressedImageUrl);
+        const compressedImageBlob = await compressedImageResponse.blob();
+        compressedImageArrayBuffer = await compressedImageBlob.arrayBuffer();
+      }
       
       // Incrustar la imagen en el nuevo PDF
       const jpgImage = await newPdfDoc.embedJpg(new Uint8Array(compressedImageArrayBuffer));
