@@ -1,3 +1,4 @@
+
 import { PDFPageProxy } from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { renderPageToCanvasWithOptions } from './render-utils';
@@ -20,18 +21,13 @@ export async function processPage(
   compressionLevel: CompressionLevel
 ): Promise<boolean> {
   try {
-    // Obtener configuración de compresión según nivel, con valores más agresivos
-    const jpegQuality = compressionLevel === 'low' ? 0.75 : 
-                         compressionLevel === 'medium' ? 0.5 : 
-                         0.3; // high - muy agresivo
-                         
-    const scaleFactor = compressionLevel === 'low' ? 0.9 : 
-                         compressionLevel === 'medium' ? 0.7 : 
-                         0.5; // high - muy agresivo
-                         
-    const textMode = 'display';
-    const maximumDimension = 1200;
-
+    // Obtener configuración de compresión según nivel
+    const compressionFactors = COMPRESSION_FACTORS[compressionLevel];
+    const jpegQuality = compressionFactors.jpegQuality;
+    const scaleFactor = compressionFactors.scaleFactor;
+    const textMode = compressionFactors.textMode;
+    const maximumDimension = compressionFactors.maximumDimension;
+    
     // Obtener página actual
     const page = await pdfDoc.getPage(pageIndex + 1);
     
@@ -54,11 +50,11 @@ export async function processPage(
       page,
       canvas,
       dynamicScaleFactor,
-      compressionLevel !== 'high', // Usar alta calidad solo para niveles bajo y medio
-      textMode === 'print' ? 'print' : 'display'
+      compressionLevel === 'low', // Usar alta calidad para nivel bajo
+      textMode
     );
     
-    // Calcular calidad de JPEG según nivel y tamaño - valores más agresivos
+    // Calcular calidad de JPEG según nivel y tamaño
     const maxDimension = Math.max(width, height);
     let adjustedJpegQuality = jpegQuality;
     
@@ -69,7 +65,7 @@ export async function processPage(
       throw new Error('Canvas vacío después de renderizado');
     }
     
-    // Obtener data URL del canvas con compresión agresiva
+    // Obtener data URL del canvas con compresión ajustada según nivel
     let dataUrl;
     try {
       dataUrl = canvas.toDataURL('image/jpeg', adjustedJpegQuality);
@@ -102,13 +98,17 @@ export async function processPage(
       let finalWidth = width;
       let finalHeight = height;
       
-      // Reducir dimensiones para compresión media y alta
+      // Ajustar dimensiones según nivel de compresión
       if (compressionLevel === 'medium') {
         finalWidth = width * 0.9;
         finalHeight = height * 0.9;
       } else if (compressionLevel === 'high') {
         finalWidth = width * 0.7;
         finalHeight = height * 0.7;
+      } else if (compressionLevel === 'low') {
+        // Para nivel bajo, mantener dimensiones muy cercanas al original
+        finalWidth = width * 0.98;
+        finalHeight = height * 0.98;
       }
       
       // Añadir nueva página con las dimensiones ajustadas
@@ -130,7 +130,7 @@ export async function processPage(
       try {
         // Usar calidades más bajas según nivel para fallback
         const fallbackQuality = compressionLevel === 'high' ? 0.15 : 
-                              compressionLevel === 'medium' ? 0.25 : 0.4;
+                              compressionLevel === 'medium' ? 0.25 : 0.5;
         
         const fallbackDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         
@@ -159,6 +159,9 @@ export async function processPage(
         } else if (compressionLevel === 'high') {
           fallbackWidth = width * 0.6;
           fallbackHeight = height * 0.6;
+        } else if (compressionLevel === 'low') {
+          fallbackWidth = width * 0.95;
+          fallbackHeight = height * 0.95;
         }
         
         const newPage = newPdfDoc.addPage([fallbackWidth, fallbackHeight]);

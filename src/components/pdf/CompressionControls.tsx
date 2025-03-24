@@ -48,7 +48,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
             <ShieldCheck className="h-4 w-4 mr-1" />
             <span className="font-medium">Baja</span>
           </div>
-          <span className="block text-xs">Calidad óptima, compresión ligera</span>
+          <span className="block text-xs">Excelente calidad de imagen - poca compresión</span>
         </button>
         <button
           onClick={() => setCompressionLevel('medium')}
@@ -62,7 +62,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
             <ArrowDownCircle className="h-4 w-4 mr-1" />
             <span className="font-medium">Media</span>
           </div>
-          <span className="block text-xs">Buena calidad, compresión moderada</span>
+          <span className="block text-xs">Buena calidad legible - media compresión</span>
         </button>
         <button
           onClick={() => setCompressionLevel('high')}
@@ -76,7 +76,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
             <FileUp className="h-4 w-4 mr-1" />
             <span className="font-medium">Alta</span>
           </div>
-          <span className="block text-xs">Calidad reducida, máxima compresión</span>
+          <span className="block text-xs">Menos calidad, pero mejor compresión</span>
         </button>
       </div>
 

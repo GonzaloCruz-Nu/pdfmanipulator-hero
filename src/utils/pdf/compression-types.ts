@@ -10,6 +10,11 @@ export interface CompressionFactors {
   maximumDimension: number;
   objectsPerTick: number;
   useObjectStreams: boolean;
+  // Propiedades adicionales para diferentes compresores
+  imageQuality?: number;
+  preserveTextQuality?: boolean;
+  useHighQualityFormat?: boolean;
+  resmushQuality?: number;
 }
 
 // Tipo para resultados de compresión

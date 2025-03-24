@@ -12,7 +12,8 @@ export const standardCompression = async (
     // Crear copia de seguridad del ArrayBuffer
     const fileBufferCopy = new Uint8Array(fileBuffer.slice(0));
     
-    const { imageQuality, scaleFactor } = COMPRESSION_FACTORS[level];
+    const compressionFactors = COMPRESSION_FACTORS[level];
+    const jpegQuality = compressionFactors.jpegQuality; // Usar jpegQuality en lugar de imageQuality
     
     const pdfDoc = await PDFDocument.load(fileBufferCopy, { 
       ignoreEncryption: true,
@@ -49,11 +50,13 @@ export const standardCompression = async (
         page.node.delete(PDFName.of('Metadata'));
       }
 
-      // Eliminar otros recursos pesados
-      // Configuración global más agresiva
+      // Eliminar otros recursos pesados dependiendo del nivel de compresión
       if (page.node.has(PDFName.of('Resources'))) {
         const resources = page.node.get(PDFName.of('Resources'));
-        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
+        // En nivel alto o medio, eliminar XObjects
+        if ((level === 'high' || level === 'medium') && 
+            resources instanceof PDFDict && 
+            resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
       }
@@ -63,7 +66,7 @@ export const standardCompression = async (
     const compressedBytes = await pdfDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 100
+      objectsPerTick: level === 'low' ? 150 : level === 'medium' ? 100 : 50
     });
     
     return new File(

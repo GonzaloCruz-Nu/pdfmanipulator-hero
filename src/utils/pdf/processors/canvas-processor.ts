@@ -1,3 +1,4 @@
+
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CompressionLevel } from '../compression-types';
@@ -105,6 +106,8 @@ export async function compressPDFWithCanvas(
       // Aplicar mayor compresión para niveles altos
       if (compressionLevel === 'high') {
         saveOptions.objectsPerTick = 10; // Más agresivo
+      } else if (compressionLevel === 'low') {
+        saveOptions.objectsPerTick = 100; // Menos agresivo para mayor calidad
       }
       
       console.info(`Guardando con objectsPerTick: ${saveOptions.objectsPerTick} para nivel ${compressionLevel}`);
@@ -137,24 +140,20 @@ export async function compressPDFWithCanvas(
         );
       }
       
-      // Si el archivo comprimido es prácticamente idéntico al original,
-      // o más grande, intentar con una estrategia diferente
-      if (compressedFile.size > file.size * 0.95) {
+      // Ajustar el comportamiento según el nivel de compresión
+      // Para baja compresión, aceptamos una reducción mínima o incluso tamaño similar
+      if (compressionLevel === 'low') {
+        // Si es nivel bajo, aceptamos hasta un 10% más grande
+        if (compressedFile.size < file.size * 1.1) {
+          return compressedFile;
+        }
+      } 
+      // Para compresión media y alta, verificamos si la compresión fue significativa
+      else if (compressedFile.size > file.size * 0.95) {
         console.warn(`La compresión no logró reducir significativamente el tamaño del archivo. Intentando métodos alternativos...`);
         
         // Intentar estrategias adicionales según el nivel
-        if (compressionLevel === 'low') {
-          const alternativeResult = await tryLowCompressionAlternatives(
-            originalBuffer,
-            compressedFileName,
-            file.size
-          );
-          
-          if (alternativeResult && alternativeResult.size < file.size * 0.9) {
-            return alternativeResult;
-          }
-        }
-        else if (compressionLevel === 'medium') {
+        if (compressionLevel === 'medium') {
           const alternativeResult = await tryMediumCompressionAlternatives(
             file,
             fileIndex,
@@ -172,27 +171,26 @@ export async function compressPDFWithCanvas(
             file
           );
           
-          if (alternativeResult && alternativeResult.size < file.size * 0.8) {
+          if (alternativeResult && alternativeResult.size < file.size * 0.75) {
             return alternativeResult;
           }
           
           // Si las alternativas no funcionaron, forzar una diferencia
-          // asegurando que el archivo final sea al menos un 20% más pequeño
+          // asegurando que el archivo final sea al menos un 30% más pequeño
           try {
             // Intentar con un enfoque más radical para nivel alto
             const smallerDoc = await PDFDocument.create();
             
             // Al crear un documento desde cero, copiar solo algunas páginas
-            // (Por ejemplo, 1 de cada 2 páginas para una compresión extrema)
-            const srcDoc = await PDFDocument.load(originalBuffer.slice(0));
+            const srcDoc = await PDFDocument.load(new Uint8Array(originalBuffer.slice(0)));
             const srcPages = srcDoc.getPages();
             
-            for (let i = 0; i < srcPages.length; i += (compressionLevel === 'high' ? 1 : 2)) {
+            for (let i = 0; i < srcPages.length; i += 1) {
               try {
                 const [embeddedPage] = await smallerDoc.embedPages([srcPages[i]]);
                 const { width, height } = srcPages[i].getSize();
                 
-                // Reducir drasticamente el tamaño
+                // Reducir drasticamente el tamaño para nivel alto
                 const page = smallerDoc.addPage([width * 0.5, height * 0.5]);
                 page.drawPage(embeddedPage, {
                   x: 0,
@@ -223,7 +221,7 @@ export async function compressPDFWithCanvas(
               { type: 'application/pdf' }
             );
             
-            if (forcedResult.size < file.size * 0.8) {
+            if (forcedResult.size < file.size * 0.7) {
               return forcedResult;
             }
           } catch (extremeError) {
@@ -273,29 +271,38 @@ export async function compressPDFWithCanvas(
           
           for (let i = 0; i < originalDoc.numPages; i++) {
             const page = await originalDoc.getPage(i + 1);
-            const viewport = page.getViewport({ scale: 0.8 }); // Reducir escala
+            
+            // Ajustar escala según nivel de compresión
+            let scaleReduction = 1.0;
+            if (compressionLevel === 'medium') scaleReduction = 0.8;
+            if (compressionLevel === 'high') scaleReduction = 0.6;
+            
+            const viewport = page.getViewport({ scale: scaleReduction });
             
             // Crear canvas con dimensiones reducidas
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             
-            // Renderizar a baja calidad
+            // Renderizar con calidad según nivel
             const context = canvas.getContext('2d');
             await page.render({
               canvasContext: context,
               viewport: viewport
             }).promise;
             
-            // Convertir a JPEG con baja calidad
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+            // Convertir a JPEG con calidad según nivel
+            const jpegQuality = compressionLevel === 'high' ? 0.3 : 
+                               compressionLevel === 'medium' ? 0.6 : 0.9;
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
             const response = await fetch(dataUrl);
             const imgBuffer = await response.arrayBuffer();
             
             // Añadir a nuevo documento
             const jpgImage = await lastResortDoc.embedJpg(new Uint8Array(imgBuffer));
             
-            // Crear página más pequeña
+            // Crear página con dimensiones ajustadas según nivel
             const newPage = lastResortDoc.addPage([viewport.width, viewport.height]);
             newPage.drawImage(jpgImage, {
               x: 0,

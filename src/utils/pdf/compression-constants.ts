@@ -1,38 +1,45 @@
+
 import type { CompressionLevel, CompressionFactors } from './compression-types';
 
-// Factores de compresión para cada nivel - valores más agresivos para asegurar compresión real
+// Factores de compresión para cada nivel - ajustados para diferenciación clara
 export const COMPRESSION_FACTORS: Record<CompressionLevel, CompressionFactors> = {
   low: {
-    jpegQuality: 0.75,      // Calidad de imagen JPEG (0-1)
-    scaleFactor: 0.9,       // Factor de escala para dimensiones (0-1)
-    textMode: 'display',    // Modo de renderizado de texto
-    maximumDimension: 1500, // Dimensión máxima en píxeles
-    objectsPerTick: 50,     // Objetos procesados por tick
-    useObjectStreams: true  // Usar streams de objetos
+    jpegQuality: 0.9,        // Alta calidad de imagen JPEG (0-1)
+    scaleFactor: 0.95,       // Casi sin reducción de escala
+    textMode: 'print',       // Mejor calidad de texto
+    maximumDimension: 2000,  // Dimensión máxima alta para mantener calidad
+    objectsPerTick: 100,     // Mayor procesamiento por tick
+    useObjectStreams: true,  // Usar streams de objetos
+    imageQuality: 0.9,       // Alta calidad para imágenes
+    preserveTextQuality: true // Preservar calidad de texto
   },
   medium: {
-    jpegQuality: 0.5,       // Calidad media para balance
-    scaleFactor: 0.7,       // Reducción moderada
-    textMode: 'display',    // Modo de renderizado de texto
-    maximumDimension: 1200, // Dimensión media
-    objectsPerTick: 40,     // Procesamiento más rápido
-    useObjectStreams: true  // Usar streams para compresión
+    jpegQuality: 0.6,        // Calidad media para balance
+    scaleFactor: 0.75,       // Reducción moderada
+    textMode: 'display',     // Modo estándar de renderizado
+    maximumDimension: 1500,  // Dimensión media
+    objectsPerTick: 50,      // Procesamiento estándar
+    useObjectStreams: true,  // Usar streams para compresión
+    imageQuality: 0.6,       // Calidad media para imágenes
+    preserveTextQuality: true // Aún se preserva texto
   },
   high: {
-    jpegQuality: 0.3,       // Baja calidad para máxima compresión
-    scaleFactor: 0.5,       // Reducción sustancial
-    textMode: 'display',    // Modo simplificado
-    maximumDimension: 1000, // Dimensión más pequeña
-    objectsPerTick: 30,     // Más rápido aún
-    useObjectStreams: true  // Usar streams agresivamente
+    jpegQuality: 0.3,        // Baja calidad para máxima compresión
+    scaleFactor: 0.5,        // Reducción sustancial
+    textMode: 'display',     // Modo simplificado
+    maximumDimension: 1000,  // Dimensión más pequeña
+    objectsPerTick: 20,      // Más velocidad de procesamiento
+    useObjectStreams: true,  // Usar streams agresivamente
+    imageQuality: 0.3,       // Baja calidad para imágenes
+    preserveTextQuality: false // No se prioriza la calidad del texto
   }
 };
 
 // Umbrales mínimos de reducción esperados para cada nivel
 export const MIN_SIZE_REDUCTION = {
-  low: 0.03,    // Al menos 3% de reducción
-  medium: 0.15, // Al menos 15% de reducción
-  high: 0.30    // Al menos 30% de reducción
+  low: 0.02,    // Al menos 2% de reducción para nivel bajo
+  medium: 0.15, // Al menos 15% de reducción para nivel medio
+  high: 0.30    // Al menos 30% de reducción para nivel alto
 };
 
 // Límites de tamaño para ajuste dinámico de calidad
