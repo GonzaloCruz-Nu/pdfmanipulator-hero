@@ -112,35 +112,45 @@ export async function compressPDFWithCanvas(
       // Crear un canvas
       const canvas = document.createElement('canvas');
       
+      // Mejorar la resolución del canvas para niveles bajo y medio
+      if (level === 'low' || level === 'medium') {
+        // Aumentar la resolución del canvas para mejorar la nitidez
+        const resolutionFactor = level === 'low' ? 1.5 : 1.3;
+        canvas.width = width * scaleFactor * resolutionFactor;
+        canvas.height = height * scaleFactor * resolutionFactor;
+      } else {
+        canvas.width = width * scaleFactor;
+        canvas.height = height * scaleFactor;
+      }
+      
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
       await renderPageToCanvas(
         pdfPage, 
         canvas, 
-        scaleFactor, 
+        level === 'low' || level === 'medium' ? scaleFactor * (level === 'low' ? 1.5 : 1.3) : scaleFactor, 
         useHighQualityFormat, 
         textMode as 'print' | 'display'
       );
       
-      // Usar formato de imagen según configuración
-      let imageDataUrl;
+      // Ajustar calidad según nivel de compresión
       let imageQualityToUse = jpegQuality;
       
-      // Ajustar calidad según nivel de compresión
+      // Para niveles bajo y medio, aumentamos significativamente la calidad
       if (level === 'low') {
-        // Aumentar ligeramente la calidad para compresión baja
-        imageQualityToUse = Math.min(jpegQuality + 0.03, 0.98);
+        // Aumentar significativamente la calidad para compresión baja
+        imageQualityToUse = Math.min(jpegQuality + 0.02, 0.99);
       } else if (level === 'medium') {
-        // Para nivel medio, aumentamos aún más la calidad
-        imageQualityToUse = Math.min(jpegQuality + 0.05, 0.97);
-        
-        // Si además hay soporte WASM, mejoramos un poco más
-        if (wasmSupported) {
-          imageQualityToUse = Math.min(imageQualityToUse + 0.02, 0.98);
-        }
+        // Para nivel medio, aumentamos también pero menos que en bajo
+        imageQualityToUse = Math.min(jpegQuality + 0.01, 0.95);
       }
       
-      // Siempre usar JPEG para mejor compresión
-      imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
+      // Si además hay soporte WASM, mejoramos un poco más la calidad
+      if (wasmSupported && (level === 'low' || level === 'medium')) {
+        imageQualityToUse = Math.min(imageQualityToUse + 0.01, level === 'low' ? 0.99 : 0.96);
+      }
+      
+      // Siempre usar JPEG para comprimir, con calidad adaptada
+      let imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
       console.info(`Usando formato JPEG para nivel ${level} con calidad ${imageQualityToUse}`);
       
       // Extraer la base64 desde la URL de datos
@@ -170,10 +180,13 @@ export async function compressPDFWithCanvas(
         pdfImage = await newPdfDoc.embedJpg(imageBytes);
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
-        // Para nivel medio, intentar con calidad más alta incluso en fallback
-        const fallbackQuality = level === 'medium' 
-          ? Math.max(0.80, jpegQuality * 0.90) // Mayor calidad de fallback para nivel medio
-          : Math.max(0.70, jpegQuality * 0.85);
+        
+        // Mejorar calidad de fallback para niveles bajo y medio
+        const fallbackQuality = level === 'low' 
+          ? Math.max(0.90, jpegQuality * 0.95) 
+          : level === 'medium' 
+            ? Math.max(0.85, jpegQuality * 0.90) 
+            : Math.max(0.70, jpegQuality * 0.85);
           
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
@@ -197,9 +210,9 @@ export async function compressPDFWithCanvas(
         pageWidth = width * Math.max(0.99, colorReduction);
         pageHeight = height * Math.max(0.99, colorReduction);
       } else {
-        // Para nivel bajo, reducción mínima de tamaño
-        pageWidth = width * Math.max(0.99, colorReduction);
-        pageHeight = height * Math.max(0.99, colorReduction);
+        // Para nivel bajo, reducción mínima o nula de tamaño
+        pageWidth = width;
+        pageHeight = height;
       }
       
       // Agregar página al nuevo documento
