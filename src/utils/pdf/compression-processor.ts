@@ -72,7 +72,7 @@ export async function compressPDFWithCanvas(
     console.info(`- Calidad de imagen: ${imageQuality}`);
     console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
     console.info(`- Calidad JPEG: ${jpegQuality}`);
-    console.info(`- Calidad reSmush: ${resmushQuality}`);
+    console.info(`- Calidad reSmush: ${resmushQuality}%`);
     console.info(`- WebAssembly: ${wasmSupported ? 'Disponible' : 'No disponible'}`);
     console.info(`- Modo de texto: ${textMode}`);
     console.info(`- Preservar calidad texto: ${preserveTextQuality}`);
@@ -149,7 +149,7 @@ export async function compressPDFWithCanvas(
       if ((level === 'low' || level === 'medium') && totalPages <= 20) {
         try {
           // Usar la calidad específica de reSmush.it según el nivel de compresión
-          console.info(`Usando reSmush.it para la página ${i+1}/${totalPages} con calidad ${resmushQuality}`);
+          console.info(`Usando reSmush.it para la página ${i+1}/${totalPages} con calidad ${resmushQuality}%`);
           
           // Obtener blob del canvas en alta calidad
           const canvasBlob = await new Promise<Blob>((resolve) => {

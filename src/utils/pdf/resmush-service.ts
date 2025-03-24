@@ -29,15 +29,18 @@ export async function compressImageWithResmush(
     formData.append('qlty', quality.toString()); // Calidad personalizable
     formData.append('exif', 'true'); // Mantener metadatos EXIF
     
-    console.log(`Enviando solicitud a reSmush.it API con calidad ${quality}...`);
+    console.log(`Enviando solicitud a reSmush.it API con calidad ${quality}%...`);
     
     // Realizar la petición a reSmush.it con los headers requeridos
     const response = await fetch(RESMUSH_API_URL, {
       method: 'POST',
       body: formData,
-      // No podemos usar headers: en fetch con FormData porque el navegador
+      headers: {
+        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+        'Referer': window.location.origin || 'http://localhost'
+      }
+      // No podemos usar Content-Type con FormData porque el navegador
       // debe establecer automáticamente el Content-Type con el boundary
-      // Pero podemos añadir los headers necesarios
     });
     
     if (!response.ok) {
@@ -63,7 +66,7 @@ export async function compressImageWithResmush(
       const compressedSizeKB = Math.round(data.dest_size / 1024);
       const percentReduction = data.percent || ((data.src_size - data.dest_size) / data.src_size * 100).toFixed(2);
       
-      console.log(`reSmush.it (qlty=${quality}): ${originalSizeKB}KB → ${compressedSizeKB}KB (${percentReduction}% reducción)`);
+      console.log(`reSmush.it (qlty=${quality}%): ${originalSizeKB}KB → ${compressedSizeKB}KB (${percentReduction}% reducción)`);
     }
     
     // Descargar la imagen comprimida
