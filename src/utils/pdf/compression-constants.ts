@@ -1,4 +1,3 @@
-
 import type { CompressionLevel, CompressionFactors } from './compression-types';
 
 // Factores de compresión para cada nivel - valores más agresivos para asegurar compresión real

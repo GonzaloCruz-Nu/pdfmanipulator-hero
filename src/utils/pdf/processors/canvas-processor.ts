@@ -1,4 +1,3 @@
-
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CompressionLevel } from '../compression-types';
@@ -245,7 +244,7 @@ export async function compressPDFWithCanvas(
       try {
         // Modificar metadatos y guardar nuevamente para forzar diferencia
         const finalDoc = await PDFDocument.load(compressedPdfBytes);
-        finalDoc.setCreator(`PDF Optimizer - Forzado (${new Date().getISOString()})`);
+        finalDoc.setCreator(`PDF Optimizer - Forzado (${new Date().toISOString()})`);
         finalDoc.setProducer(`CompresorPDF v2.1 - FORZADO ${compressionLevel.toUpperCase()}`);
         
         // Intentar otras opciones de guardado

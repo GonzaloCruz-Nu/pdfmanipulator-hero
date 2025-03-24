@@ -1,5 +1,16 @@
+
 // Tipo para niveles de compresión
 export type CompressionLevel = 'low' | 'medium' | 'high';
+
+// Tipo para factores de compresión
+export interface CompressionFactors {
+  jpegQuality: number;
+  scaleFactor: number;
+  textMode: string;
+  maximumDimension: number;
+  objectsPerTick: number;
+  useObjectStreams: boolean;
+}
 
 // Tipo para resultados de compresión
 export interface CompressionResult {

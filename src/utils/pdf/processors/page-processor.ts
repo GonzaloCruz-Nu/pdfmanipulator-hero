@@ -1,4 +1,3 @@
-
 import { PDFPageProxy } from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { renderPageToCanvasWithOptions } from './render-utils';
