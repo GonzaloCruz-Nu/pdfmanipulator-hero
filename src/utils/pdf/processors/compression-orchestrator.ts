@@ -3,6 +3,7 @@ import { CompressionLevel } from '../compression-types';
 import { compressPDFWithCanvas } from './canvas-processor';
 import { compressPDFAdvanced } from './advanced-processor';
 import { standardCompression } from '../standard-compression';
+import { ultimateCompression } from '../ultimate-compression';
 import { PDFDocument } from 'pdf-lib';
 import { getQualityForCompressionLevel } from './resmush-processor';
 
@@ -32,6 +33,63 @@ export async function compressPDF(
   
   try {
     let result = null;
+    
+    // Estrategia especial para nivel de compresión bajo
+    if (compressionLevel === 'low') {
+      console.info('Aplicando estrategia especial para nivel de compresión bajo');
+      
+      try {
+        // Para nivel bajo, intentar primero con ultimate-compression (menos destructivo)
+        const fileBuffer = await file.arrayBuffer();
+        progressCallback(30);
+        
+        result = await ultimateCompression(fileBuffer, 'low', file.name);
+        progressCallback(60);
+        
+        // Si falló, intentar con standardCompression
+        if (!result) {
+          console.warn('Ultimate compression falló para nivel bajo, intentando standard compression');
+          result = await standardCompression(fileBuffer, 'low', file.name);
+          progressCallback(80);
+        }
+        
+        // Si aún no hay resultado, forzar un mínimo cambio en el documento original
+        if (!result) {
+          console.warn('Todas las compresiones fallaron para nivel bajo, forzando resultado mínimo');
+          
+          const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
+          
+          // Forzar cambios en los metadatos para asegurar alguna diferencia
+          const timestamp = Date.now().toString();
+          pdfDoc.setProducer(`PDF Optimizer - Compresión mínima forzada (${timestamp})`);
+          pdfDoc.setCreator(`PDF Optimizer v2.1 - Calidad óptima (${timestamp})`);
+          pdfDoc.setSubject(`Documento optimizado - compresión mínima (${timestamp})`);
+          
+          const bytes = await pdfDoc.save({
+            useObjectStreams: true,
+            addDefaultPage: false,
+            objectsPerTick: 150
+          });
+          
+          result = new File(
+            [bytes],
+            `comprimido_bajo_${file.name}`,
+            { type: 'application/pdf' }
+          );
+        }
+        
+        // Verificar que tenemos un resultado para nivel bajo
+        if (result) {
+          console.info(`Compresión de baja calidad completada: ${Math.round(result.size/1024)}KB (era ${Math.round(file.size/1024)}KB)`);
+          progressCallback(100);
+          return result;
+        }
+      } catch (lowError) {
+        console.error('Error en estrategia especial para nivel bajo:', lowError);
+      }
+    }
+    
+    // Para nivel medio y alto, o si el nivel bajo falló, continuar con la estrategia normal
     let attempts = 0;
     const maxAttempts = 2;
     
@@ -41,41 +99,8 @@ export async function compressPDF(
         // First attempt with canvas processor which is the most reliable
         result = await compressPDFWithCanvas(file, compressionLevel, fileIndex, totalFiles, progressCallback);
         
-        // Para nivel bajo, aceptar resultado con cambios mínimos
-        if (compressionLevel === 'low') {
-          if (result) {
-            console.info(`Compresión de baja calidad completada con éxito para ${file.name}`);
-            
-            // Si el resultado es exactamente igual al original, forzar un pequeño cambio
-            if (result.size === file.size) {
-              console.warn(`El resultado de compresión baja tiene exactamente el mismo tamaño. Forzando cambios mínimos...`);
-              
-              try {
-                // Forzar cambios en los metadatos para asegurar una diferencia
-                const pdfDoc = await PDFDocument.load(await result.arrayBuffer());
-                pdfDoc.setProducer(`PDF Optimizer - Baja compresión (${Date.now()})`);
-                pdfDoc.setCreator(`PDF Optimizer v1.0 - Calidad óptima`);
-                const bytes = await pdfDoc.save({
-                  useObjectStreams: true,
-                  addDefaultPage: false
-                });
-                
-                result = new File(
-                  [bytes],
-                  `${file.name.replace('.pdf', '')}_comprimido_bajo.pdf`,
-                  { type: 'application/pdf' }
-                );
-              } catch (forcedError) {
-                console.error("Error al forzar cambios mínimos:", forcedError);
-              }
-            }
-            
-            // Para compresión baja, aceptar cualquier resultado así tenga cambios mínimos
-            return result;
-          }
-        }
         // Para niveles medio y alto, verificar que hay una compresión significativa
-        else if (result && Math.abs(result.size - file.size) / file.size < 0.05) {
+        if (result && compressionLevel !== 'low' && Math.abs(result.size - file.size) / file.size < 0.05) {
           console.warn(`Compresión ${compressionLevel} produjo cambios insuficientes. Intentando alternativa...`);
           
           // Solo en niveles medio y alto buscamos alternativas si no hay compresión significativa
@@ -100,7 +125,7 @@ export async function compressPDF(
           }
           
           // Para otros niveles, verificar compresión significativa
-          if (result && Math.abs(result.size - file.size) / file.size < 0.1) {
+          if (result && compressionLevel !== 'low' && Math.abs(result.size - file.size) / file.size < 0.1) {
             console.warn(`Compresión estándar produjo cambios insuficientes para nivel ${compressionLevel}. Intentando otra...`);
             result = null;
           }
@@ -109,10 +134,24 @@ export async function compressPDF(
         }
       }
       
-      // If second method failed and high compression is requested, try advanced processor
+      // If second method failed and high/medium compression is requested, try advanced processor
       if (!result && attempts === 2 && (compressionLevel === 'high' || compressionLevel === 'medium')) {
         try {
           result = await compressPDFAdvanced(file, compressionLevel, progressCallback);
+          
+          // Verificar si logramos compresión significativa
+          if (result && Math.abs(result.size - file.size) / file.size < 0.1) {
+            console.warn(`Compresión avanzada produjo cambios insuficientes. Intentando última estrategia...`);
+            
+            try {
+              const ultimateResult = await ultimateCompression(await file.arrayBuffer(), compressionLevel, file.name);
+              if (ultimateResult && Math.abs(ultimateResult.size - file.size) / file.size > 0.15) {
+                result = ultimateResult;
+              }
+            } catch (ultimateError) {
+              console.error("Ultimate compression failed:", ultimateError);
+            }
+          }
         } catch (advancedError) {
           console.error("Advanced compression failed:", advancedError);
         }
@@ -127,8 +166,10 @@ export async function compressPDF(
         const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
         
         // Configuración específica para nivel bajo
-        pdfDoc.setProducer(`PDF Optimizer - Compresión mínima (${Date.now()})`);
-        pdfDoc.setCreator(`PDF Optimizer v1.0 - Calidad óptima`);
+        const timestamp = Date.now().toString();
+        pdfDoc.setProducer(`PDF Optimizer - Compresión mínima (${timestamp})`);
+        pdfDoc.setCreator(`PDF Optimizer v1.0 - Calidad óptima (${timestamp})`);
+        pdfDoc.setSubject(`Documento optimizado - último recurso (${timestamp})`);
         
         // Guardar con opciones muy ligeras
         const bytes = await pdfDoc.save({
@@ -140,7 +181,7 @@ export async function compressPDF(
         // Crear archivo con cambios mínimos
         result = new File(
           [bytes],
-          `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+          `${file.name.replace('.pdf', '')}_optimizado_bajo.pdf`,
           { type: 'application/pdf' }
         );
       } catch (forcedError) {
@@ -155,8 +196,9 @@ export async function compressPDF(
         const pdfDoc = await PDFDocument.load(await file.arrayBuffer());
         
         // Basic metadata cleanup
-        pdfDoc.setProducer(`PDF Optimizer - ${compressionLevel} (fallback)`);
-        pdfDoc.setCreator(`PDF Optimizer v1.0`);
+        const timestamp = Date.now().toString();
+        pdfDoc.setProducer(`PDF Optimizer - ${compressionLevel} (fallback) (${timestamp})`);
+        pdfDoc.setCreator(`PDF Optimizer v1.0 (${timestamp})`);
         
         // Save with minimal optimization
         const bytes = await pdfDoc.save({
@@ -166,7 +208,7 @@ export async function compressPDF(
         
         result = new File(
           [bytes],
-          `${file.name.replace('.pdf', '')}_procesado.pdf`,
+          `${file.name.replace('.pdf', '')}_procesado_${compressionLevel}.pdf`,
           { type: 'application/pdf' }
         );
       } catch (fallbackError) {

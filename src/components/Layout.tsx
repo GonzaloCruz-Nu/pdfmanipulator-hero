@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import Footer from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
           {children}
         </div>
       </div>
-      <Footer />
+      {/* Footer has been moved to the App component */}
     </div>
   );
 };

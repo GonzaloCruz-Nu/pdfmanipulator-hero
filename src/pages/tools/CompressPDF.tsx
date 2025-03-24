@@ -5,7 +5,6 @@ import { useMultipleCompressPDF } from '@/hooks/useMultipleCompressPDF';
 import { calculateTotalCompressionStats } from '@/services/pdfCompressionService';
 import { isWasmSupported } from '@/utils/pdf/pdfRenderUtils';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import Layout from '@/components/Layout';
 import CompressHeader from '@/components/pdf/CompressHeader';
 import CompressUpload from '@/components/pdf/CompressUpload';
@@ -94,7 +93,6 @@ const CompressPDF: React.FC = () => {
           </motion.div>
         </div>
       </Layout>
-      <Footer />
     </>
   );
 };

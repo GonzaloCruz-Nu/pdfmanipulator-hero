@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap, ShieldCheck, ArrowDownCircle, FileUp } from 'lucide-react';
+import { ShieldCheck, ArrowDownCircle, FileUp, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
