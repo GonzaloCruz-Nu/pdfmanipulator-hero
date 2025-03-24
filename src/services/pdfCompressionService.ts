@@ -42,15 +42,27 @@ export async function compressPDF(
       }
     }
     
-    // Si el archivo resultante es más grande que el original en niveles bajo/medio
-    // simplemente devolver el original para evitar aumentos de tamaño
-    if (result && (level === 'low' || level === 'medium') && result.size > file.size * 1.1) {
-      console.warn(`El archivo comprimido es más grande que el original (${(result.size/1024).toFixed(2)}KB vs ${(file.size/1024).toFixed(2)}KB). Devolviendo archivo original.`);
-      return new File(
-        [await file.arrayBuffer()],
-        `${file.name.replace('.pdf', '')}_optimizado.pdf`,
-        { type: 'application/pdf' }
-      );
+    // Si el archivo resultante es más grande que el original en cualquier nivel,
+    // considerar devolver el original para evitar aumentos de tamaño
+    if (result && result.size > file.size * 1.1) {
+      console.warn(`El archivo comprimido es más grande que el original (${(result.size/1024/1024).toFixed(2)}MB vs ${(file.size/1024/1024).toFixed(2)}MB).`);
+      
+      // Para nivel alto, siempre devolver el resultado (aunque sea mayor) para permitir
+      // que el usuario vea el resultado y decida
+      if (level === 'high') {
+        console.info(`Mostrando archivo procesado para nivel alto a pesar del aumento de tamaño.`);
+        return result;
+      }
+      
+      // Para niveles bajo y medio, devolver el original si aumentó significativamente
+      if (result.size > file.size * 1.5) {
+        console.warn(`Aumento de tamaño excesivo. Devolviendo archivo original.`);
+        return new File(
+          [await file.arrayBuffer()],
+          `${file.name.replace('.pdf', '')}_original.pdf`,
+          { type: 'application/pdf' }
+        );
+      }
     }
     
     return result;

@@ -21,7 +21,16 @@ export async function compressCanvasImage(
     // Generar JPEG inicial con la calidad especificada
     const initialJpegUrl = canvas.toDataURL('image/jpeg', Math.min(1.0, fallbackQuality));
     
-    console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height})`);
+    // Verificar si la imagen es demasiado grande
+    const canvasSize = canvas.width * canvas.height;
+    console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height}, tamaño: ${Math.round(canvasSize/1000000)} MP)`);
+    
+    // Para imágenes muy grandes, aplicar compresión más agresiva
+    if (canvasSize > 3000000 && fallbackQuality > 0.7) { // > 3 megapíxeles
+      const adjustedQuality = Math.max(0.7, fallbackQuality - 0.1);
+      console.info(`Imagen grande detectada, ajustando calidad a ${adjustedQuality}`);
+      return canvas.toDataURL('image/jpeg', adjustedQuality);
+    }
     
     if (useResmush) {
       try {
@@ -52,7 +61,7 @@ export async function compressCanvasImage(
   } catch (error) {
     console.error(`Error general comprimiendo imagen de página ${pageIndex+1}:`, error);
     // Último recurso: devolver una imagen con calidad media
-    return canvas.toDataURL('image/jpeg', 0.8);
+    return canvas.toDataURL('image/jpeg', 0.7);
   }
 }
 

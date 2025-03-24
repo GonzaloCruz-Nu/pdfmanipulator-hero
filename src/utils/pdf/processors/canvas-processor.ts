@@ -29,7 +29,8 @@ export async function compressPDFWithCanvas(
       useHighQualityFormat,
       preserveTextQuality,
       textMode,
-      jpegQuality
+      jpegQuality,
+      maximumDimension
     } = COMPRESSION_FACTORS[compressionLevel];
     
     // Reportar inicio de procesamiento
@@ -64,37 +65,44 @@ export async function compressPDFWithCanvas(
           // Crear canvas para renderizar la página
           const canvas = document.createElement('canvas');
           
-          // Aplicar la configuración del nivel de compresión
-          const adjustedScaleFactor = compressionLevel === 'high' ? scaleFactor : 
-                                      compressionLevel === 'medium' ? scaleFactor * 1.2 : 
-                                      scaleFactor * 1.4;
+          // Obtener dimensiones originales de la página
+          const { width, height } = page.getViewport({ scale: 1.0 });
           
-          // Renderizar página en el canvas con configuraciones según nivel
+          // Calcular factor de escala basado en la dimensión máxima permitida
+          let dynamicScaleFactor = scaleFactor;
+          const maxDimension = Math.max(width, height);
+          
+          if (maxDimension * scaleFactor > maximumDimension) {
+            dynamicScaleFactor = maximumDimension / maxDimension;
+            console.info(`Ajustando factor de escala a ${dynamicScaleFactor} para respetar dimensión máxima ${maximumDimension}`);
+          }
+          
           // Aseguramos que textMode sea del tipo correcto ('print' | 'display')
           const renderTextMode = textMode === 'print' ? 'print' : 'display';
           
           await renderPageToCanvasWithOptions(
             page,
             canvas,
-            adjustedScaleFactor,
+            dynamicScaleFactor,
             compressionLevel !== 'high', // Usar alta calidad solo para niveles bajo y medio
             renderTextMode
           );
           
-          // Usar calidad de JPEG según nivel de compresión
-          const quality = compressionLevel === 'low' ? jpegQuality : 
-                          compressionLevel === 'medium' ? jpegQuality : 
-                          jpegQuality;
+          // Calcular calidad de JPEG según nivel de compresión
+          // Aplicamos más reducción para páginas grandes
+          let adjustedJpegQuality = jpegQuality;
+          if (maxDimension > 1200 && compressionLevel === 'high') {
+            adjustedJpegQuality = Math.max(0.50, jpegQuality - 0.15);
+          } else if (maxDimension > 2000 && compressionLevel !== 'low') {
+            adjustedJpegQuality = Math.max(0.60, jpegQuality - 0.10);
+          }
           
           // Obtener data URL directamente del canvas 
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const dataUrl = canvas.toDataURL('image/jpeg', adjustedJpegQuality);
           
           // Convertir data URL a ArrayBuffer
           const response = await fetch(dataUrl);
           const imageArrayBuffer = await response.arrayBuffer();
-          
-          // Obtener dimensiones originales de la página
-          const { width, height } = page.getViewport({ scale: 1.0 });
           
           try {
             // Incrustar la imagen en el nuevo PDF
@@ -114,7 +122,8 @@ export async function compressPDFWithCanvas(
             console.error(`Error incrustando imagen para página ${i+1}:`, embedError);
             
             // Si falla, intentar con calidad más baja como último recurso
-            const fallbackQuality = compressionLevel === 'high' ? 0.5 : 0.7;
+            const fallbackQuality = compressionLevel === 'high' ? 0.4 : 
+                                   compressionLevel === 'medium' ? 0.5 : 0.6;
             const fallbackDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
             const fallbackResponse = await fetch(fallbackDataUrl);
             const fallbackImageBuffer = await fallbackResponse.arrayBuffer();
@@ -149,7 +158,9 @@ export async function compressPDFWithCanvas(
       const compressedPdfBytes = await newPdfDoc.save({
         useObjectStreams: true,
         addDefaultPage: false,
-        objectsPerTick: compressionLevel === 'high' ? 50 : 100
+        // Ajustar la cantidad de objetos por tick según nivel de compresión
+        objectsPerTick: compressionLevel === 'high' ? 30 : 
+                       compressionLevel === 'medium' ? 50 : 100
       });
       
       // Crear nuevo archivo con el PDF comprimido
@@ -159,13 +170,88 @@ export async function compressPDFWithCanvas(
         lastModified: new Date().getTime(),
       });
       
+      // Verificar que el archivo comprimido sea realmente más pequeño
+      // Si con nivel "high" sigue siendo más grande, intentar con compresión extrema
+      if (compressedFile.size > file.size * 1.05 && compressionLevel === 'high') {
+        console.warn(`Compresión estándar resultó en un archivo más grande (${(compressedFile.size/1024/1024).toFixed(2)} MB vs ${(file.size/1024/1024).toFixed(2)} MB). Intentando compresión extrema...`);
+        
+        // Intentamos escala mucho más reducida y menor calidad
+        const extremeCompressionCanvas = document.createElement('canvas');
+        const extremeScaleFactor = 0.4; // Factor de escala extremadamente reducido
+        const extremeQuality = 0.35; // Calidad muy baja
+        
+        // Crear un nuevo documento PDF para la compresión extrema
+        const extremeDoc = await PDFDocument.create();
+        
+        for (let i = 0; i < numPages; i++) {
+          try {
+            const page = await pdfDoc.getPage(i + 1);
+            const { width, height } = page.getViewport({ scale: 1.0 });
+            
+            await renderPageToCanvasWithOptions(
+              page,
+              extremeCompressionCanvas,
+              extremeScaleFactor,
+              false, // No usar alta calidad
+              'display' // Modo display para mejor compresión
+            );
+            
+            // Comprimir a JPEG con calidad muy baja
+            const extremeDataUrl = extremeCompressionCanvas.toDataURL('image/jpeg', extremeQuality);
+            const extremeResponse = await fetch(extremeDataUrl);
+            const extremeBuffer = await extremeResponse.arrayBuffer();
+            
+            // Incrustar y añadir página
+            const extremeJpg = await extremeDoc.embedJpg(new Uint8Array(extremeBuffer));
+            const newPage = extremeDoc.addPage([width, height]);
+            newPage.drawImage(extremeJpg, {
+              x: 0,
+              y: 0,
+              width: width,
+              height: height,
+            });
+          } catch (error) {
+            console.error(`Error en compresión extrema página ${i+1}:`, error);
+            continue;
+          }
+        }
+        
+        // Guardar con compresión máxima
+        const extremeBytes = await extremeDoc.save({
+          useObjectStreams: true,
+          addDefaultPage: false,
+          objectsPerTick: 20
+        });
+        
+        const extremeFile = new File([extremeBytes], compressedFileName, {
+          type: 'application/pdf',
+          lastModified: new Date().getTime(),
+        });
+        
+        // Si el archivo con compresión extrema es más pequeño, usarlo
+        if (extremeFile.size < compressedFile.size) {
+          console.info(`Compresión extrema exitosa: ${(extremeFile.size/1024/1024).toFixed(2)} MB (vs original ${(file.size/1024/1024).toFixed(2)} MB)`);
+          return extremeFile;
+        }
+      }
+      
+      // Si el archivo sigue siendo significativamente más grande con cualquier nivel, advertir pero devolver el original
+      if (compressionLevel === 'high' && compressedFile.size > file.size * 1.5) {
+        console.warn(`¡ATENCIÓN! El archivo comprimido es MUCHO más grande que el original. Devolviendo el original.`);
+        return new File(
+          [fileArrayBuffer],
+          `${file.name.replace('.pdf', '')}_original.pdf`,
+          { type: 'application/pdf' }
+        );
+      }
+      
       // Reportar finalización y estadísticas
       progressCallback(100);
-      const originalSize = (file.size / 1024).toFixed(2);
-      const compressedSize = (compressedFile.size / 1024).toFixed(2);
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
+      const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2);
       const compressionRatio = ((file.size - compressedFile.size) / file.size * 100).toFixed(2);
       
-      console.info(`Compresión completada: ${originalSize} KB -> ${compressedSize} KB (${compressionRatio}% reducción)`);
+      console.info(`Compresión completada: ${originalSize} MB -> ${compressedSize} MB (${compressionRatio}% reducción)`);
       
       return compressedFile;
     } catch (pdfError) {

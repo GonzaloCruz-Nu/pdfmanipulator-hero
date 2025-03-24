@@ -25,10 +25,10 @@ export async function renderPageToCanvasWithOptions(
     
     if (useHighQualityRendering) {
       // Alta calidad para niveles bajo y medio
-      dpr = Math.max(dpr, textMode === 'print' ? 10.0 : 8.0);
+      dpr = Math.max(dpr, textMode === 'print' ? 4.0 : 3.0);
     } else {
       // Menor calidad para nivel alto de compresión
-      dpr = Math.max(dpr, 4.0);
+      dpr = Math.max(dpr, 2.0);
     }
     
     // Ajustar dimensiones del canvas
