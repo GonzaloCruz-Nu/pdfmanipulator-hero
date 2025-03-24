@@ -2,27 +2,27 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { 
-    imageQuality: 0.98, // Mayor calidad JPEG para mejor legibilidad (aumentada más)
-    scaleFactor: 0.995, // Reducción mínima para mantener calidad máxima (aumentada más)
+    imageQuality: 0.99, // Calidad JPEG casi máxima para nivel bajo
+    scaleFactor: 1.0, // Sin reducción de escala para nivel bajo
     colorReduction: 1.0, // Sin reducción de color para nivel bajo
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.99, // Calidad JPEG máxima para nivel bajo
+    jpegQuality: 0.995, // Calidad JPEG máxima para nivel bajo
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.99, // Calidad WebP si se usa (aumentada)
+    webpQuality: 0.995, // Calidad WebP si se usa
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   medium: { 
-    imageQuality: 0.95, // Mayor calidad JPEG para nivel medio (aumentada)
-    scaleFactor: 0.98, // Reducción ligera preservando mejor legibilidad (aumentada)
-    colorReduction: 0.99, // Reducción de color mínima (aumentada)
+    imageQuality: 0.96, // Mayor calidad JPEG para nivel medio
+    scaleFactor: 0.99, // Reducción mínima para nivel medio
+    colorReduction: 0.99, // Reducción de color mínima
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.97, // Mayor calidad JPEG para nivel medio (aumentada)
+    jpegQuality: 0.98, // Mayor calidad JPEG para nivel medio
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.97, // Calidad WebP si se usa (aumentada)
+    webpQuality: 0.98, // Calidad WebP si se usa
     textMode: 'print' // Modo de renderizado optimizado para texto
   },
   high: { 

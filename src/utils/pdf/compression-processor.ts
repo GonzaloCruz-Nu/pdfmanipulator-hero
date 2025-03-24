@@ -113,9 +113,14 @@ export async function compressPDFWithCanvas(
       const canvas = document.createElement('canvas');
       
       // Mejorar la resolución del canvas para niveles bajo y medio
-      if (level === 'low' || level === 'medium') {
+      if (level === 'low') {
         // Aumentar la resolución del canvas para mejorar la nitidez
-        const resolutionFactor = level === 'low' ? 2.0 : 1.7; // Aumentamos la resolución significativamente
+        const resolutionFactor = 3.0; // Aumentamos significativamente para nivel bajo
+        canvas.width = width * scaleFactor * resolutionFactor;
+        canvas.height = height * scaleFactor * resolutionFactor;
+      } else if (level === 'medium') {
+        // Para nivel medio, también aumentamos pero un poco menos
+        const resolutionFactor = 2.5; // Valor intermedio para nivel medio
         canvas.width = width * scaleFactor * resolutionFactor;
         canvas.height = height * scaleFactor * resolutionFactor;
       } else {
@@ -127,7 +132,7 @@ export async function compressPDFWithCanvas(
       await renderPageToCanvas(
         pdfPage, 
         canvas, 
-        level === 'low' || level === 'medium' ? scaleFactor * (level === 'low' ? 2.0 : 1.7) : scaleFactor, // Aumentamos el factor de escala 
+        level === 'low' ? scaleFactor * 3.0 : level === 'medium' ? scaleFactor * 2.5 : scaleFactor,
         useHighQualityFormat, 
         textMode as 'print' | 'display'
       );
@@ -137,16 +142,16 @@ export async function compressPDFWithCanvas(
       
       // Para niveles bajo y medio, aumentamos significativamente la calidad
       if (level === 'low') {
-        // Aumentar significativamente la calidad para compresión baja
-        imageQualityToUse = Math.min(jpegQuality + 0.005, 0.995); // Ajuste fino para calidad máxima
+        // Nivel bajo: calidad prácticamente máxima
+        imageQualityToUse = 0.999;
       } else if (level === 'medium') {
-        // Para nivel medio, aumentamos también pero menos que en bajo
-        imageQualityToUse = Math.min(jpegQuality + 0.01, 0.98);
+        // Nivel medio: muy buena calidad pero permitiendo algo de compresión
+        imageQualityToUse = 0.98;
       }
       
       // Si además hay soporte WASM, mejoramos un poco más la calidad
       if (wasmSupported && (level === 'low' || level === 'medium')) {
-        imageQualityToUse = Math.min(imageQualityToUse + 0.005, level === 'low' ? 0.998 : 0.985);
+        imageQualityToUse = Math.min(imageQualityToUse + 0.001, 0.999);
       }
       
       // Siempre usar JPEG para comprimir, con calidad adaptada
@@ -183,10 +188,10 @@ export async function compressPDFWithCanvas(
         
         // Mejorar calidad de fallback para niveles bajo y medio
         const fallbackQuality = level === 'low' 
-          ? Math.max(0.95, jpegQuality * 0.98) 
+          ? 0.98
           : level === 'medium' 
-            ? Math.max(0.90, jpegQuality * 0.95) 
-            : Math.max(0.70, jpegQuality * 0.85);
+            ? 0.95
+            : 0.80;
           
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
@@ -205,12 +210,8 @@ export async function compressPDFWithCanvas(
       if (level === 'high') {
         pageWidth = width * colorReduction;
         pageHeight = height * colorReduction;
-      } else if (level === 'medium') {
-        // Para nivel medio, preservar mejor las dimensiones originales
-        pageWidth = width * Math.max(0.995, colorReduction);
-        pageHeight = height * Math.max(0.995, colorReduction);
       } else {
-        // Para nivel bajo, no reducir tamaño
+        // Para niveles bajo y medio, preservar dimensiones originales completamente
         pageWidth = width;
         pageHeight = height;
       }
@@ -231,11 +232,19 @@ export async function compressPDFWithCanvas(
     onProgress?.(85);
     
     // Optimizar opciones de guardado para cada nivel de compresión
-    let saveOptions = {
+    let saveOptions: any = {
       useObjectStreams: true,
       addDefaultPage: false,
       objectsPerTick: 100
     };
+    
+    // Para niveles de baja compresión, preservar la mayor calidad posible
+    if (level === 'low') {
+      saveOptions = {
+        ...saveOptions,
+        compress: false
+      };
+    }
     
     // Guardar el documento comprimido
     const compressedBytes = await newPdfDoc.save(saveOptions);

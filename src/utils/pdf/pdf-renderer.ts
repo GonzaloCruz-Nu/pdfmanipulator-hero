@@ -29,7 +29,7 @@ export async function renderPageToCanvas(
     // Para niveles de baja y media compresión, usar un DPI ajustado
     if (useHighQualityRendering) {
       // Usar un DPI elevado para mejorar calidad de texto
-      const dpr = Math.max(window.devicePixelRatio || 1, 3.0); // Aumentado a 3.0x DPR para calidad máxima
+      const dpr = Math.max(window.devicePixelRatio || 1, 4.0); // Aumentado a 4.0x DPR para calidad superior
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -75,7 +75,7 @@ export async function renderPageToCanvas(
       imageLayer: undefined,
       printAnnotationStorage: undefined,
       optionalContentConfigPromise: undefined,
-      renderingIntent: undefined
+      renderingIntent: 'print' // Forzar siempre modo print para máxima calidad de texto
     };
     
     // Renderizar página con máxima calidad
@@ -97,7 +97,9 @@ export async function loadPdfDocument(fileArrayBuffer: ArrayBuffer): Promise<pdf
       cMapPacked: true,
       useSystemFonts: true,  // Usar fuentes del sistema para mejor calidad
       useWorkerFetch: true,  // Usar worker para fetching
-      disableFontFace: false // Permitir uso de fuentes embebidas
+      disableFontFace: false, // Permitir uso de fuentes embebidas
+      isEvalSupported: true,  // Habilitar eval para mejorar rendimiento
+      nativeImageDecoderSupport: "display" // Optimizar decodificación de imágenes
     });
     return await loadingTask.promise;
   } catch (error) {
