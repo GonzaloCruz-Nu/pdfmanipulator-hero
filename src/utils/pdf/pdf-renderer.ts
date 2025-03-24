@@ -29,7 +29,7 @@ export async function renderPageToCanvas(
     // Para niveles de baja y media compresión, usar un DPI ajustado
     if (useHighQualityRendering) {
       // Usar un DPI elevado para mejorar calidad de texto
-      const dpr = Math.max(window.devicePixelRatio || 1, 2.5); // Aumentado a 2.5x DPR para mejor calidad
+      const dpr = Math.max(window.devicePixelRatio || 1, 3.0); // Aumentado a 3.0x DPR para calidad máxima
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -61,24 +61,24 @@ export async function renderPageToCanvas(
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Configurar opciones de renderizado
+    // Configurar opciones de renderizado avanzadas
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
       // Optimizaciones para texto
       intent: textMode, // 'print' produce mejor calidad de texto
-      renderInteractiveForms: false,
+      renderInteractiveForms: true, // Renderizar formularios interactivos
       canvasFactory: undefined,
       textLayer: null,
       annotationStorage: undefined,
-      annotationMode: undefined,
+      annotationMode: 2, // ENABLE para preservar anotaciones
       imageLayer: undefined,
       printAnnotationStorage: undefined,
       optionalContentConfigPromise: undefined,
       renderingIntent: undefined
     };
     
-    // Renderizar página
+    // Renderizar página con máxima calidad
     await pdfPage.render(renderContext).promise;
   } catch (error) {
     console.error('Error al renderizar página en canvas:', error);
@@ -91,7 +91,14 @@ export async function renderPageToCanvas(
  */
 export async function loadPdfDocument(fileArrayBuffer: ArrayBuffer): Promise<pdfjsLib.PDFDocumentProxy> {
   try {
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileArrayBuffer) });
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: new Uint8Array(fileArrayBuffer),
+      cMapUrl: 'https://unpkg.com/pdfjs-dist@3.8.162/cmaps/',
+      cMapPacked: true,
+      useSystemFonts: true,  // Usar fuentes del sistema para mejor calidad
+      useWorkerFetch: true,  // Usar worker para fetching
+      disableFontFace: false // Permitir uso de fuentes embebidas
+    });
     return await loadingTask.promise;
   } catch (error) {
     console.error('Error al cargar documento PDF:', error);

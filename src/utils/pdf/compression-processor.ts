@@ -115,7 +115,7 @@ export async function compressPDFWithCanvas(
       // Mejorar la resolución del canvas para niveles bajo y medio
       if (level === 'low' || level === 'medium') {
         // Aumentar la resolución del canvas para mejorar la nitidez
-        const resolutionFactor = level === 'low' ? 1.5 : 1.3;
+        const resolutionFactor = level === 'low' ? 2.0 : 1.7; // Aumentamos la resolución significativamente
         canvas.width = width * scaleFactor * resolutionFactor;
         canvas.height = height * scaleFactor * resolutionFactor;
       } else {
@@ -127,7 +127,7 @@ export async function compressPDFWithCanvas(
       await renderPageToCanvas(
         pdfPage, 
         canvas, 
-        level === 'low' || level === 'medium' ? scaleFactor * (level === 'low' ? 1.5 : 1.3) : scaleFactor, 
+        level === 'low' || level === 'medium' ? scaleFactor * (level === 'low' ? 2.0 : 1.7) : scaleFactor, // Aumentamos el factor de escala 
         useHighQualityFormat, 
         textMode as 'print' | 'display'
       );
@@ -138,15 +138,15 @@ export async function compressPDFWithCanvas(
       // Para niveles bajo y medio, aumentamos significativamente la calidad
       if (level === 'low') {
         // Aumentar significativamente la calidad para compresión baja
-        imageQualityToUse = Math.min(jpegQuality + 0.02, 0.99);
+        imageQualityToUse = Math.min(jpegQuality + 0.005, 0.995); // Ajuste fino para calidad máxima
       } else if (level === 'medium') {
         // Para nivel medio, aumentamos también pero menos que en bajo
-        imageQualityToUse = Math.min(jpegQuality + 0.01, 0.95);
+        imageQualityToUse = Math.min(jpegQuality + 0.01, 0.98);
       }
       
       // Si además hay soporte WASM, mejoramos un poco más la calidad
       if (wasmSupported && (level === 'low' || level === 'medium')) {
-        imageQualityToUse = Math.min(imageQualityToUse + 0.01, level === 'low' ? 0.99 : 0.96);
+        imageQualityToUse = Math.min(imageQualityToUse + 0.005, level === 'low' ? 0.998 : 0.985);
       }
       
       // Siempre usar JPEG para comprimir, con calidad adaptada
@@ -183,9 +183,9 @@ export async function compressPDFWithCanvas(
         
         // Mejorar calidad de fallback para niveles bajo y medio
         const fallbackQuality = level === 'low' 
-          ? Math.max(0.90, jpegQuality * 0.95) 
+          ? Math.max(0.95, jpegQuality * 0.98) 
           : level === 'medium' 
-            ? Math.max(0.85, jpegQuality * 0.90) 
+            ? Math.max(0.90, jpegQuality * 0.95) 
             : Math.max(0.70, jpegQuality * 0.85);
           
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
@@ -207,10 +207,10 @@ export async function compressPDFWithCanvas(
         pageHeight = height * colorReduction;
       } else if (level === 'medium') {
         // Para nivel medio, preservar mejor las dimensiones originales
-        pageWidth = width * Math.max(0.99, colorReduction);
-        pageHeight = height * Math.max(0.99, colorReduction);
+        pageWidth = width * Math.max(0.995, colorReduction);
+        pageHeight = height * Math.max(0.995, colorReduction);
       } else {
-        // Para nivel bajo, reducción mínima o nula de tamaño
+        // Para nivel bajo, no reducir tamaño
         pageWidth = width;
         pageHeight = height;
       }
