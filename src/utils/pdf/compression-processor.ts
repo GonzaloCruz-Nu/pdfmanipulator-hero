@@ -1,7 +1,7 @@
 
 // Este archivo ahora actúa como un punto de entrada al sistema de compresión refactorizado
 import { compressPDF } from './processors/compression-orchestrator';
-import { CompressionLevel } from './compression-types';
+import type { CompressionLevel } from './compression-types';
 
 // Re-exportar la funcionalidad principal para mantener la compatibilidad con el código existente
 export { compressPDF };
