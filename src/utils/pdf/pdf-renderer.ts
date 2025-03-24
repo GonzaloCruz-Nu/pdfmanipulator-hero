@@ -99,7 +99,6 @@ export async function loadPdfDocument(fileArrayBuffer: ArrayBuffer): Promise<pdf
       useWorkerFetch: true,  // Usar worker para fetching
       disableFontFace: false, // Permitir uso de fuentes embebidas
       isEvalSupported: true,  // Habilitar eval para mejorar rendimiento
-      nativeImageDecoderSupport: "display" // Optimizar decodificación de imágenes
     });
     return await loadingTask.promise;
   } catch (error) {
