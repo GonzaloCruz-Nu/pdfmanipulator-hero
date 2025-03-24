@@ -1,8 +1,14 @@
+
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
 import { renderPageToCanvas, loadPdfDocument } from './pdf-renderer';
-import { compressImageWithResmush, downloadCompressedImage } from './resmush-service';
+import { 
+  compressImageWithResmush, 
+  downloadCompressedImage,
+  compressImageLocally,
+  ResmushOptions 
+} from './resmush-service';
 
 // Tipos de compresión
 export type CompressionLevel = 'low' | 'medium' | 'high';
@@ -34,7 +40,7 @@ const isWasmSupported = (): boolean => {
 
 /**
  * Comprime un PDF usando la técnica de renderizado a canvas y recompresión de imágenes
- * con reSmush.it para niveles bajo y medio
+ * con reSmush.it para todos los niveles de compresión
  * @param file Archivo PDF a comprimir
  * @param level Nivel de compresión a utilizar
  * @returns Archivo PDF comprimido o null si hay error
@@ -77,7 +83,6 @@ export async function compressPDFWithCanvas(
     console.info(`- Modo de texto: ${textMode}`);
     console.info(`- Preservar calidad texto: ${preserveTextQuality}`);
     console.info(`- Alta calidad: ${useHighQualityFormat}`);
-    console.info(`- Usando reSmush.it para nivel bajo y medio`);
     
     // Cargar el documento con PDF.js
     const fileArrayBuffer = await file.arrayBuffer();
@@ -100,6 +105,15 @@ export async function compressPDFWithCanvas(
     // Procesar cada página
     const totalPages = pdfDoc.numPages;
     
+    // Determinar si usar reSmush.it basado en nivel y número de páginas
+    const useResmush = (level === 'low' || level === 'medium' || (level === 'high' && totalPages <= 10));
+    
+    if (useResmush) {
+      console.info(`Usando API reSmush.it para compresión de imágenes (${totalPages} páginas)`);
+    } else {
+      console.info(`Usando compresión local para ${totalPages} páginas`);
+    }
+    
     for (let i = 0; i < totalPages; i++) {
       // Actualizar progreso
       const pageProgress = 10 + Math.floor((i / totalPages) * 75);
@@ -116,92 +130,74 @@ export async function compressPDFWithCanvas(
       // Crear un canvas
       const canvas = document.createElement('canvas');
       
-      // Mejorar la resolución del canvas para niveles bajo y medio
+      // Ajustar resolución según nivel de compresión
+      let resolutionFactor = 1.0;
+      
       if (level === 'low') {
-        // Aumentar la resolución del canvas para mejorar la nitidez
-        const resolutionFactor = 3.0; // Aumentamos significativamente para nivel bajo
-        canvas.width = width * scaleFactor * resolutionFactor;
-        canvas.height = height * scaleFactor * resolutionFactor;
+        resolutionFactor = 3.0; // Alta resolución para nivel bajo
       } else if (level === 'medium') {
-        // Para nivel medio, también aumentamos pero un poco menos
-        const resolutionFactor = 2.5; // Valor intermedio para nivel medio
-        canvas.width = width * scaleFactor * resolutionFactor;
-        canvas.height = height * scaleFactor * resolutionFactor;
+        resolutionFactor = 2.0; // Resolución media para nivel medio
       } else {
-        canvas.width = width * scaleFactor;
-        canvas.height = height * scaleFactor;
+        resolutionFactor = 1.5; // Resolución reducida para nivel alto
       }
+      
+      canvas.width = width * scaleFactor * resolutionFactor;
+      canvas.height = height * scaleFactor * resolutionFactor;
       
       // Renderizar la página en el canvas con factor de escala y calidad adecuados
       await renderPageToCanvas(
         pdfPage, 
         canvas, 
-        level === 'low' ? scaleFactor * 3.0 : level === 'medium' ? scaleFactor * 2.5 : scaleFactor,
+        scaleFactor * resolutionFactor,
         useHighQualityFormat, 
         textMode as 'print' | 'display'
       );
       
       // Obtener imagen del canvas en alta calidad
-      let imageDataUrl: string;
       let imageBytes: Uint8Array;
       
-      // Para niveles bajo y medio, usar reSmush.it API con diferentes calidades
-      if ((level === 'low' || level === 'medium') && totalPages <= 20) {
+      if (useResmush) {
         try {
-          // Usar la calidad específica de reSmush.it según el nivel de compresión
-          console.info(`Usando reSmush.it para la página ${i+1}/${totalPages} con calidad ${resmushQuality}%`);
+          console.info(`Comprimiendo página ${i+1}/${totalPages} con reSmush.it (qlty=${resmushQuality}%)`);
           
           // Obtener blob del canvas en alta calidad
           const canvasBlob = await new Promise<Blob>((resolve) => {
             canvas.toBlob(
               (blob) => resolve(blob!), 
               'image/jpeg', 
-              level === 'low' ? 0.999 : 0.98
+              level === 'low' ? 0.98 : level === 'medium' ? 0.95 : 0.92
             );
           });
           
-          // Comprimir con reSmush.it usando calidad diferenciada
-          const compressedImageUrl = await compressImageWithResmush(canvasBlob, resmushQuality);
+          // Opciones para reSmush.it
+          const resmushOptions: ResmushOptions = {
+            quality: resmushQuality,
+            exif: true,
+            timeout: 60000 // 60 segundos de timeout
+          };
+          
+          // Comprimir con reSmush.it
+          const compressedImageUrl = await compressImageWithResmush(canvasBlob, resmushOptions);
           imageBytes = await downloadCompressedImage(compressedImageUrl);
           
           console.info(`Página ${i+1} comprimida con reSmush.it correctamente`);
         } catch (error) {
-          console.warn(`Error al usar reSmush.it para página ${i+1}, usando método JPEG estándar:`, error);
+          console.warn(`Error al usar reSmush.it para página ${i+1}, usando compresión local:`, error);
           
-          // Fallback a método estándar
-          const jpegQualityToUse = level === 'low' ? 0.95 : 0.90;
-          imageDataUrl = canvas.toDataURL('image/jpeg', jpegQualityToUse);
-          const base64 = imageDataUrl.split(',')[1];
-          const binaryString = atob(base64);
-          imageBytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            imageBytes[j] = binaryString.charCodeAt(j);
-          }
+          // Fallback a compresión local
+          const jpegQualityToUse = level === 'low' ? 0.9 : level === 'medium' ? 0.8 : 0.7;
+          const compressedBlob = await compressImageLocally(canvas, jpegQualityToUse);
+          imageBytes = new Uint8Array(await compressedBlob.arrayBuffer());
+          
+          console.info(`Página ${i+1} comprimida localmente con calidad ${jpegQualityToUse}`);
         }
       } else {
-        // Para nivel alto o documentos con muchas páginas, usar método estándar
-        // Siempre usar JPEG para comprimir, con calidad adaptada
-        const imageQualityToUse = level === 'low' ? 0.95 : level === 'medium' ? 0.85 : jpegQuality;
-        imageDataUrl = canvas.toDataURL('image/jpeg', imageQualityToUse);
+        // Para documentos con muchas páginas, usar método local
+        const jpegQualityToUse = level === 'low' ? 0.9 : level === 'medium' ? 0.8 : 0.6;
+        const compressedBlob = await compressImageLocally(canvas, jpegQualityToUse);
+        imageBytes = new Uint8Array(await compressedBlob.arrayBuffer());
         
-        // Extraer la base64 desde la URL de datos
-        const base64 = imageDataUrl.split(',')[1];
-        
-        // Convertir base64 a Uint8Array utilizando optimizaciones nativas si están disponibles
-        if (wasmSupported && window.atob && typeof TextEncoder !== 'undefined') {
-          const binaryString = atob(base64);
-          imageBytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            imageBytes[j] = binaryString.charCodeAt(j);
-          }
-        } else {
-          // Método alternativo por si acaso
-          const binaryString = atob(base64);
-          imageBytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            imageBytes[j] = binaryString.charCodeAt(j);
-          }
-        }
+        console.info(`Página ${i+1} comprimida localmente con calidad ${jpegQualityToUse}`);
       }
       
       // Insertar imagen en el PDF
@@ -212,13 +208,8 @@ export async function compressPDFWithCanvas(
       } catch (error) {
         console.error('Error al incrustar imagen, intentando con JPEG de baja calidad:', error);
         
-        // Mejorar calidad de fallback para niveles bajo y medio
-        const fallbackQuality = level === 'low' 
-          ? 0.98
-          : level === 'medium' 
-            ? 0.95
-            : 0.80;
-          
+        // Fallback a calidad más baja
+        const fallbackQuality = level === 'low' ? 0.85 : level === 'medium' ? 0.7 : 0.5;
         const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBinaryString = atob(jpegBase64);
@@ -237,7 +228,7 @@ export async function compressPDFWithCanvas(
         pageWidth = width * colorReduction;
         pageHeight = height * colorReduction;
       } else {
-        // Para niveles bajo y medio, preservar dimensiones originales completamente
+        // Para niveles bajo y medio, preservar dimensiones originales
         pageWidth = width;
         pageHeight = height;
       }

@@ -12,7 +12,7 @@ export const COMPRESSION_FACTORS = {
     useWebP: false, // No usar WebP por defecto
     webpQuality: 0.998, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 100 // Calidad máxima para reSmush.it API (0-100)
+    resmushQuality: 95 // Calidad para reSmush.it API (0-100)
   },
   medium: { 
     imageQuality: 0.85, // Calidad JPEG para nivel medio (reducida respecto a antes)
@@ -25,7 +25,7 @@ export const COMPRESSION_FACTORS = {
     useWebP: false, // No usar WebP por defecto
     webpQuality: 0.85, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 100 // Calidad máxima para reSmush.it API (0-100)
+    resmushQuality: 80 // Calidad para reSmush.it API (0-100)
   },
   high: { 
     imageQuality: 0.60, // Calidad JPEG más baja pero aún legible
@@ -38,7 +38,7 @@ export const COMPRESSION_FACTORS = {
     useWebP: false, // No usar WebP por defecto
     webpQuality: 0.65, // Calidad WebP si se usa
     textMode: 'display', // Modo de renderizado para alta compresión
-    resmushQuality: 70 // Calidad para reSmush.it API (0-100, no usado por defecto)
+    resmushQuality: 60 // Calidad para reSmush.it API (0-100)
   }
 };
 
