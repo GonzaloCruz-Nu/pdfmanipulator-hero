@@ -53,6 +53,19 @@ export async function compressImageWithResmush(
       throw new Error('No se recibió la URL de la imagen comprimida');
     }
     
+    if (data.error) {
+      throw new Error(`Error de reSmush.it: ${data.error_long || data.error}`);
+    }
+    
+    // Verificar y mostrar estadísticas de compresión
+    if (data.src_size && data.dest_size) {
+      const originalSizeKB = Math.round(data.src_size / 1024);
+      const compressedSizeKB = Math.round(data.dest_size / 1024);
+      const percentReduction = data.percent || ((data.src_size - data.dest_size) / data.src_size * 100).toFixed(2);
+      
+      console.log(`reSmush.it (qlty=${quality}): ${originalSizeKB}KB → ${compressedSizeKB}KB (${percentReduction}% reducción)`);
+    }
+    
     // Descargar la imagen comprimida
     const compressedImageResponse = await fetch(data.dest, {
       headers: {

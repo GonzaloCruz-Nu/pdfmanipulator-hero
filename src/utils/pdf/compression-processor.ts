@@ -1,4 +1,3 @@
-
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { COMPRESSION_FACTORS } from './compression-constants';
@@ -55,7 +54,8 @@ export async function compressPDFWithCanvas(
       preserveTextQuality,
       useJpegFormat,
       jpegQuality,
-      textMode
+      textMode,
+      resmushQuality
     } = COMPRESSION_FACTORS[level];
     
     // Comprobar soporte WebAssembly
@@ -72,6 +72,7 @@ export async function compressPDFWithCanvas(
     console.info(`- Calidad de imagen: ${imageQuality}`);
     console.info(`- Formato: ${useJpegFormat ? 'JPEG' : 'PNG'}`);
     console.info(`- Calidad JPEG: ${jpegQuality}`);
+    console.info(`- Calidad reSmush: ${resmushQuality}`);
     console.info(`- WebAssembly: ${wasmSupported ? 'Disponible' : 'No disponible'}`);
     console.info(`- Modo de texto: ${textMode}`);
     console.info(`- Preservar calidad texto: ${preserveTextQuality}`);
@@ -147,8 +148,7 @@ export async function compressPDFWithCanvas(
       // Para niveles bajo y medio, usar reSmush.it API con diferentes calidades
       if ((level === 'low' || level === 'medium') && totalPages <= 20) {
         try {
-          // Definir calidad según nivel de compresión
-          const resmushQuality = level === 'low' ? 95 : 80; // 95% para bajo, 80% para medio
+          // Usar la calidad específica de reSmush.it según el nivel de compresión
           console.info(`Usando reSmush.it para la página ${i+1}/${totalPages} con calidad ${resmushQuality}`);
           
           // Obtener blob del canvas en alta calidad
