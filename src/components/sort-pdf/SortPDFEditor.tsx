@@ -128,7 +128,7 @@ const SortPDFEditor: React.FC<SortPDFEditorProps> = ({
                   <img
                     src={thumbnails[pageNum - 1]}
                     alt={`Página ${pageNum}`}
-                    className="max-h-32 border border-gray-200 shadow-xs rounded"
+                    className="max-h-40 border border-gray-200 shadow-xs rounded"
                   />
                 </div>
                 <div className="flex justify-between mt-auto">
