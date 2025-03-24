@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Undo2, RotateCw, RotateCcw, Save, ListChecks, XCircle, Check, Loader2 } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -238,7 +237,7 @@ const RotatePDF: React.FC = () => {
                       </div>
                     </div>
                     
-                    {generatingThumbnails ? (
+                    {generatingThumbnails || isLoading ? (
                       <div className="space-y-2">
                         {Array.from({ length: Math.min(10, totalPages || 5) }).map((_, idx) => (
                           <div key={idx} className="flex items-center space-x-2 p-2 rounded animate-pulse">
@@ -251,7 +250,7 @@ const RotatePDF: React.FC = () => {
                         ))}
                         <div className="text-center text-sm text-muted-foreground pt-2">
                           <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
-                          Generando miniaturas...
+                          {generatingThumbnails ? "Generando miniaturas..." : "Cargando documento..."}
                         </div>
                       </div>
                     ) : thumbnails.length > 0 ? (
@@ -289,24 +288,10 @@ const RotatePDF: React.FC = () => {
                             </div>
                           </div>
                         ))}
-                        
-                        {!isPageSelectionEnabled && (
-                          <div className="text-center text-sm text-muted-foreground pt-2">
-                            <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
-                            Cargando opciones de selección...
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <div className="text-center text-sm text-muted-foreground pt-2">
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
-                            Cargando documento...
-                          </>
-                        ) : (
-                          "No se pudieron generar las miniaturas"
-                        )}
+                        No se pudieron generar las miniaturas
                       </div>
                     )}
                   </div>
@@ -351,7 +336,7 @@ const RotatePDF: React.FC = () => {
                       title={showSelectionMode ? "Ocultar selección de páginas" : "Mostrar selección de páginas"}
                       className={showSelectionMode ? "bg-blue-100" : ""}
                     >
-                      {generatingThumbnails ? (
+                      {generatingThumbnails || isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <ListChecks />
