@@ -15,17 +15,17 @@ export const COMPRESSION_FACTORS = {
     resmushQuality: 98 // Calidad para reSmush.it API aumentada de 95 a 98
   },
   medium: { 
-    imageQuality: 0.95, // Aumentado significativamente de 0.92 para mejorar claridad
-    scaleFactor: 1.2, // Aumentado de 1.0 a 1.2 para mejor nitidez en textos pequeños
-    colorReduction: 1.0, // Aumentado a 1.0 para preservar todos los colores (antes 0.98)
+    imageQuality: 0.98, // Aumentado drásticamente a 0.98 (casi sin compresión)
+    scaleFactor: 1.5, // Aumentado significativamente a 1.5 para máxima nitidez
+    colorReduction: 1.0, // Sin reducción de color
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.95, // Aumentado significativamente de 0.92 para mejor legibilidad
+    jpegQuality: 0.98, // Calidad JPEG muy alta
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.95, // Calidad WebP si se usa
+    webpQuality: 0.98, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 95 // Aumentado de 90 a 95 para mejor calidad en API
+    resmushQuality: 98 // Calidad casi máxima para reSmush.it API
   },
   high: { 
     imageQuality: 0.60, // Calidad JPEG más baja pero aún legible
