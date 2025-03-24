@@ -345,8 +345,8 @@ export async function compressPDFWithCanvas(
           const forcedLowBytes = await existingPdfDoc.save({
             useObjectStreams: true,
             addDefaultPage: false,
-            objectsPerTick: 20,
-            useZeroToNineDigits: true
+            objectsPerTick: 20
+            // Eliminada la propiedad 'useZeroToNineDigits' que causaba el error
           });
           
           const forcedLowFile = new File(

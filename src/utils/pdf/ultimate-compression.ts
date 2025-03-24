@@ -129,9 +129,8 @@ export const ultimateCompression = async (
     const compressedBytes = await newDoc.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: objectsPerTick, // Muy reducido para mejor compresión
-      // Añadir un comment con timestamp para forzar un documento único cada vez
-      updateMetadata: false
+      objectsPerTick: objectsPerTick // Muy reducido para mejor compresión
+      // Eliminada la propiedad 'updateMetadata' que causaba el error
     });
     
     return new File(
