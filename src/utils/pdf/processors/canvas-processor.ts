@@ -52,14 +52,32 @@ export async function compressPDFWithCanvas(
     // Crear nuevo documento PDF con pdf-lib
     const newPdfDoc = await PDFDocument.create();
     
-    // Verificar la conexión con la API de reSmush.it con un timeout más largo para archivos grandes
-    const resmushTimeout = isLargeFile ? 10000 : 5000;
-    const resmushAvailable = await checkReSmushAvailability(resmushTimeout);
+    // Verificar si debemos usar reSmush.it - ahora con más tiempo para conexión
+    const resmushTimeout = isLargeFile ? 15000 : 10000; // Más tiempo para verificar conexión
+    let resmushAvailable = false;
     
-    if (resmushAvailable) {
-      console.info('✅ Conexión exitosa con la API de reSmush.it. Se usará para optimización de imágenes.');
-    } else {
-      console.warn('⚠️ No se pudo conectar con la API de reSmush.it. Se usará compresión local de alta calidad.');
+    // Varios intentos para conectar con reSmush
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        resmushAvailable = await checkReSmushAvailability(resmushTimeout);
+        if (resmushAvailable) {
+          console.info('✅ Conexión exitosa con la API de reSmush.it. Se usará para optimización de imágenes.');
+          break;
+        } else {
+          console.warn(`⚠️ Intento ${attempt}/3: No se pudo conectar con la API de reSmush.it.`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Intento ${attempt}/3: Error al conectar con reSmush.it: ${error}`);
+      }
+      
+      // Pequeña pausa entre intentos
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    if (!resmushAvailable) {
+      console.warn('⚠️ No se pudo conectar con la API de reSmush.it después de varios intentos. Se usará compresión local de alta calidad.');
     }
     
     // Procesar cada página con máxima calidad de renderizado
@@ -76,15 +94,15 @@ export async function compressPDFWithCanvas(
       // Crear canvas para renderizar la página
       const canvas = document.createElement('canvas');
       
-      // Usar configuración de alta calidad para niveles bajo y medio
-      const useHighQuality = compressionLevel !== 'high';
+      // Usar configuración de alta calidad para niveles bajo y medio, y también mejorada para nivel alto
+      const useHighQuality = compressionLevel !== 'high' || preserveTextQuality;
       
       // Renderizar página en el canvas con configuraciones de calidad optimizadas
       await renderPageToCanvasWithOptions(
         page,
         canvas,
         scaleFactor,
-        useHighQuality, // Alta calidad para niveles bajo y medio
+        useHighQuality, 
         preserveTextQuality ? 'print' : 'display'
       );
       
@@ -95,28 +113,46 @@ export async function compressPDFWithCanvas(
       
       // Comprimir imagen del canvas con la mejor calidad posible
       let compressedImageUrl;
-      try {
-        // Usar calidad más alta para reSmush en niveles bajos y medios
-        const adjustedResmushQuality = compressionLevel === 'low' ? 
-                                      Math.max(resmushQuality, 92) : 
-                                      resmushQuality;
-        
-        // Usar calidad más alta para compresión local en niveles bajos y medios
-        const adjustedLocalQuality = compressionLevel === 'low' ? 
-                                    Math.max(imageQuality, 0.95) : 
-                                    Math.max(imageQuality, 0.9);
-        
-        compressedImageUrl = await compressCanvasImage(
-          canvas,
-          i,
-          useResmush,
-          adjustedResmushQuality,
-          adjustedLocalQuality
-        );
-      } catch (error) {
-        console.warn(`Error al comprimir imagen de página ${i+1}: ${error}. Usando imagen de alta calidad.`);
-        // Fallback a compresión local básica con alta calidad si todo falla
-        compressedImageUrl = canvas.toDataURL('image/jpeg', 0.95);
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          // Usar calidad extremadamente alta para niveles bajos y medios
+          const adjustedResmushQuality = compressionLevel === 'low' ? 
+                                        Math.max(resmushQuality, 97) : 
+                                        Math.max(resmushQuality, 92);
+          
+          // Usar calidad más alta para compresión local en todos los niveles
+          const adjustedLocalQuality = compressionLevel === 'low' ? 
+                                      0.995 : 
+                                      (compressionLevel === 'medium' ? 0.98 : 0.90);
+          
+          compressedImageUrl = await compressCanvasImage(
+            canvas,
+            i,
+            useResmush && attempts === 0, // Intentar reSmush en el primer intento
+            adjustedResmushQuality,
+            adjustedLocalQuality
+          );
+          
+          // Si llegamos aquí, la compresión fue exitosa
+          break;
+        } catch (error) {
+          console.warn(`Error al comprimir imagen de página ${i+1} (intento ${attempts+1}/${maxAttempts}): ${error}`);
+          attempts++;
+          
+          // En el último intento, usar calidad extrema sin reSmush
+          if (attempts === maxAttempts - 1) {
+            compressedImageUrl = canvas.toDataURL('image/jpeg', 0.98); // Calidad extremadamente alta como último recurso
+          }
+        }
+      }
+      
+      // Si todos los intentos fallaron, usar la imagen original a calidad casi perfecta
+      if (!compressedImageUrl) {
+        console.warn(`Todos los intentos de compresión fallaron para la página ${i+1}. Usando imagen original de máxima calidad.`);
+        compressedImageUrl = canvas.toDataURL('image/jpeg', 0.995);
       }
       
       // Convertir imagen comprimida a ArrayBuffer
@@ -126,7 +162,7 @@ export async function compressPDFWithCanvas(
       } catch (error) {
         console.warn(`Error al procesar imagen comprimida: ${error}. Usando imagen original de alta calidad.`);
         // Último fallback: usar la imagen a máxima calidad
-        compressedImageUrl = canvas.toDataURL('image/jpeg', 0.99);
+        compressedImageUrl = canvas.toDataURL('image/jpeg', 0.995);
         const base64 = compressedImageUrl.split(',')[1];
         compressedImageArrayBuffer = Buffer.from(base64, 'base64');
       }

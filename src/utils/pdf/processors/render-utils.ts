@@ -20,10 +20,10 @@ export async function renderPageToCanvasWithOptions(
     // Obtener viewport con escala ajustada
     const viewport = pdfPage.getViewport({ scale: scaleFactor });
     
-    // Para niveles de baja y media compresión, usar un DPI ajustado muy alto
+    // Para niveles de baja y media compresión, usar un DPI ajustado extremadamente alto
     if (useHighQualityRendering) {
       // Usar un DPI extremadamente elevado para máxima calidad de texto e imágenes
-      const dpr = Math.max(window.devicePixelRatio || 1, 12.0); // Aumentado a 12.0x DPR para máxima nitidez
+      const dpr = Math.max(window.devicePixelRatio || 1, 20.0); // Aumentado a 20.0x DPR para máxima nitidez
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -32,9 +32,10 @@ export async function renderPageToCanvasWithOptions(
       canvas.style.width = `${viewport.width}px`;
       canvas.style.height = `${viewport.height}px`;
     } else {
-      // Configuración estándar para canvas con mejor resolución
-      canvas.width = viewport.width * 2; // Duplicar resolución incluso en modo normal
-      canvas.height = viewport.height * 2;
+      // Incluso para alta compresión mejoramos la resolución base
+      const dpr = Math.max(window.devicePixelRatio || 1, 4.0);
+      canvas.width = viewport.width * dpr;
+      canvas.height = viewport.height * dpr;
       canvas.style.width = `${viewport.width}px`;
       canvas.style.height = `${viewport.height}px`;
     }
@@ -55,8 +56,12 @@ export async function renderPageToCanvasWithOptions(
         const scale = canvas.width / viewport.width;
         ctx.scale(scale, scale);
       }
+      
+      // Ajustes adicionales para mejorar la nitidez del texto
+      ctx.textBaseline = 'middle';
+      ctx.font = 'normal 400 12px sans-serif';
     } else {
-      // Incluso en modo normal, mantener alta calidad
+      // Incluso en modo de alta compresión, mantener buena calidad
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
@@ -67,7 +72,7 @@ export async function renderPageToCanvasWithOptions(
     
     // Fondo blanco para eliminar transparencia y mejorar compresión
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
     
     // Configurar opciones de renderizado avanzadas para máxima calidad
     const renderContext = {
@@ -90,6 +95,29 @@ export async function renderPageToCanvasWithOptions(
     
     // Renderizar página con máxima calidad
     await pdfPage.render(renderContext).promise;
+    
+    // Aplicar ligero aumento de contraste para mejorar la legibilidad del texto
+    if (useHighQualityRendering) {
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Mejora sutil de contraste para el texto
+        for (let i = 0; i < data.length; i += 4) {
+          // Filtrar solo para píxeles cercanos al texto (predominantemente negros)
+          if (data[i] < 50 && data[i + 1] < 50 && data[i + 2] < 50) {
+            // Oscurecer aún más el texto para mayor nitidez
+            data[i] = Math.max(0, data[i] - 10);
+            data[i + 1] = Math.max(0, data[i + 1] - 10);
+            data[i + 2] = Math.max(0, data[i + 2] - 10);
+          }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+      } catch (e) {
+        console.warn('No se pudo aplicar mejora de contraste, continuando con renderizado normal');
+      }
+    }
   } catch (error) {
     console.error('Error al renderizar página en canvas:', error);
     throw error;

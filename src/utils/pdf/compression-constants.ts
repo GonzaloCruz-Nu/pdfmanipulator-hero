@@ -2,43 +2,43 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { 
-    imageQuality: 0.985, // Aumentado para preservar máxima calidad
-    scaleFactor: 1.5, // Aumentado para mayor nitidez
+    imageQuality: 0.995, // Calidad casi perfecta para nivel bajo
+    scaleFactor: 2.0, // Mayor resolución para máxima nitidez
     colorReduction: 1.0, // Sin reducción de color para nivel bajo
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.99, // Calidad JPEG muy alta
+    jpegQuality: 0.995, // Calidad JPEG prácticamente sin pérdida
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.99, // Calidad WebP si se usa
+    webpQuality: 0.995, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 95 // Calidad para reSmush.it API ajustada a un valor más alto
+    resmushQuality: 98 // Calidad para reSmush.it API máxima
   },
   medium: { 
-    imageQuality: 0.95, // Aumentado significativamente
-    scaleFactor: 1.3, // Factor de escala mayor para mejor legibilidad
+    imageQuality: 0.98, // Calidad muy alta para nivel medio
+    scaleFactor: 1.8, // Resolución muy alta para buena nitidez
     colorReduction: 1.0, // Sin reducción de color
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.92, // Calidad JPEG mejorada
+    jpegQuality: 0.98, // Calidad JPEG muy alta
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.92, // Calidad WebP si se usa
+    webpQuality: 0.98, // Calidad WebP si se usa
     textMode: 'print', // Modo de renderizado optimizado para texto
-    resmushQuality: 85 // Calidad moderada alta para reSmush.it API
+    resmushQuality: 92 // Calidad alta para reSmush.it API
   },
   high: { 
-    imageQuality: 0.60, // Calidad JPEG más baja pero aún legible
-    scaleFactor: 0.70, // Reducción significativa pero manteniendo legibilidad básica
-    colorReduction: 0.80, // Reducción de color importante
-    useHighQualityFormat: false, // No usar formato de alta calidad
-    preserveTextQuality: true, // Ahora también preservamos texto en alta compresión
+    imageQuality: 0.75, // Calidad moderada pero manteniendo legibilidad
+    scaleFactor: 1.0, // Escala estándar para tamaño moderado
+    colorReduction: 0.95, // Ligera reducción de color pero preservando legibilidad
+    useHighQualityFormat: true, // Ahora también preservamos calidad en alta compresión
+    preserveTextQuality: true, // Preservar texto en alta compresión
     useJpegFormat: true, // Usar JPEG para compresión
-    jpegQuality: 0.65, // Calidad JPEG más baja pero manteniendo legibilidad
+    jpegQuality: 0.80, // Calidad JPEG moderada pero manteniendo legibilidad
     useWebP: false, // No usar WebP por defecto
-    webpQuality: 0.65, // Calidad WebP si se usa
-    textMode: 'display', // Modo de renderizado para alta compresión
-    resmushQuality: 60 // Calidad para reSmush.it API (0-100)
+    webpQuality: 0.80, // Calidad WebP si se usa
+    textMode: 'print', // Modo de renderizado print para preservar texto
+    resmushQuality: 80 // Calidad para reSmush.it API mejorada
   }
 };
 
