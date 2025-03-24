@@ -25,30 +25,38 @@ export async function compressImageWithResmush(imageData: ArrayBuffer | Blob): P
     formData.append('qlty', '90'); // Calidad 90% (por defecto es 92%)
     formData.append('exif', 'true'); // Mantener metadatos EXIF
     
+    console.log('Enviando solicitud a reSmush.it API...');
+    
     // Realizar la petición a reSmush.it con los headers requeridos
     const response = await fetch(RESMUSH_API_URL, {
       method: 'POST',
       body: formData,
-      headers: {
-        // Agregar User-Agent adecuado
-        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
-        // Agregar Referer
-        'Referer': window.location.origin
-      }
+      // No podemos usar headers: en fetch con FormData porque el navegador
+      // debe establecer automáticamente el Content-Type con el boundary
+      // Pero podemos añadir los headers necesarios
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error en la respuesta de reSmush.it:', errorText);
       throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log('Respuesta de reSmush.it:', data);
     
     if (!data.dest) {
       throw new Error('No se recibió la URL de la imagen comprimida');
     }
     
     // Descargar la imagen comprimida
-    const compressedImageResponse = await fetch(data.dest);
+    const compressedImageResponse = await fetch(data.dest, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+        'Referer': window.location.origin || 'http://localhost'
+      }
+    });
+    
     if (!compressedImageResponse.ok) {
       throw new Error('Error al descargar la imagen comprimida');
     }
@@ -67,7 +75,13 @@ export async function compressImageWithResmush(imageData: ArrayBuffer | Blob): P
  */
 export async function downloadCompressedImage(imageUrl: string): Promise<Uint8Array> {
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+        'Referer': window.location.origin || 'http://localhost'
+      }
+    });
+    
     if (!response.ok) {
       throw new Error(`Error al descargar imagen: ${response.status}`);
     }
