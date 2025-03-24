@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap, ArrowDownCircle, ShieldCheck, FileUp } from 'lucide-react';
+import { Zap, ShieldCheck, ArrowDownCircle, FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
@@ -40,7 +40,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('low')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'low' 
-              ? 'bg-naranja text-white' 
+              ? 'bg-[#F5923E] text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -54,7 +54,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('medium')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'medium' 
-              ? 'bg-naranja text-white' 
+              ? 'bg-[#F5923E] text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -68,7 +68,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
           onClick={() => setCompressionLevel('high')}
           className={`flex-1 px-4 py-3 rounded-md text-sm transition-colors ${
             compressionLevel === 'high' 
-              ? 'bg-naranja text-white' 
+              ? 'bg-[#F5923E] text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -93,7 +93,7 @@ const CompressionControls: React.FC<CompressionControlsProps> = ({
         onClick={onCompress}
         disabled={isProcessing || !file}
         variant="default"
-        className="w-full bg-naranja hover:bg-naranja/90 text-white py-6 text-base flex items-center justify-center"
+        className="w-full bg-[#F5923E] hover:bg-[#F5923E]/90 text-white py-6 text-base flex items-center justify-center"
       >
         {isProcessing ? (
           <>

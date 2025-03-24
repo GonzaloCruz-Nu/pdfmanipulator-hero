@@ -25,7 +25,7 @@ export async function processPage(
     const compressionFactors = COMPRESSION_FACTORS[compressionLevel];
     const jpegQuality = compressionFactors.jpegQuality;
     const scaleFactor = compressionFactors.scaleFactor;
-    const textMode = compressionFactors.textMode as 'print' | 'display'; // Fix: Explicit type casting
+    const textMode = compressionFactors.textMode as 'print' | 'display'; // Explicit casting
     const maximumDimension = compressionFactors.maximumDimension;
     
     // Obtener página actual
@@ -60,7 +60,7 @@ export async function processPage(
     
     // Para nivel bajo, asegurarse de mantener una calidad mínima
     if (compressionLevel === 'low') {
-      adjustedJpegQuality = Math.max(jpegQuality, 0.8);
+      adjustedJpegQuality = Math.max(jpegQuality, 0.85);
     }
     
     console.info(`Usando calidad JPEG ${adjustedJpegQuality.toFixed(2)} para página ${pageIndex+1} (dimensión máx: ${maxDimension.toFixed(0)}px)`);
@@ -112,8 +112,8 @@ export async function processPage(
         finalHeight = height * 0.7;
       } else if (compressionLevel === 'low') {
         // Para nivel bajo, mantener dimensiones muy cercanas al original
-        finalWidth = width * 0.98;
-        finalHeight = height * 0.98;
+        finalWidth = width * 0.99;
+        finalHeight = height * 0.99;
       }
       
       // Añadir nueva página con las dimensiones ajustadas
@@ -135,7 +135,7 @@ export async function processPage(
       try {
         // Usar calidades más bajas según nivel para fallback
         const fallbackQuality = compressionLevel === 'high' ? 0.15 : 
-                              compressionLevel === 'medium' ? 0.25 : 0.5;
+                              compressionLevel === 'medium' ? 0.35 : 0.7;
         
         const fallbackDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         
@@ -159,11 +159,11 @@ export async function processPage(
         
         // Reducir dimensiones para último recurso
         if (compressionLevel === 'medium') {
-          fallbackWidth = width * 0.8;
-          fallbackHeight = height * 0.8;
+          fallbackWidth = width * 0.85;
+          fallbackHeight = height * 0.85;
         } else if (compressionLevel === 'high') {
-          fallbackWidth = width * 0.6;
-          fallbackHeight = height * 0.6;
+          fallbackWidth = width * 0.65;
+          fallbackHeight = height * 0.65;
         } else if (compressionLevel === 'low') {
           fallbackWidth = width * 0.95;
           fallbackHeight = height * 0.95;

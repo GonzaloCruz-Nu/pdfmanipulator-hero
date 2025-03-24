@@ -16,8 +16,8 @@ const CompressHeader: React.FC<CompressHeaderProps> = ({ wasmSupported }) => {
       transition={{ duration: 0.6 }}
     >
       <div className="flex items-center justify-center mb-6">
-        <div className="bg-naranja/10 p-3 rounded-full">
-          <Zap className="h-8 w-8 text-naranja" />
+        <div className="bg-[#F5923E]/10 p-3 rounded-full">
+          <Zap className="h-8 w-8 text-[#F5923E]" />
         </div>
       </div>
       <h1 className="text-3xl font-bold text-center mb-2">Comprimir PDF</h1>

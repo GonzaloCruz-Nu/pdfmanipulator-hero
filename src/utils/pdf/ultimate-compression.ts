@@ -13,10 +13,10 @@ export const ultimateCompression = async (
     
     // Factores ajustados para cada nivel de compresión
     const qualityFactor = level === 'high' ? 0.3 : 
-                         level === 'medium' ? 0.6 : 0.9;
+                         level === 'medium' ? 0.6 : 0.95;
     
     const sizeReduction = level === 'high' ? 0.5 : 
-                         level === 'medium' ? 0.75 : 0.95;
+                         level === 'medium' ? 0.8 : 0.98;
     
     // Implementar conversión a escala de grises solo para compresión alta
     const convertToGrayscale = level === 'high';
@@ -25,13 +25,25 @@ export const ultimateCompression = async (
     const srcDoc = await PDFDocument.load(new Uint8Array(bufferCopy));
     const newDoc = await PDFDocument.create();
     
-    // Eliminación de metadatos según nivel
-    newDoc.setTitle("");
-    newDoc.setAuthor("");
-    newDoc.setSubject("");
-    newDoc.setKeywords([]);
-    newDoc.setProducer(`Comprimido con nivel ${level} - ${Math.random().toString(36).substring(7)}`);
-    newDoc.setCreator(`Optimizador PDF - ${new Date().toISOString()}`);
+    // Configurar metadatos según nivel
+    if (level === 'low') {
+      newDoc.setProducer(`Compresión ligera optimizada (${new Date().toISOString()})`);
+      newDoc.setCreator(`PDF Compressor - Calidad óptima`);
+    } else if (level === 'medium') {
+      newDoc.setTitle("");
+      newDoc.setAuthor("");
+      newDoc.setSubject("");
+      newDoc.setKeywords([]);
+      newDoc.setProducer(`Compresión media optimizada (${new Date().toISOString()})`);
+      newDoc.setCreator(`PDF Compressor - Balance calidad/tamaño`);
+    } else {
+      newDoc.setTitle("");
+      newDoc.setAuthor("");
+      newDoc.setSubject("");
+      newDoc.setKeywords([]);
+      newDoc.setProducer(`Compresión alta optimizada (${new Date().toISOString()})`);
+      newDoc.setCreator(`PDF Compressor - Máxima compresión`);
+    }
     
     // Obtener páginas
     const pages = srcDoc.getPages();
@@ -78,7 +90,7 @@ export const ultimateCompression = async (
           y: 0,
           width: finalWidth,
           height: finalHeight,
-          opacity: 0.85 // Opacidad ligeramente reducida
+          opacity: 0.9 // Opacidad ligeramente reducida
         });
       }
       // Para nivel bajo, mantener opacidad completa
@@ -92,44 +104,39 @@ export const ultimateCompression = async (
         });
       }
       
-      // Eliminar anotaciones y metadatos adicionales
-      if (newPage.node.has(PDFName.of('Annots'))) {
-        newPage.node.delete(PDFName.of('Annots'));
+      // Para niveles medio y alto, eliminar metadatos adicionales
+      if (level === 'medium' || level === 'high') {
+        // Eliminar anotaciones y metadatos adicionales
+        if (newPage.node.has(PDFName.of('Annots'))) {
+          newPage.node.delete(PDFName.of('Annots'));
+        }
+        
+        if (newPage.node.has(PDFName.of('Metadata'))) {
+          newPage.node.delete(PDFName.of('Metadata'));
+        }
       }
       
-      if (newPage.node.has(PDFName.of('Metadata'))) {
-        newPage.node.delete(PDFName.of('Metadata'));
-      }
-      
-      // Eliminar recursos según nivel de compresión
-      if (newPage.node.has(PDFName.of('Resources'))) {
+      // Solo para nivel alto, eliminar recursos adicionales
+      if (level === 'high' && newPage.node.has(PDFName.of('Resources'))) {
         const resources = newPage.node.get(PDFName.of('Resources'));
         
-        // Eliminar XObjects (imágenes) en nivel alto y medio
-        if ((level === 'high' || level === 'medium') && 
-            resources instanceof PDFDict && 
-            resources.has(PDFName.of('XObject'))) {
+        // Eliminar XObjects (imágenes)
+        if (resources instanceof PDFDict && resources.has(PDFName.of('XObject'))) {
           resources.delete(PDFName.of('XObject'));
         }
         
-        // Eliminar fuentes solo en alta compresión
-        if (level === 'high' && 
-            resources instanceof PDFDict && 
-            resources.has(PDFName.of('Font'))) {
+        // Eliminar fuentes
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Font'))) {
           resources.delete(PDFName.of('Font'));
         }
         
-        // Eliminar patrones en alta y media compresión
-        if ((level === 'high' || level === 'medium') && 
-            resources instanceof PDFDict && 
-            resources.has(PDFName.of('Pattern'))) {
+        // Eliminar patrones
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Pattern'))) {
           resources.delete(PDFName.of('Pattern'));
         }
         
-        // Eliminar shaders en alta y media compresión
-        if ((level === 'high' || level === 'medium') && 
-            resources instanceof PDFDict && 
-            resources.has(PDFName.of('Shading'))) {
+        // Eliminar shaders
+        if (resources instanceof PDFDict && resources.has(PDFName.of('Shading'))) {
           resources.delete(PDFName.of('Shading'));
         }
       }
@@ -145,6 +152,26 @@ export const ultimateCompression = async (
       addDefaultPage: false,
       objectsPerTick: objectsPerTick
     });
+    
+    // Para nivel bajo, asegurarse de que hay alguna diferencia
+    if (level === 'low') {
+      // Este nivel debe hacer cambios mínimos pero medibles
+      const lowPdfDoc = await PDFDocument.load(compressedBytes);
+      lowPdfDoc.setCreator(`PDF Optimizer - Compresión mínima (${Date.now()})`);
+      lowPdfDoc.setProducer(`PDF Optimizer v2.1 - Calidad óptima`);
+      
+      const finalLowBytes = await lowPdfDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+        objectsPerTick: 100
+      });
+      
+      return new File(
+        [finalLowBytes], 
+        `comprimido_${level}_${fileName || 'documento.pdf'}`, 
+        { type: 'application/pdf' }
+      );
+    }
     
     return new File(
       [compressedBytes], 

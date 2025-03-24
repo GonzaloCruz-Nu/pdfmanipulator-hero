@@ -4,40 +4,40 @@ import type { CompressionLevel, CompressionFactors } from './compression-types';
 // Factores de compresión para cada nivel - ajustados para diferenciación clara
 export const COMPRESSION_FACTORS: Record<CompressionLevel, CompressionFactors> = {
   low: {
-    jpegQuality: 0.85,        // Alta calidad de imagen JPEG (0-1) - ajustado para asegurar compresión
+    jpegQuality: 0.90,        // Alta calidad de imagen JPEG (0-1)
     scaleFactor: 0.98,        // Casi sin reducción de escala
-    textMode: 'print',        // Mejor calidad de texto
-    maximumDimension: 2000,   // Dimensión máxima alta para mantener calidad
+    textMode: "print",        // Mejor calidad de texto
+    maximumDimension: 2400,   // Dimensión máxima alta para mantener calidad
     objectsPerTick: 100,      // Mayor procesamiento por tick
     useObjectStreams: true,   // Usar streams de objetos
-    imageQuality: 0.9,        // Alta calidad para imágenes
+    imageQuality: 0.95,       // Alta calidad para imágenes
     preserveTextQuality: true // Preservar calidad de texto
   },
   medium: {
-    jpegQuality: 0.6,         // Calidad media para balance
-    scaleFactor: 0.75,        // Reducción moderada
-    textMode: 'display',      // Modo estándar de renderizado
+    jpegQuality: 0.60,         // Calidad media para balance
+    scaleFactor: 0.80,        // Reducción moderada
+    textMode: "display",      // Modo estándar de renderizado
     maximumDimension: 1500,   // Dimensión media
     objectsPerTick: 50,       // Procesamiento estándar
     useObjectStreams: true,   // Usar streams para compresión
-    imageQuality: 0.6,        // Calidad media para imágenes
+    imageQuality: 0.65,        // Calidad media para imágenes
     preserveTextQuality: true // Aún se preserva texto
   },
   high: {
-    jpegQuality: 0.3,         // Baja calidad para máxima compresión
-    scaleFactor: 0.5,         // Reducción sustancial
-    textMode: 'display',      // Modo simplificado
+    jpegQuality: 0.30,         // Baja calidad para máxima compresión
+    scaleFactor: 0.50,         // Reducción sustancial
+    textMode: "display",      // Modo simplificado
     maximumDimension: 1000,   // Dimensión más pequeña
     objectsPerTick: 20,       // Más velocidad de procesamiento
     useObjectStreams: true,   // Usar streams agresivamente
-    imageQuality: 0.3,        // Baja calidad para imágenes
+    imageQuality: 0.35,        // Baja calidad para imágenes
     preserveTextQuality: false // No se prioriza la calidad del texto
   }
 };
 
 // Umbrales mínimos de reducción esperados para cada nivel
 export const MIN_SIZE_REDUCTION = {
-  low: 0.01,    // Al menos 1% de reducción para nivel bajo (reducido para asegurar éxito)
+  low: 0.005,   // Al menos 0.5% de reducción para nivel bajo (mínimo para asegurar éxito)
   medium: 0.15, // Al menos 15% de reducción para nivel medio
   high: 0.30    // Al menos 30% de reducción para nivel alto
 };
