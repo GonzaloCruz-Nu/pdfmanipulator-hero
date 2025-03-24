@@ -8,6 +8,9 @@ export const ultimateCompression = async (
   fileName: string
 ): Promise<File | null> => {
   try {
+    // Create a copy of the ArrayBuffer to prevent detachment issues
+    const bufferCopy = fileBuffer.slice(0);
+    
     // Factores de compresión extrema - mucho más agresivos que antes
     const qualityReduction = level === 'high' ? 0.0003 : 
                             level === 'medium' ? 0.0008 : 0.003;
@@ -19,7 +22,7 @@ export const ultimateCompression = async (
     const convertToGrayscale = level === 'high' || (level === 'medium' && Math.random() > 0.5); // Aleatorio para medio
                           
     // Cargar documento original
-    const srcDoc = await PDFDocument.load(fileBuffer);
+    const srcDoc = await PDFDocument.load(bufferCopy);
     const newDoc = await PDFDocument.create();
     
     // Eliminación de metadatos más agresiva
@@ -130,7 +133,6 @@ export const ultimateCompression = async (
       useObjectStreams: true,
       addDefaultPage: false,
       objectsPerTick: objectsPerTick // Muy reducido para mejor compresión
-      // Eliminada la propiedad 'updateMetadata' que causaba el error
     });
     
     return new File(

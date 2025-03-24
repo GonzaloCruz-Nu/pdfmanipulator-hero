@@ -21,13 +21,17 @@ export async function processPage(
   compressionLevel: CompressionLevel
 ): Promise<boolean> {
   try {
-    // Obtener configuración de compresión según nivel
-    const {
-      jpegQuality,
-      scaleFactor,
-      textMode,
-      maximumDimension
-    } = COMPRESSION_FACTORS[compressionLevel];
+    // Obtener configuración de compresión según nivel, con valores más agresivos
+    const jpegQuality = compressionLevel === 'low' ? 0.75 : 
+                         compressionLevel === 'medium' ? 0.5 : 
+                         0.3; // high - muy agresivo
+                         
+    const scaleFactor = compressionLevel === 'low' ? 0.9 : 
+                         compressionLevel === 'medium' ? 0.7 : 
+                         0.5; // high - muy agresivo
+                         
+    const textMode = 'display';
+    const maximumDimension = 1200;
 
     // Obtener página actual
     const page = await pdfDoc.getPage(pageIndex + 1);
@@ -46,21 +50,18 @@ export async function processPage(
       maximumDimension
     );
     
-    // Aseguramos que textMode sea del tipo correcto ('print' | 'display')
-    const renderTextMode = textMode === 'print' ? 'print' : 'display';
-    
     // Renderizar página al canvas con las opciones configuradas
     await renderPageToCanvasWithOptions(
       page,
       canvas,
       dynamicScaleFactor,
       compressionLevel !== 'high', // Usar alta calidad solo para niveles bajo y medio
-      renderTextMode
+      textMode === 'print' ? 'print' : 'display'
     );
     
-    // Calcular calidad de JPEG según nivel y tamaño
+    // Calcular calidad de JPEG según nivel y tamaño - valores más agresivos
     const maxDimension = Math.max(width, height);
-    let adjustedJpegQuality = adjustJpegQuality(compressionLevel, jpegQuality, maxDimension);
+    let adjustedJpegQuality = jpegQuality;
     
     console.info(`Usando calidad JPEG ${adjustedJpegQuality.toFixed(2)} para página ${pageIndex+1} (dimensión máx: ${maxDimension.toFixed(0)}px)`);
     
@@ -69,7 +70,7 @@ export async function processPage(
       throw new Error('Canvas vacío después de renderizado');
     }
     
-    // Obtener data URL del canvas
+    // Obtener data URL del canvas con compresión agresiva
     let dataUrl;
     try {
       dataUrl = canvas.toDataURL('image/jpeg', adjustedJpegQuality);
@@ -98,15 +99,28 @@ export async function processPage(
       // Incrustar la imagen en el nuevo PDF
       const jpgImage = await newPdfDoc.embedJpg(new Uint8Array(imageArrayBuffer));
       
-      // Añadir nueva página con las dimensiones originales
-      const newPage = newPdfDoc.addPage([width, height]);
+      // Determinar dimensiones de página según nivel de compresión
+      let finalWidth = width;
+      let finalHeight = height;
+      
+      // Reducir dimensiones para compresión media y alta
+      if (compressionLevel === 'medium') {
+        finalWidth = width * 0.9;
+        finalHeight = height * 0.9;
+      } else if (compressionLevel === 'high') {
+        finalWidth = width * 0.7;
+        finalHeight = height * 0.7;
+      }
+      
+      // Añadir nueva página con las dimensiones ajustadas
+      const newPage = newPdfDoc.addPage([finalWidth, finalHeight]);
       
       // Dibujar la imagen comprimida en la nueva página
       newPage.drawImage(jpgImage, {
         x: 0,
         y: 0,
-        width: width,
-        height: height,
+        width: finalWidth,
+        height: finalHeight,
       });
       
       return true;
@@ -116,8 +130,8 @@ export async function processPage(
       // Si falla, intentar con calidad más baja como último recurso
       try {
         // Usar calidades más bajas según nivel para fallback
-        const fallbackQuality = compressionLevel === 'high' ? 0.25 : 
-                               compressionLevel === 'medium' ? 0.35 : 0.5;
+        const fallbackQuality = compressionLevel === 'high' ? 0.15 : 
+                              compressionLevel === 'medium' ? 0.25 : 0.4;
         
         const fallbackDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
         
@@ -134,12 +148,26 @@ export async function processPage(
         
         // Incrustar con calidad reducida como último recurso
         const fallbackJpgImage = await newPdfDoc.embedJpg(new Uint8Array(fallbackImageBuffer));
-        const newPage = newPdfDoc.addPage([width, height]);
+        
+        // Determinar dimensiones de página reducidas para fallback
+        let fallbackWidth = width;
+        let fallbackHeight = height;
+        
+        // Reducir dimensiones para último recurso
+        if (compressionLevel === 'medium') {
+          fallbackWidth = width * 0.8;
+          fallbackHeight = height * 0.8;
+        } else if (compressionLevel === 'high') {
+          fallbackWidth = width * 0.6;
+          fallbackHeight = height * 0.6;
+        }
+        
+        const newPage = newPdfDoc.addPage([fallbackWidth, fallbackHeight]);
         newPage.drawImage(fallbackJpgImage, {
           x: 0,
           y: 0,
-          width: width,
-          height: height,
+          width: fallbackWidth,
+          height: fallbackHeight,
         });
         
         return true;
