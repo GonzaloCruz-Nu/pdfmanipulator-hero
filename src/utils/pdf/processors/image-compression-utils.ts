@@ -17,38 +17,42 @@ export async function compressCanvasImage(
   resmushQuality: number = 85,
   fallbackQuality: number = 0.85
 ): Promise<string> {
-  // Primero convertimos a JPEG con máxima calidad para preservar detalles
-  const initialJpegUrl = canvas.toDataURL('image/jpeg', 1.0);
-  
-  console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height})`);
-  
-  if (useResmush) {
-    try {
-      console.info(`Intentando comprimir imagen con reSmush.it (calidad: ${resmushQuality})`);
-      
-      // Convertir data URL a blob para enviar a reSmush
-      const fetchResponse = await fetch(initialJpegUrl);
-      const blob = await fetchResponse.blob();
-      
-      // Enviar a reSmush para compresión optimizada
-      const compressedImageUrl = await compressImageWithResmush(blob, {
-        quality: resmushQuality,
-        exif: false, // No necesitamos conservar metadatos EXIF
-        timeout: 30000, // 30 segundos de timeout
-        retries: 2 // 2 reintentos
-      });
-      
-      console.info(`Compresión con reSmush.it exitosa para página ${pageIndex+1}`);
-      return compressedImageUrl;
-    } catch (error) {
-      console.warn(`Error al usar reSmush.it para página ${pageIndex+1}: ${error}. Usando compresión local.`);
-      // Fallback a compresión local con alta calidad si reSmush falla
-      return canvas.toDataURL('image/jpeg', Math.max(fallbackQuality, 0.8));
+  try {
+    // Primero convertimos a JPEG con máxima calidad para preservar detalles
+    const initialJpegUrl = canvas.toDataURL('image/jpeg', Math.min(1.0, fallbackQuality + 0.1));
+    
+    console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height})`);
+    
+    if (useResmush) {
+      try {
+        console.info(`Intentando comprimir imagen con reSmush.it (calidad: ${resmushQuality})`);
+        
+        // Convertir data URL a blob para enviar a reSmush
+        const fetchResponse = await fetch(initialJpegUrl);
+        const blob = await fetchResponse.blob();
+        
+        // Enviar a reSmush para compresión optimizada
+        const compressedImageUrl = await compressImageWithResmush(blob, {
+          quality: resmushQuality,
+          exif: false, // No necesitamos conservar metadatos EXIF
+          timeout: 30000, // 30 segundos de timeout
+          retries: 2 // 2 reintentos
+        });
+        
+        console.info(`Compresión con reSmush.it exitosa para página ${pageIndex+1}`);
+        return compressedImageUrl;
+      } catch (error) {
+        console.warn(`Error al usar reSmush.it para página ${pageIndex+1}: ${error}. Usando compresión local.`);
+      }
     }
-  } else {
-    // Compresión local con calidad ajustada
+    
+    // Compresión local con calidad ajustada (valor por defecto)
     console.info(`Usando compresión local para página ${pageIndex+1} (calidad: ${fallbackQuality})`);
     return canvas.toDataURL('image/jpeg', fallbackQuality);
+  } catch (error) {
+    console.error(`Error general comprimiendo imagen de página ${pageIndex+1}:`, error);
+    // Último recurso: devolver una imagen con calidad media-alta
+    return canvas.toDataURL('image/jpeg', 0.9);
   }
 }
 
@@ -85,5 +89,10 @@ export async function getArrayBufferFromImageUrl(imageUrl: string): Promise<Arra
  * @returns Booleano indicando si el servicio está disponible
  */
 export async function checkReSmushAvailability(timeout: number = 5000): Promise<boolean> {
-  return await checkResmushAvailability(timeout);
+  try {
+    return await checkResmushAvailability(timeout);
+  } catch (error) {
+    console.warn('Error al verificar disponibilidad de reSmush.it:', error);
+    return false;
+  }
 }

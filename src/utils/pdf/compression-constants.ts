@@ -2,8 +2,8 @@
 // Factores de compresión correctamente ordenados (baja→menor compresión, alta→mayor compresión)
 export const COMPRESSION_FACTORS = {
   low: { 
-    imageQuality: 0.999, // Calidad prácticamente perfecta para nivel bajo
-    scaleFactor: 3.0, // Resolución extremadamente alta para máxima nitidez
+    imageQuality: 0.999, // Calidad perfecta para nivel bajo
+    scaleFactor: 4.0, // Resolución extremadamente alta para máxima nitidez
     colorReduction: 1.0, // Sin reducción de color para nivel bajo
     useHighQualityFormat: true, // Usar formato de alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
@@ -16,7 +16,7 @@ export const COMPRESSION_FACTORS = {
   },
   medium: { 
     imageQuality: 0.995, // Calidad extremadamente alta para nivel medio
-    scaleFactor: 2.5, // Resolución muy alta para excelente nitidez
+    scaleFactor: 3.0, // Resolución muy alta para excelente nitidez
     colorReduction: 1.0, // Sin reducción de color
     useHighQualityFormat: true, // Usar formato alta calidad
     preserveTextQuality: true, // Preservar calidad de texto
@@ -29,7 +29,7 @@ export const COMPRESSION_FACTORS = {
   },
   high: { 
     imageQuality: 0.90, // Calidad alta pero con compresión efectiva
-    scaleFactor: 1.5, // Escala mejorada para mantener legibilidad
+    scaleFactor: 2.0, // Escala mejorada para mantener legibilidad
     colorReduction: 0.98, // Mínima reducción de color pero preservando legibilidad
     useHighQualityFormat: true, // Preservamos calidad en alta compresión
     preserveTextQuality: true, // Preservar texto en alta compresión

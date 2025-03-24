@@ -38,6 +38,7 @@ export const useMultipleCompressPDF = () => {
       setTotalFiles(files.length);
       
       const compressedFilesArray: File[] = [];
+      let processingErrors = 0;
       
       // Process each file sequentially
       for (let i = 0; i < files.length; i++) {
@@ -49,39 +50,101 @@ export const useMultipleCompressPDF = () => {
         // Get original size
         const fileSize = file.size;
         
-        // Compress using canvas-based method
-        const compressedFile = await compressPDF(
-          file, 
-          compressionLevel, 
-          i, 
-          files.length, 
-          (progressValue) => setProgress(progressValue)
-        );
-        
-        if (compressedFile) {
-          const compressionResult = calculateCompressionStats(fileSize, compressedFile.size);
+        try {
+          // Máximo 3 intentos por archivo
+          let compressedFile = null;
+          let attempts = 0;
+          const maxAttempts = 3;
           
-          // Accept files even if compression didn't reduce size
-          compressedFilesArray.push(compressedFile);
-          console.info(`File ${i+1} processed successfully: ${compressionResult.savedPercentage.toFixed(1)}% saved`);
-          
-          // If it's the last file or there's only one file, show compression info
-          if (i === files.length - 1 || files.length === 1) {
-            setCompressionInfo(compressionResult);
-            
-            if (files.length === 1) {
-              toast.success(`PDF processed successfully. Savings: ${compressionResult.savedPercentage > 0 ? compressionResult.savedPercentage.toFixed(1) + '%' : 'no size reduction'}`);
-            } else {
-              toast.success(`All PDFs processed successfully.`);
+          while (!compressedFile && attempts < maxAttempts) {
+            attempts++;
+            try {
+              // Compress using canvas-based method
+              compressedFile = await compressPDF(
+                file, 
+                compressionLevel, 
+                i, 
+                files.length, 
+                (progressValue) => setProgress(progressValue)
+              );
+            } catch (attemptError) {
+              console.warn(`Intento ${attempts}/${maxAttempts} fallido:`, attemptError);
+              
+              // Si es el último intento, crear una copia del original
+              if (attempts === maxAttempts) {
+                console.warn("Usando archivo original como último recurso");
+                try {
+                  const buffer = await file.arrayBuffer();
+                  compressedFile = new File(
+                    [buffer],
+                    `${file.name.replace('.pdf', '')}_copia.pdf`,
+                    { type: 'application/pdf' }
+                  );
+                } catch (copyError) {
+                  console.error("Error creando copia:", copyError);
+                }
+              }
             }
           }
-        } else {
-          console.error(`Error processing file ${i+1}: ${file.name}`);
-          if (files.length === 1) {
-            setCompressionError('Could not process the PDF. Try with another compression level.');
-            toast.error('Could not process the PDF.');
+          
+          if (compressedFile) {
+            const compressionResult = calculateCompressionStats(fileSize, compressedFile.size);
+            
+            // Accept files even if compression didn't reduce size
+            compressedFilesArray.push(compressedFile);
+            console.info(`File ${i+1} processed successfully: ${compressionResult.savedPercentage.toFixed(1)}% saved`);
+            
+            // If it's the last file or there's only one file, show compression info
+            if (i === files.length - 1 || files.length === 1) {
+              setCompressionInfo(compressionResult);
+              
+              if (files.length === 1) {
+                toast.success(`PDF processed successfully. Savings: ${compressionResult.savedPercentage > 0 ? compressionResult.savedPercentage.toFixed(1) + '%' : 'no size reduction'}`);
+              } else {
+                toast.success(`All PDFs processed successfully.`);
+              }
+            }
           } else {
-            toast.warning(`File ${file.name} could not be processed.`);
+            processingErrors++;
+            console.error(`Error processing file ${i+1}: ${file.name}`);
+            
+            // Intentar crear una copia exacta como último recurso
+            try {
+              const buffer = await file.arrayBuffer();
+              const fallbackFile = new File(
+                [buffer],
+                `${file.name.replace('.pdf', '')}_copia.pdf`,
+                { type: 'application/pdf' }
+              );
+              compressedFilesArray.push(fallbackFile);
+              console.warn(`Creada copia sin compresión para ${file.name}`);
+            } catch (fallbackError) {
+              console.error(`No se pudo crear ni copia para ${file.name}:`, fallbackError);
+            }
+            
+            if (files.length === 1) {
+              setCompressionError('Could not process the PDF. Try with another compression level.');
+              toast.error('Could not process the PDF.');
+            } else {
+              toast.warning(`File ${file.name} could not be processed.`);
+            }
+          }
+        } catch (fileError) {
+          processingErrors++;
+          console.error(`Error procesando archivo ${file.name}:`, fileError);
+          
+          // Intentar crear una copia como último recurso
+          try {
+            const buffer = await file.arrayBuffer();
+            const fallbackFile = new File(
+              [buffer],
+              `${file.name.replace('.pdf', '')}_copia.pdf`,
+              { type: 'application/pdf' }
+            );
+            compressedFilesArray.push(fallbackFile);
+            console.warn(`Creada copia sin compresión para ${file.name}`);
+          } catch (fallbackError) {
+            console.error(`No se pudo crear ni copia para ${file.name}:`, fallbackError);
           }
         }
       }
@@ -93,9 +156,17 @@ export const useMultipleCompressPDF = () => {
         setCompressionError('Could not process any PDF files. Try with another compression level.');
         toast.error('Error processing PDF files.');
       } else if (compressedFilesArray.length < files.length) {
-        toast.warning(`Processed ${compressedFilesArray.length} of ${files.length} files.`);
+        if (processingErrors > 0) {
+          toast.warning(`Processed ${compressedFilesArray.length} of ${files.length} files. Some files were processed as copies.`);
+        } else {
+          toast.warning(`Processed ${compressedFilesArray.length} of ${files.length} files.`);
+        }
       } else {
-        toast.success(`Processed ${files.length} files correctly.`);
+        if (processingErrors > 0) {
+          toast.success(`Processed ${files.length} files. Some files were processed as copies.`);
+        } else {
+          toast.success(`Processed ${files.length} files correctly.`);
+        }
       }
       
     } catch (error) {

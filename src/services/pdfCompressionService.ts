@@ -21,8 +21,26 @@ export async function compressPDF(
   try {
     console.info(`Iniciando compresión avanzada para nivel: ${level}`);
     
-    // Usar el nuevo procesador canvas-processor optimizado para máxima calidad
+    // Usar el procesador canvas-processor optimizado para máxima calidad
     const result = await compressPDFWithCanvas(file, level, currentIndex, totalCount, onProgress);
+    
+    // Si la compresión devuelve null, intentar con una copia del original
+    if (!result) {
+      console.warn(`La compresión falló completamente. Devolviendo copia del archivo original.`);
+      
+      try {
+        // Crear una copia simple del PDF original
+        const buffer = await file.arrayBuffer();
+        return new File(
+          [buffer],
+          `${file.name.replace('.pdf', '')}_copia.pdf`,
+          { type: 'application/pdf' }
+        );
+      } catch (copyError) {
+        console.error('Error al crear copia del original:', copyError);
+        return null;
+      }
+    }
     
     // Si el archivo resultante es más grande que el original en niveles bajo/medio
     // simplemente devolver el original para evitar aumentos de tamaño
@@ -41,7 +59,19 @@ export async function compressPDF(
     if (onProgress) {
       onProgress(100);
     }
-    return null;
+    
+    try {
+      // Último recurso: intentar devolver el archivo original
+      const buffer = await file.arrayBuffer();
+      return new File(
+        [buffer],
+        `${file.name.replace('.pdf', '')}_original.pdf`,
+        { type: 'application/pdf' }
+      );
+    } catch (fallbackError) {
+      console.error('Error en fallback final:', fallbackError);
+      return null;
+    }
   }
 }
 
