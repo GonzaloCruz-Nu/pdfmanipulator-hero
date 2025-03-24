@@ -42,20 +42,25 @@ export async function compressPDF(
       }
     }
     
+    // Calcular porcentaje de reducción para evaluar si valió la pena
+    const sizeDifference = file.size - result.size;
+    const reductionPercentage = (sizeDifference / file.size) * 100;
+    console.info(`Reducción de tamaño: ${reductionPercentage.toFixed(2)}% (${(sizeDifference/1024/1024).toFixed(2)} MB)`);
+    
     // Si el archivo resultante es más grande que el original en cualquier nivel,
     // considerar devolver el original para evitar aumentos de tamaño
-    if (result && result.size > file.size * 1.1) {
+    if (result.size > file.size) {
       console.warn(`El archivo comprimido es más grande que el original (${(result.size/1024/1024).toFixed(2)}MB vs ${(file.size/1024/1024).toFixed(2)}MB).`);
       
-      // Para nivel alto, siempre devolver el resultado (aunque sea mayor) para permitir
-      // que el usuario vea el resultado y decida
-      if (level === 'high') {
+      // Para nivel alto, solo devolver el resultado si la diferencia no es excesiva
+      // Esto permite que algunos PDFs complejos puedan tener cierto aumento pero no exagerado
+      if (level === 'high' && result.size < file.size * 1.3) {
         console.info(`Mostrando archivo procesado para nivel alto a pesar del aumento de tamaño.`);
         return result;
       }
       
-      // Para niveles bajo y medio, devolver el original si aumentó significativamente
-      if (result.size > file.size * 1.5) {
+      // Para todos los niveles, si el aumento es excesivo, devolver el original
+      if (result.size > file.size * 1.1) {
         console.warn(`Aumento de tamaño excesivo. Devolviendo archivo original.`);
         return new File(
           [await file.arrayBuffer()],
@@ -65,6 +70,7 @@ export async function compressPDF(
       }
     }
     
+    // Si hay una reducción de tamaño o es aceptable, devolver el resultado comprimido
     return result;
   } catch (error) {
     console.error('Error compressing PDF with canvas:', error);
