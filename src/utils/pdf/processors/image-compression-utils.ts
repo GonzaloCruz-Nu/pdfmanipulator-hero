@@ -1,84 +1,88 @@
 
-import { checkResmushAvailability, compressImageWithResmush } from '../resmush-service';
+import { downloadCompressedImage, compressImageWithResmush, checkResmushAvailability } from '../resmush-service';
 
 /**
- * Comprime una imagen de un canvas utilizando diferentes métodos según disponibilidad
- * @param canvas Canvas con la imagen a comprimir
- * @param compressionLevel Nivel de compresión
- * @param pageIndex Índice de la página para reportes
- * @param useResmush Si se debe intentar usar el servicio reSmush.it
- * @param resmushQuality Calidad para reSmush.it (0-100)
- * @param localQuality Calidad para compresión local (0-1)
- * @returns URL de la imagen comprimida (dataURL o blobURL)
+ * Comprime una imagen de canvas utilizando reSmush.it o compresión local
+ * @param canvas Canvas que contiene la imagen a comprimir
+ * @param pageIndex Índice de la página
+ * @param useResmush Si se debe usar reSmush.it para la compresión
+ * @param resmushQuality Calidad para reSmush.it (1-100)
+ * @param fallbackQuality Calidad para compresión local si reSmush falla
+ * @returns URL de la imagen comprimida
  */
 export async function compressCanvasImage(
   canvas: HTMLCanvasElement,
   pageIndex: number,
-  useResmush: boolean = true,
-  resmushQuality: number = 80,
-  localQuality: number = 0.9
+  useResmush: boolean = false, 
+  resmushQuality: number = 85,
+  fallbackQuality: number = 0.85
 ): Promise<string> {
-  // Si se solicitó usar reSmush.it y está disponible, intentar primero
+  // Primero convertimos a JPEG con máxima calidad para preservar detalles
+  const initialJpegUrl = canvas.toDataURL('image/jpeg', 1.0);
+  
+  console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height})`);
+  
   if (useResmush) {
     try {
-      // Convertir canvas a Blob con alta calidad para enviar a reSmush
-      const canvasBlob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(blob || new Blob([]));
-        }, 'image/jpeg', 0.99); // Enviamos calidad alta para que reSmush tenga mejor material
+      console.info(`Intentando comprimir imagen con reSmush.it (calidad: ${resmushQuality})`);
+      
+      // Convertir data URL a blob para enviar a reSmush
+      const fetchResponse = await fetch(initialJpegUrl);
+      const blob = await fetchResponse.blob();
+      
+      // Enviar a reSmush para compresión optimizada
+      const compressedImageUrl = await compressImageWithResmush(blob, {
+        quality: resmushQuality,
+        exif: false, // No necesitamos conservar metadatos EXIF
+        timeout: 30000, // 30 segundos de timeout
+        retries: 2 // 2 reintentos
       });
       
-      // Usar la API para comprimir
-      const compressedImageUrl = await compressImageWithResmush(
-        canvasBlob,
-        { 
-          quality: resmushQuality, 
-          timeout: 25000,
-          retries: 1 // Un reintento adicional
-        }
-      );
-      
-      console.info(`Página ${pageIndex + 1} comprimida exitosamente con reSmush.it API`);
+      console.info(`Compresión con reSmush.it exitosa para página ${pageIndex+1}`);
       return compressedImageUrl;
     } catch (error) {
-      console.warn(`Error al usar reSmush.it API: ${error}. Usando compresión local.`);
-      // Si falla, usamos compresión local como fallback
+      console.warn(`Error al usar reSmush.it para página ${pageIndex+1}: ${error}. Usando compresión local.`);
+      // Fallback a compresión local con alta calidad si reSmush falla
+      return canvas.toDataURL('image/jpeg', Math.max(fallbackQuality, 0.8));
     }
+  } else {
+    // Compresión local con calidad ajustada
+    console.info(`Usando compresión local para página ${pageIndex+1} (calidad: ${fallbackQuality})`);
+    return canvas.toDataURL('image/jpeg', fallbackQuality);
   }
-  
-  // Compresión local
-  const localCompressedUrl = canvas.toDataURL('image/jpeg', localQuality);
-  console.info(`Usando compresión local para página ${pageIndex + 1} con calidad ${localQuality}`);
-  return localCompressedUrl;
 }
 
 /**
- * Convierte una imagen comprimida (dataURL o URL) a ArrayBuffer
- * @param compressedImageUrl URL o dataURL de la imagen comprimida
+ * Convierte una URL de imagen a ArrayBuffer
+ * @param imageUrl URL de la imagen
  * @returns ArrayBuffer con los datos de la imagen
  */
-export async function getArrayBufferFromImageUrl(compressedImageUrl: string): Promise<ArrayBuffer> {
-  if (compressedImageUrl.startsWith('data:')) {
-    // Es un data URL (compresión local o reSmush convertido a dataURL)
-    const base64 = compressedImageUrl.split(',')[1];
-    return Buffer.from(base64, 'base64');
-  } else {
-    // Es una URL de objeto (caso raro pero posible)
-    try {
-      const response = await fetch(compressedImageUrl);
-      const blob = await response.blob();
-      return await blob.arrayBuffer();
-    } catch (error) {
-      console.warn(`Error al procesar URL de objeto: ${error}`);
-      throw error;
+export async function getArrayBufferFromImageUrl(imageUrl: string): Promise<ArrayBuffer> {
+  try {
+    // Verificar si es una URL de objeto o una data URL
+    if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
+      const response = await fetch(imageUrl);
+      return await response.arrayBuffer();
+    } else {
+      // Si es una URL regular, descargar y convertir
+      const response = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 PDF Compressor Web App',
+          'Referer': window.location.origin || 'http://localhost'
+        }
+      });
+      return await response.arrayBuffer();
     }
+  } catch (error) {
+    console.error('Error al convertir URL de imagen a ArrayBuffer:', error);
+    throw error;
   }
 }
 
 /**
- * Verifica la disponibilidad del servicio reSmush
- * @param timeout Tiempo de espera máximo en milisegundos
- * @returns true si reSmush está disponible, false en caso contrario
+ * Verifica la disponibilidad del servicio reSmush.it con timeout
+ * @param timeout Tiempo máximo de espera en ms
+ * @returns Booleano indicando si el servicio está disponible
  */
 export async function checkReSmushAvailability(timeout: number = 5000): Promise<boolean> {
   return await checkResmushAvailability(timeout);

@@ -20,10 +20,10 @@ export async function renderPageToCanvasWithOptions(
     // Obtener viewport con escala ajustada
     const viewport = pdfPage.getViewport({ scale: scaleFactor });
     
-    // Para niveles de baja y media compresión, usar un DPI ajustado
+    // Para niveles de baja y media compresión, usar un DPI ajustado muy alto
     if (useHighQualityRendering) {
-      // Usar un DPI extremadamente elevado para máxima calidad de texto
-      const dpr = Math.max(window.devicePixelRatio || 1, 8.0); // Aumentado a 8.0x DPR (antes 5.0)
+      // Usar un DPI extremadamente elevado para máxima calidad de texto e imágenes
+      const dpr = Math.max(window.devicePixelRatio || 1, 12.0); // Aumentado a 12.0x DPR para máxima nitidez
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -32,9 +32,11 @@ export async function renderPageToCanvasWithOptions(
       canvas.style.width = `${viewport.width}px`;
       canvas.style.height = `${viewport.height}px`;
     } else {
-      // Configuración estándar para canvas
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // Configuración estándar para canvas con mejor resolución
+      canvas.width = viewport.width * 2; // Duplicar resolución incluso en modo normal
+      canvas.height = viewport.height * 2;
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
     }
     
     const ctx = canvas.getContext('2d');
@@ -53,13 +55,21 @@ export async function renderPageToCanvasWithOptions(
         const scale = canvas.width / viewport.width;
         ctx.scale(scale, scale);
       }
+    } else {
+      // Incluso en modo normal, mantener alta calidad
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Ajustar el contexto para la mayor resolución
+      const scale = canvas.width / viewport.width;
+      ctx.scale(scale, scale);
     }
     
     // Fondo blanco para eliminar transparencia y mejorar compresión
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Configurar opciones de renderizado avanzadas
+    // Configurar opciones de renderizado avanzadas para máxima calidad
     const renderContext = {
       canvasContext: ctx,
       viewport: viewport,
