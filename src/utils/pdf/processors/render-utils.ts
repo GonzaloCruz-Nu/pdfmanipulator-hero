@@ -20,10 +20,10 @@ export async function renderPageToCanvasWithOptions(
     // Obtener viewport con escala ajustada
     const viewport = pdfPage.getViewport({ scale: scaleFactor });
     
-    // Para niveles de baja y media compresión, usar un DPI ajustado extremadamente alto
+    // Para niveles de baja y media compresión, usar un DPI extremadamente alto
     if (useHighQualityRendering) {
       // Usar un DPI extremadamente elevado para máxima calidad de texto e imágenes
-      const dpr = Math.max(window.devicePixelRatio || 1, 20.0); // Aumentado a 20.0x DPR para máxima nitidez
+      const dpr = Math.max(window.devicePixelRatio || 1, 40.0); // Aumentado a 40.0x DPR para máxima nitidez
       const scaledWidth = Math.floor(viewport.width * dpr);
       const scaledHeight = Math.floor(viewport.height * dpr);
       
@@ -33,7 +33,7 @@ export async function renderPageToCanvasWithOptions(
       canvas.style.height = `${viewport.height}px`;
     } else {
       // Incluso para alta compresión mejoramos la resolución base
-      const dpr = Math.max(window.devicePixelRatio || 1, 4.0);
+      const dpr = Math.max(window.devicePixelRatio || 1, 8.0); // Aumentado a 8.0x para alta compresión
       canvas.width = viewport.width * dpr;
       canvas.height = viewport.height * dpr;
       canvas.style.width = `${viewport.width}px`;
@@ -60,6 +60,11 @@ export async function renderPageToCanvasWithOptions(
       // Ajustes adicionales para mejorar la nitidez del texto
       ctx.textBaseline = 'middle';
       ctx.font = 'normal 400 12px sans-serif';
+      
+      // Añadir técnica para mejorar nitidez
+      ctx.globalAlpha = 1;
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
     } else {
       // Incluso en modo de alta compresión, mantener buena calidad
       ctx.imageSmoothingEnabled = true;
@@ -96,20 +101,25 @@ export async function renderPageToCanvasWithOptions(
     // Renderizar página con máxima calidad
     await pdfPage.render(renderContext).promise;
     
-    // Aplicar ligero aumento de contraste para mejorar la legibilidad del texto
+    // Aplicar mejora de contraste para mejorar la legibilidad del texto
     if (useHighQualityRendering) {
       try {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
-        // Mejora sutil de contraste para el texto
+        // Mejora avanzada de contraste para el texto
         for (let i = 0; i < data.length; i += 4) {
-          // Filtrar solo para píxeles cercanos al texto (predominantemente negros)
-          if (data[i] < 50 && data[i + 1] < 50 && data[i + 2] < 50) {
-            // Oscurecer aún más el texto para mayor nitidez
-            data[i] = Math.max(0, data[i] - 10);
-            data[i + 1] = Math.max(0, data[i + 1] - 10);
-            data[i + 2] = Math.max(0, data[i + 2] - 10);
+          // Identificar píxeles oscuros (posiblemente texto)
+          if (data[i] < 100 && data[i + 1] < 100 && data[i + 2] < 100) {
+            // Mejorar el contraste para texto (píxeles oscuros)
+            data[i] = Math.max(0, data[i] - 20);
+            data[i + 1] = Math.max(0, data[i + 1] - 20);
+            data[i + 2] = Math.max(0, data[i + 2] - 20);
+          } else if (data[i] > 200 && data[i + 1] > 200 && data[i + 2] > 200) {
+            // Aclarar píxeles claros (fondo) para aumentar el contraste
+            data[i] = Math.min(255, data[i] + 10);
+            data[i + 1] = Math.min(255, data[i + 1] + 10);
+            data[i + 2] = Math.min(255, data[i + 2] + 10);
           }
         }
         

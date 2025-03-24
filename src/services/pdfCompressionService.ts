@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { COMPRESSION_FACTORS } from '@/utils/pdf/compression-constants';
 import { renderPageToCanvas, isWasmSupported } from '@/utils/pdf/pdfRenderUtils';
+import { compressPDFWithCanvas } from '@/utils/pdf/processors/canvas-processor';
 
 // Types of compression
 export type CompressionLevel = 'low' | 'medium' | 'high';
@@ -18,148 +19,20 @@ export async function compressPDF(
   onProgress?: (progress: number) => void
 ): Promise<File | null> {
   try {
-    // Check if WebAssembly is available
-    const wasmSupported = isWasmSupported();
-    console.info(`WebAssembly available: ${wasmSupported}`);
+    console.info(`Iniciando compresión avanzada para nivel: ${level}`);
     
-    // Get configuration according to level
-    const { 
-      imageQuality, 
-      scaleFactor, 
-      colorReduction, 
-      useHighQualityFormat,
-      preserveTextQuality,
-      useJpegFormat,
-      jpegQuality
-    } = COMPRESSION_FACTORS[level];
+    // Usar el nuevo procesador canvas-processor optimizado para máxima calidad
+    const result = await compressPDFWithCanvas(file, level, currentIndex, totalCount, onProgress);
     
-    // Adjust compression factors with WASM optimizations if available
-    const optimizedScaleFactor = wasmSupported ? 
-      Math.min(scaleFactor * 1.05, 1.0) : scaleFactor;
-    
-    const optimizedJpegQuality = wasmSupported ?
-      Math.max(jpegQuality * 0.95, 0.1) : jpegQuality;
-    
-    // Load the document with PDF.js
-    const fileArrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileArrayBuffer) });
-    const pdfDoc = await loadingTask.promise;
-    
-    // Create a new PDF document
-    const newPdfDoc = await PDFDocument.create();
-    
-    // Set basic metadata
-    newPdfDoc.setCreator("PDF Compressor");
-    
-    // Process each page
-    const totalPages = pdfDoc.numPages;
-    
-    for (let i = 0; i < totalPages; i++) {
-      // Update progress
-      const pageProgress = Math.floor((i / totalPages) * 90);
-      const fileProgress = (currentIndex / totalCount) * 100 + (pageProgress / totalCount);
-      if (onProgress) {
-        onProgress(Math.min(99, Math.floor(fileProgress)));
-      }
-      
-      // Get the page
-      const pdfPage = await pdfDoc.getPage(i + 1);
-      
-      // Get original dimensions
-      const viewport = pdfPage.getViewport({ scale: 1.0 });
-      const width = viewport.width;
-      const height = viewport.height;
-      
-      // Create a canvas
-      const canvas = document.createElement('canvas');
-      
-      // Render the page with WASM optimizations if available
-      await renderPageToCanvas(pdfPage, canvas, optimizedScaleFactor, preserveTextQuality);
-      
-      // Always use JPEG for better compression
-      const imageDataUrl = canvas.toDataURL('image/jpeg', optimizedJpegQuality);
-      console.info(`Using JPEG format for level ${level} with quality ${optimizedJpegQuality}`);
-      
-      // Extract the base64
-      const base64 = imageDataUrl.split(',')[1];
-      
-      // Convert base64 to Uint8Array optimized for WASM if available
-      let imageBytes: Uint8Array;
-      if (wasmSupported && window.atob && typeof TextEncoder !== 'undefined') {
-        // Optimized method with TextEncoder (faster in modern browsers)
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let j = 0; j < binary.length; j++) {
-          bytes[j] = binary.charCodeAt(j);
-        }
-        imageBytes = bytes;
-      } else {
-        // Standard method
-        const binaryString = atob(base64);
-        imageBytes = new Uint8Array(binaryString.length);
-        for (let j = 0; j < binaryString.length; j++) {
-          imageBytes[j] = binaryString.charCodeAt(j);
-        }
-      }
-      
-      // Insert the image
-      let pdfImage;
-      try {
-        pdfImage = await newPdfDoc.embedJpg(imageBytes);
-      } catch (error) {
-        console.error('Error embedding image, trying with lower quality JPEG:', error);
-        // If it fails, try with lower JPEG quality as a last resort
-        const fallbackQuality = wasmSupported ? 0.3 : 0.4;
-        const jpegDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
-        const jpegBase64 = jpegDataUrl.split(',')[1];
-        const jpegBinaryString = atob(jpegBase64);
-        const jpegImageBytes = new Uint8Array(jpegBinaryString.length);
-        for (let j = 0; j < jpegBinaryString.length; j++) {
-          jpegImageBytes[j] = jpegBinaryString.charCodeAt(j);
-        }
-        pdfImage = await newPdfDoc.embedJpg(jpegImageBytes);
-      }
-      
-      // Apply dimension reduction according to level
-      const pageWidth = width * colorReduction;
-      const pageHeight = height * colorReduction;
-      
-      // Add page
-      const newPage = newPdfDoc.addPage([pageWidth, pageHeight]);
-      
-      // Draw the image
-      newPage.drawImage(pdfImage, {
-        x: 0,
-        y: 0,
-        width: pageWidth,
-        height: pageHeight
-      });
-    }
-    
-    // Save with optimized compression for WebAssembly
-    const saveOptions = {
-      useObjectStreams: true,
-      addDefaultPage: false
-    };
-    
-    const compressedBytes = await newPdfDoc.save(saveOptions);
-    
-    // Create result file
-    const result = new File(
-      [compressedBytes],
-      `comprimido_${file.name}`,
-      { type: 'application/pdf' }
-    );
-    
-    // Check if the size was actually reduced
-    if (result.size >= file.size) {
-      console.warn("Compressed file is not smaller than the original");
-      // If using low or medium compression and the file grew significantly, try again with more aggressive parameters
-      if ((level === 'low' || level === 'medium') && (result.size > file.size * 1.5)) {
-        console.info("Trying with more aggressive parameters...");
-        const moreAggressiveLevel = level === 'low' ? 'medium' : 'high';
-        return await compressPDF(file, moreAggressiveLevel, currentIndex, totalCount, onProgress);
-      }
+    // Si el archivo resultante es más grande que el original en niveles bajo/medio
+    // simplemente devolver el original para evitar aumentos de tamaño
+    if (result && (level === 'low' || level === 'medium') && result.size > file.size * 1.1) {
+      console.warn(`El archivo comprimido es más grande que el original (${(result.size/1024).toFixed(2)}KB vs ${(file.size/1024).toFixed(2)}KB). Devolviendo archivo original.`);
+      return new File(
+        [await file.arrayBuffer()],
+        `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+        { type: 'application/pdf' }
+      );
     }
     
     return result;
