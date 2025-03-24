@@ -29,26 +29,18 @@ export async function compressPDFWithCanvas(
       useHighQualityFormat,
       preserveTextQuality,
       textMode,
-      resmushQuality,
       jpegQuality
     } = COMPRESSION_FACTORS[compressionLevel];
-    
-    // Forzar calidad extrema para niveles bajo y medio
-    const isHighQualityMode = compressionLevel === 'low' || compressionLevel === 'medium';
     
     // Reportar inicio de procesamiento
     progressCallback(5);
     console.info(`Iniciando compresión de PDF con nivel ${compressionLevel} - Archivo: ${file.name} (${Math.round(file.size/1024)} KB)`);
     
-    // Verificar tamaño del archivo para procesos especiales
-    const fileSize = file.size;
-    const isLargeFile = fileSize > 10 * 1024 * 1024; // 10 MB
-    
     // Cargar el archivo como ArrayBuffer
     const fileArrayBuffer = await file.arrayBuffer();
     
     try {
-      // Cargar el documento PDF con configuración de alta calidad
+      // Cargar el documento PDF
       const pdfDoc = await loadPdfDocumentFromArray(fileArrayBuffer);
       const numPages = pdfDoc.numPages;
       
@@ -57,16 +49,13 @@ export async function compressPDFWithCanvas(
       // Crear nuevo documento PDF con pdf-lib
       const newPdfDoc = await PDFDocument.create();
       
-      // Verificar si debemos usar reSmush.it - ahora con más tiempo para conexión
-      let resmushAvailable = false;
-      
-      // Procesar cada página con máxima calidad de renderizado
+      // Procesar cada página aplicando el nivel de compresión correspondiente
       for (let i = 0; i < numPages; i++) {
         // Calcular y reportar progreso
         const pageProgress = 10 + Math.floor((i / numPages) * 80);
         progressCallback(pageProgress);
         
-        console.info(`Procesando página ${i + 1}/${numPages} con configuración de ${isHighQualityMode ? 'extrema' : 'alta'} calidad`);
+        console.info(`Procesando página ${i + 1}/${numPages} con nivel de compresión ${compressionLevel}`);
         
         try {
           // Obtener página actual
@@ -75,29 +64,26 @@ export async function compressPDFWithCanvas(
           // Crear canvas para renderizar la página
           const canvas = document.createElement('canvas');
           
-          // Usar configuración de alta calidad para niveles bajo y medio, y también mejorada para nivel alto
-          const useHighQuality = isHighQualityMode || preserveTextQuality;
+          // Aplicar la configuración del nivel de compresión
+          const adjustedScaleFactor = compressionLevel === 'high' ? scaleFactor : 
+                                      compressionLevel === 'medium' ? scaleFactor * 1.2 : 
+                                      scaleFactor * 1.4;
           
-          // Usar un factor de escala adicional para asegurar máxima nitidez en niveles bajo y medio
-          const adjustedScaleFactor = isHighQualityMode ? 
-                                    Math.max(scaleFactor, compressionLevel === 'low' ? 3.0 : 2.5) : 
-                                    scaleFactor;
-          
-          // Renderizar página en el canvas con configuraciones de calidad optimizadas
+          // Renderizar página en el canvas con configuraciones según nivel
           await renderPageToCanvasWithOptions(
             page,
             canvas,
             adjustedScaleFactor,
-            useHighQuality, 
-            preserveTextQuality ? 'print' : 'display'
+            compressionLevel !== 'high', // Usar alta calidad solo para niveles bajo y medio
+            textMode
           );
           
-          // IMPORTANTE: Uso un enfoque súper simple para comprimir la imagen para evitar errores
-          // Usar calidad extremadamente alta para JPEG
-          const quality = compressionLevel === 'low' ? 0.99 : 
-                          compressionLevel === 'medium' ? 0.95 : 0.90;
+          // Usar calidad de JPEG según nivel de compresión
+          const quality = compressionLevel === 'low' ? jpegQuality : 
+                          compressionLevel === 'medium' ? jpegQuality : 
+                          jpegQuality;
           
-          // Obtener data URL directamente del canvas (enfoque simple y confiable)
+          // Obtener data URL directamente del canvas 
           const dataUrl = canvas.toDataURL('image/jpeg', quality);
           
           // Convertir data URL a ArrayBuffer
@@ -125,7 +111,8 @@ export async function compressPDFWithCanvas(
             console.error(`Error incrustando imagen para página ${i+1}:`, embedError);
             
             // Si falla, intentar con calidad más baja como último recurso
-            const fallbackDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const fallbackQuality = compressionLevel === 'high' ? 0.5 : 0.7;
+            const fallbackDataUrl = canvas.toDataURL('image/jpeg', fallbackQuality);
             const fallbackResponse = await fetch(fallbackDataUrl);
             const fallbackImageBuffer = await fallbackResponse.arrayBuffer();
             
@@ -152,14 +139,14 @@ export async function compressPDFWithCanvas(
         return null;
       }
       
-      // Guardar el documento comprimido con opciones optimizadas
+      // Guardar el documento comprimido con opciones optimizadas según nivel
       progressCallback(95);
       console.info("Guardando documento comprimido con opciones optimizadas...");
       
       const compressedPdfBytes = await newPdfDoc.save({
         useObjectStreams: true,
         addDefaultPage: false,
-        objectsPerTick: 100
+        objectsPerTick: compressionLevel === 'high' ? 50 : 100
       });
       
       // Crear nuevo archivo con el PDF comprimido

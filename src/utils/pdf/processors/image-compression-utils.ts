@@ -18,8 +18,8 @@ export async function compressCanvasImage(
   fallbackQuality: number = 0.85
 ): Promise<string> {
   try {
-    // Primero convertimos a JPEG con máxima calidad para preservar detalles
-    const initialJpegUrl = canvas.toDataURL('image/jpeg', Math.min(1.0, fallbackQuality + 0.1));
+    // Generar JPEG inicial con la calidad especificada
+    const initialJpegUrl = canvas.toDataURL('image/jpeg', Math.min(1.0, fallbackQuality));
     
     console.info(`Procesando imagen de página ${pageIndex+1} (${canvas.width}x${canvas.height})`);
     
@@ -34,9 +34,9 @@ export async function compressCanvasImage(
         // Enviar a reSmush para compresión optimizada
         const compressedImageUrl = await compressImageWithResmush(blob, {
           quality: resmushQuality,
-          exif: false, // No necesitamos conservar metadatos EXIF
-          timeout: 30000, // 30 segundos de timeout
-          retries: 2 // 2 reintentos
+          exif: false,
+          timeout: 15000,
+          retries: 1
         });
         
         console.info(`Compresión con reSmush.it exitosa para página ${pageIndex+1}`);
@@ -46,13 +46,13 @@ export async function compressCanvasImage(
       }
     }
     
-    // Compresión local con calidad ajustada (valor por defecto)
+    // Compresión local con calidad ajustada
     console.info(`Usando compresión local para página ${pageIndex+1} (calidad: ${fallbackQuality})`);
     return canvas.toDataURL('image/jpeg', fallbackQuality);
   } catch (error) {
     console.error(`Error general comprimiendo imagen de página ${pageIndex+1}:`, error);
-    // Último recurso: devolver una imagen con calidad media-alta
-    return canvas.toDataURL('image/jpeg', 0.9);
+    // Último recurso: devolver una imagen con calidad media
+    return canvas.toDataURL('image/jpeg', 0.8);
   }
 }
 
