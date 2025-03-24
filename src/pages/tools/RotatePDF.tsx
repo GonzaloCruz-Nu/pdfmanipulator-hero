@@ -1,16 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Undo2, RotateCw, RotateCcw, Save, ListChecks, XCircle, Check } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import FileUpload from '@/components/FileUpload';
 import PdfPreview from '@/components/PdfPreview';
 import { usePdfRenderer } from '@/hooks/usePdfRenderer';
 import { rotatePdfPage } from '@/utils/pdf/rotatePdf';
 import { toast } from 'sonner';
+
+// Import the refactored components
+import PdfThumbnailSelector from '@/components/rotate-pdf/PdfThumbnailSelector';
+import RotationControls from '@/components/rotate-pdf/RotationControls';
+import PageInfo from '@/components/rotate-pdf/PageInfo';
+import SaveControls from '@/components/rotate-pdf/SaveControls';
+import RotatePdfUpload from '@/components/rotate-pdf/RotatePdfUpload';
 
 const RotatePDF: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -34,7 +37,7 @@ const RotatePDF: React.FC = () => {
     renderThumbnail
   } = usePdfRenderer(file);
 
-  // Efecto para generar las miniaturas cuando el PDF se carga
+  // Effect to generate thumbnails when PDF loads
   useEffect(() => {
     if (!pdfDocument || !file) return;
     
@@ -48,7 +51,7 @@ const RotatePDF: React.FC = () => {
     };
     
     generateThumbnails();
-  }, [pdfDocument, totalPages, file]);
+  }, [pdfDocument, totalPages, file, renderThumbnail]);
 
   const handleFileChange = (uploadedFiles: File[]) => {
     if (uploadedFiles.length > 0) {
@@ -163,163 +166,66 @@ const RotatePDF: React.FC = () => {
         </div>
 
         {!file ? (
-          <Card className="p-6 max-w-xl mx-auto">
-            <FileUpload
-              onFilesSelected={handleFileChange}
-              maxFiles={1}
-              maxSize={100}
-              accept=".pdf"
-              infoText="Arrastra un archivo PDF o haz clic para seleccionarlo"
-            />
-          </Card>
+          <RotatePdfUpload 
+            file={file}
+            handleFileChange={handleFileChange}
+            setFile={setFile}
+          />
         ) : (
           <div className="grid grid-cols-1 gap-6">
             <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">{file.name}</h2>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setFile(null)}
-                >
-                  Cambiar archivo
-                </Button>
-              </div>
+              <RotatePdfUpload 
+                file={file}
+                handleFileChange={handleFileChange}
+                setFile={setFile}
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Sidebar con miniaturas y selección de páginas */}
+                {/* Sidebar with thumbnails and page selection */}
                 {showSelectionMode && (
-                  <div className="md:col-span-1 bg-gray-50 p-4 rounded-lg overflow-y-auto max-h-[600px] border border-gray-200">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-sm">Selección de páginas</h3>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={selectAllPages}
-                          title="Seleccionar todas"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={clearPageSelection}
-                          title="Limpiar selección"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {thumbnails.map((thumb, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`flex items-center space-x-2 p-2 rounded ${selectedPages.includes(idx + 1) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'}`}
-                        >
-                          <Checkbox 
-                            id={`page-${idx + 1}`}
-                            checked={selectedPages.includes(idx + 1)}
-                            onCheckedChange={() => togglePageSelection(idx + 1)}
-                          />
-                          <div className="flex items-center space-x-2 flex-1">
-                            <div className="w-12 h-16 relative border border-gray-200">
-                              <img 
-                                src={thumb} 
-                                alt={`Página ${idx + 1}`} 
-                                className="absolute inset-0 w-full h-full object-contain"
-                              />
-                            </div>
-                            <label htmlFor={`page-${idx + 1}`} className="text-sm cursor-pointer flex-1">
-                              Página {idx + 1}
-                              {rotationAngles[idx + 1] ? 
-                                <span className="text-xs text-blue-600 ml-1">
-                                  ({rotationAngles[idx + 1]}°)
-                                </span> : null
-                              }
-                            </label>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <PdfThumbnailSelector
+                    thumbnails={thumbnails}
+                    selectedPages={selectedPages}
+                    rotationAngles={rotationAngles}
+                    togglePageSelection={togglePageSelection}
+                    selectAllPages={selectAllPages}
+                    clearPageSelection={clearPageSelection}
+                  />
                 )}
                 
-                {/* Vista previa del PDF */}
+                {/* PDF preview */}
                 <div className={`relative ${showSelectionMode ? 'md:col-span-3' : 'md:col-span-4'}`}>
                   <PdfPreview file={file} className="h-[600px]" />
                   
                   {/* Rotation tools overlay */}
-                  <div className="absolute top-12 right-4 flex flex-col gap-2 z-20">
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
-                      onClick={() => handleRotate('counterclockwise')}
-                      disabled={isLoading}
-                      title="Rotar 90° a la izquierda"
-                    >
-                      <RotateCcw />
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
-                      onClick={() => handleRotate('clockwise')}
-                      disabled={isLoading}
-                      title="Rotar 90° a la derecha"
-                    >
-                      <RotateCw />
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
-                      onClick={handleResetRotation}
-                      disabled={isLoading || (selectedPages.length === 0 && !(rotationAngles[currentPage] !== undefined))}
-                      title="Restablecer rotación"
-                    >
-                      <Undo2 />
-                    </Button>
-                    <Button
-                      variant="secondary" 
-                      size="icon"
-                      onClick={toggleSelectionMode}
-                      disabled={isLoading || thumbnails.length === 0}
-                      title={showSelectionMode ? "Ocultar selección de páginas" : "Mostrar selección de páginas"}
-                      className={showSelectionMode ? "bg-blue-100" : ""}
-                    >
-                      <ListChecks />
-                    </Button>
-                  </div>
+                  <RotationControls
+                    isLoading={isLoading}
+                    handleRotate={handleRotate}
+                    handleResetRotation={handleResetRotation}
+                    toggleSelectionMode={toggleSelectionMode}
+                    showSelectionMode={showSelectionMode}
+                    hasRotation={Object.keys(rotationAngles).length > 0}
+                    currentPage={currentPage}
+                    selectedPages={selectedPages}
+                    rotationAngles={rotationAngles}
+                    thumbnailsExist={thumbnails.length > 0}
+                  />
                   
                   {/* Page info */}
-                  <div className="absolute bottom-16 left-0 right-0 flex justify-center">
-                    <div className="bg-white px-4 py-2 rounded-full shadow text-sm">
-                      Página {currentPage} de {totalPages}
-                      {selectedPages.length > 0 && (
-                        <span className="ml-2 text-blue-600">
-                          ({selectedPages.length} páginas seleccionadas)
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <PageInfo
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    selectedPages={selectedPages}
+                  />
                 </div>
               </div>
               
-              <div className="flex justify-between items-center mt-4">
-                <div>
-                  {Object.keys(rotationAngles).length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {Object.keys(rotationAngles).length} {Object.keys(rotationAngles).length === 1 ? 'página rotada' : 'páginas rotadas'}
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  onClick={handleSaveRotations}
-                  disabled={isLoading || processingRotation || Object.keys(rotationAngles).length === 0}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar cambios
-                </Button>
-              </div>
+              <SaveControls
+                rotationAngles={rotationAngles}
+                processingRotation={processingRotation}
+                isLoading={isLoading}
+                handleSaveRotations={handleSaveRotations}
+              />
             </div>
           </div>
         )}
