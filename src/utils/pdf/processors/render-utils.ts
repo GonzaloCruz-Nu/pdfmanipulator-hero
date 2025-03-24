@@ -91,13 +91,6 @@ export async function renderPageToCanvasWithOptions(
           data[i + 1] = Math.max(0, Math.min(255, Math.floor(data[i + 1] / darknessFactor)));
           data[i + 2] = Math.max(0, Math.min(255, Math.floor(data[i + 2] / darknessFactor)));
         }
-        
-        // Mejorar nitidez de contornos de texto y bordes
-        // Este código es muy costoso, solo aplicarlo si realmente se requiere
-        // if (i % 16 === 0 && i > canvas.width * 4 && i < data.length - canvas.width * 4) {
-        //   // Comparar con píxeles circundantes para detectar bordes
-        //   // ... código de mejora de nitidez adaptativa
-        // }
       }
       
       ctx.putImageData(imageData, 0, 0);
@@ -133,3 +126,4 @@ export async function loadPdfDocumentFromArray(fileArrayBuffer: ArrayBuffer): Pr
     throw error;
   }
 }
+

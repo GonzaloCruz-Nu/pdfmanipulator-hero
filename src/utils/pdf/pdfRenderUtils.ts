@@ -127,3 +127,4 @@ export async function loadPdfPageAsImage(
     throw error;
   }
 }
+

@@ -8,3 +8,4 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 // Re-exportar las funciones de renderizado para mantener compatibilidad
 export const renderPageToCanvas = renderPageToCanvasWithOptions;
 export const loadPdfDocument = loadPdfDocumentFromArray;
+
