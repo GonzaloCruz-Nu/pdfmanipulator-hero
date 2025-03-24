@@ -144,10 +144,12 @@ export async function compressPDFWithCanvas(
       let imageDataUrl: string;
       let imageBytes: Uint8Array;
       
-      // Para niveles bajo y medio, usar reSmush.it API
+      // Para niveles bajo y medio, usar reSmush.it API con diferentes calidades
       if ((level === 'low' || level === 'medium') && totalPages <= 20) {
         try {
-          console.info(`Usando reSmush.it para la página ${i+1}/${totalPages}`);
+          // Definir calidad según nivel de compresión
+          const resmushQuality = level === 'low' ? 95 : 80; // 95% para bajo, 80% para medio
+          console.info(`Usando reSmush.it para la página ${i+1}/${totalPages} con calidad ${resmushQuality}`);
           
           // Obtener blob del canvas en alta calidad
           const canvasBlob = await new Promise<Blob>((resolve) => {
@@ -158,8 +160,8 @@ export async function compressPDFWithCanvas(
             );
           });
           
-          // Comprimir con reSmush.it
-          const compressedImageUrl = await compressImageWithResmush(canvasBlob);
+          // Comprimir con reSmush.it usando calidad diferenciada
+          const compressedImageUrl = await compressImageWithResmush(canvasBlob, resmushQuality);
           imageBytes = await downloadCompressedImage(compressedImageUrl);
           
           console.info(`Página ${i+1} comprimida con reSmush.it correctamente`);

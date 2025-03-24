@@ -8,9 +8,13 @@ const RESMUSH_API_URL = 'https://api.resmush.it/ws.php';
 /**
  * Comprime una imagen usando la API de reSmush.it
  * @param imageData ArrayBuffer o Blob con los datos de la imagen
+ * @param quality Calidad de compresión (0-100, por defecto 90)
  * @returns Promise con la URL de la imagen comprimida
  */
-export async function compressImageWithResmush(imageData: ArrayBuffer | Blob): Promise<string> {
+export async function compressImageWithResmush(
+  imageData: ArrayBuffer | Blob, 
+  quality: number = 90
+): Promise<string> {
   try {
     // Convertir a Blob si es ArrayBuffer
     const imageBlob = imageData instanceof Blob 
@@ -21,11 +25,11 @@ export async function compressImageWithResmush(imageData: ArrayBuffer | Blob): P
     const formData = new FormData();
     formData.append('files', imageBlob, 'image.jpg');
     
-    // Opciones adicionales
-    formData.append('qlty', '90'); // Calidad 90% (por defecto es 92%)
+    // Opciones adicionales con calidad personalizable
+    formData.append('qlty', quality.toString()); // Calidad personalizable
     formData.append('exif', 'true'); // Mantener metadatos EXIF
     
-    console.log('Enviando solicitud a reSmush.it API...');
+    console.log(`Enviando solicitud a reSmush.it API con calidad ${quality}...`);
     
     // Realizar la petición a reSmush.it con los headers requeridos
     const response = await fetch(RESMUSH_API_URL, {
