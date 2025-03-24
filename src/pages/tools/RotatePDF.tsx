@@ -37,31 +37,41 @@ const RotatePDF: React.FC = () => {
     renderThumbnail
   } = usePdfRenderer(file);
 
+  // Track when PDF is fully loaded and thumbnails are generated
   useEffect(() => {
-    if (!pdfDocument || !file) return;
+    if (!pdfDocument || !file) {
+      setIsPageSelectionEnabled(false);
+      return;
+    }
     
     const generateThumbnails = async () => {
       setGeneratingThumbnails(true);
       setIsPageSelectionEnabled(false);
       const thumbs: string[] = [];
       try {
+        console.log("Comenzando a generar miniaturas...");
         for (let i = 1; i <= totalPages; i++) {
           const thumb = await renderThumbnail(i);
           if (thumb) thumbs.push(thumb);
         }
         setThumbnails(thumbs);
+        console.log(`Miniaturas generadas: ${thumbs.length} de ${totalPages}`);
       } catch (error) {
         console.error('Error generando miniaturas:', error);
         toast.error('Error al generar las miniaturas del PDF');
       } finally {
         setGeneratingThumbnails(false);
         setIsPageSelectionEnabled(true);
+        console.log("Selección de páginas habilitada");
       }
     };
     
-    generateThumbnails();
+    if (pdfDocument && totalPages > 0) {
+      generateThumbnails();
+    }
   }, [pdfDocument, totalPages, file, renderThumbnail]);
 
+  // Reset selection state when file changes
   const handleFileChange = (uploadedFiles: File[]) => {
     if (uploadedFiles.length > 0) {
       setFile(uploadedFiles[0]);
@@ -70,6 +80,7 @@ const RotatePDF: React.FC = () => {
       setThumbnails([]);
       setShowSelectionMode(false);
       setIsPageSelectionEnabled(false);
+      setGeneratingThumbnails(false);
     }
   };
 
@@ -229,7 +240,7 @@ const RotatePDF: React.FC = () => {
                     
                     {generatingThumbnails ? (
                       <div className="space-y-2">
-                        {Array.from({ length: Math.min(10, totalPages) }).map((_, idx) => (
+                        {Array.from({ length: Math.min(10, totalPages || 5) }).map((_, idx) => (
                           <div key={idx} className="flex items-center space-x-2 p-2 rounded animate-pulse">
                             <Skeleton className="h-4 w-4 rounded-sm" />
                             <div className="flex items-center space-x-2 flex-1">
@@ -243,7 +254,7 @@ const RotatePDF: React.FC = () => {
                           Generando miniaturas...
                         </div>
                       </div>
-                    ) : (
+                    ) : thumbnails.length > 0 ? (
                       <div className="space-y-2">
                         {thumbnails.map((thumb, idx) => (
                           <div 
@@ -279,11 +290,22 @@ const RotatePDF: React.FC = () => {
                           </div>
                         ))}
                         
-                        {!isPageSelectionEnabled && thumbnails.length > 0 && (
+                        {!isPageSelectionEnabled && (
                           <div className="text-center text-sm text-muted-foreground pt-2">
                             <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
                             Cargando opciones de selección...
                           </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground pt-2">
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 inline-block mr-1 animate-spin" />
+                            Cargando documento...
+                          </>
+                        ) : (
+                          "No se pudieron generar las miniaturas"
                         )}
                       </div>
                     )}
