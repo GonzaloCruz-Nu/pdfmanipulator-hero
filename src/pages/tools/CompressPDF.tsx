@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { useMultipleCompressPDF } from '@/hooks/useMultipleCompressPDF';
 import { calculateTotalCompressionStats } from '@/services/pdfCompressionService';
 import { isWasmSupported } from '@/utils/pdf/pdfRenderUtils';
+import Header from '@/components/Header';
+import Layout from '@/components/Layout';
 import CompressHeader from '@/components/pdf/CompressHeader';
 import CompressUpload from '@/components/pdf/CompressUpload';
 import CompressPreview from '@/components/pdf/CompressPreview';
@@ -50,43 +52,48 @@ const CompressPDF: React.FC = () => {
     null;
   
   return (
-    <div className="container mx-auto py-8">
-      <CompressHeader wasmSupported={wasmSupported} />
-      
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <CompressUpload 
-          onFilesSelected={handleFilesSelected}
-          files={files}
-          compressionLevel={compressionLevel}
-          setCompressionLevel={setCompressionLevel}
-          handleCompressPDFs={handleCompressPDFs}
-          isProcessing={isProcessing}
-          progress={progress}
-          currentProcessingIndex={currentProcessingIndex}
-          totalFiles={totalFiles}
-          compressionInfo={compressionInfo}
-          compressionError={compressionError}
-          compressedFiles={compressedFiles}
-          downloadCompressedFile={downloadCompressedFile}
-          downloadAllAsZip={downloadAllAsZip}
-          selectedFileIndex={selectedFileIndex}
-          totalStats={totalStats}
-          isDownloadingZip={isDownloadingZip}
-        />
-        
-        <CompressPreview 
-          files={files}
-          compressedFiles={compressedFiles}
-          selectedFileIndex={selectedFileIndex}
-          setSelectedFileIndex={setSelectedFileIndex}
-        />
-      </motion.div>
-    </div>
+    <>
+      <Header />
+      <Layout>
+        <div className="container mx-auto py-8">
+          <CompressHeader wasmSupported={wasmSupported} />
+          
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <CompressUpload 
+              onFilesSelected={handleFilesSelected}
+              files={files}
+              compressionLevel={compressionLevel}
+              setCompressionLevel={setCompressionLevel}
+              handleCompressPDFs={handleCompressPDFs}
+              isProcessing={isProcessing}
+              progress={progress}
+              currentProcessingIndex={currentProcessingIndex}
+              totalFiles={totalFiles}
+              compressionInfo={compressionInfo}
+              compressionError={compressionError}
+              compressedFiles={compressedFiles}
+              downloadCompressedFile={downloadCompressedFile}
+              downloadAllAsZip={downloadAllAsZip}
+              selectedFileIndex={selectedFileIndex}
+              totalStats={totalStats}
+              isDownloadingZip={isDownloadingZip}
+            />
+            
+            <CompressPreview 
+              files={files}
+              compressedFiles={compressedFiles}
+              selectedFileIndex={selectedFileIndex}
+              setSelectedFileIndex={setSelectedFileIndex}
+            />
+          </motion.div>
+        </div>
+      </Layout>
+    </>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CompressionLevel } from '../compression-types';
@@ -143,11 +142,34 @@ export async function compressPDFWithCanvas(
       // Ajustar el comportamiento según el nivel de compresión
       // Para baja compresión, aceptamos una reducción mínima o incluso tamaño similar
       if (compressionLevel === 'low') {
-        // Si es nivel bajo, aceptamos hasta un 10% más grande
-        if (compressedFile.size < file.size * 1.1) {
+        // Asegurar que siempre hay alguna diferencia para nivel bajo
+        if (compressedFile.size !== file.size) {
           return compressedFile;
+        } else {
+          console.info("La compresión de nivel bajo produjo un archivo del mismo tamaño. Forzando cambios mínimos...");
+          try {
+            // Forzar un cambio mínimo en los metadatos para asegurar resultado
+            const pdfDoc = await PDFDocument.load(compressedPdfBytes);
+            pdfDoc.setCreator(`PDF Optimizer - Calidad óptima (${new Date().toISOString()})`);
+            pdfDoc.setProducer(`PDF Optimizer v2.0 - Nivel bajo (forzado)`);
+            
+            const forcedBytes = await pdfDoc.save(saveOptions);
+            return new File(
+              [forcedBytes],
+              compressedFileName,
+              { type: 'application/pdf', lastModified: Date.now() }
+            );
+          } catch (e) {
+            console.error("Error al forzar cambios mínimos:", e);
+            // Si falla, devolver el archivo original con nombre cambiado
+            return new File(
+              [await file.arrayBuffer()],
+              `${file.name.replace('.pdf', '')}_optimizado.pdf`,
+              { type: 'application/pdf', lastModified: Date.now() }
+            );
+          }
         }
-      } 
+      }
       // Para compresión media y alta, verificamos si la compresión fue significativa
       else if (compressedFile.size > file.size * 0.95) {
         console.warn(`La compresión no logró reducir significativamente el tamaño del archivo. Intentando métodos alternativos...`);

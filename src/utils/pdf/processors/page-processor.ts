@@ -58,6 +58,11 @@ export async function processPage(
     const maxDimension = Math.max(width, height);
     let adjustedJpegQuality = jpegQuality;
     
+    // Para nivel bajo, asegurarse de mantener una calidad mínima
+    if (compressionLevel === 'low') {
+      adjustedJpegQuality = Math.max(jpegQuality, 0.8);
+    }
+    
     console.info(`Usando calidad JPEG ${adjustedJpegQuality.toFixed(2)} para página ${pageIndex+1} (dimensión máx: ${maxDimension.toFixed(0)}px)`);
     
     // Verificar que el canvas tenga contenido
